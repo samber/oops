@@ -2,7 +2,7 @@ package oops
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"sync"
 
@@ -24,7 +24,7 @@ func readFile(path string) ([]string, bool) {
 		return lines, true
 	}
 
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, false
 	}
