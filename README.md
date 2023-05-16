@@ -14,9 +14,8 @@
 
 > ⚠️ This is NOT a logging library. `oops` should be used as a complement to your existing logging toolchain (zap, zerolog, logrus, slog...).
 
-<div style="display: flex; justify-content: space-between; margin-top: 30px; margin-bottom: 30px;">
-    <div>
-        <p>
+<img align="right" title="Oops gopher logo" alt="logo: thanks Gimp" width="280" src="assets/logo.png">
+
 Jump:
 
 - [🤔 Motivations](#🤔-motivations)
@@ -31,13 +30,7 @@ Jump:
   - [Output](#output)
 - [🥷 Tips and best practices](#🥷-tips-and-best-practices)
 - [📫 Loggers](#📫-loggers)
-        </p>
-    </div>
-    <div>
-        <img title="Oops gopher logo" alt="logo: thanks Gimp" style="max-width: 250px" src="assets/logo.png">
-    </div>
-</div>
-
+	
 ## 🤔 Motivations
 
 Loggers usually allow developers to build records with contextual attributes, that describe errors (such as `zap.Infow("failed to fetch URL", "url", url)` or `logrus.WithFields("url", url).Error("failed to fetch URL")`). But Go recommends cascading error handling, so the error may be writen very far from the call to the logger.
