@@ -606,9 +606,9 @@ func d() error {
 Some loggers may need a custom formatter to extract attributes from `oops.OopsError`.
 
 Available loggers:
-- log: [example](https://github.com/samber/oops/examples/log)
-- slog: [example](https://github.com/samber/oops/examples/slog)
-- logrus: [formatter](https://github.com/samber/oops/loggers/logrus) + [example](https://github.com/samber/oops/examples/logrus)
+- log: [playground](https://go.dev/play/p/uNx3CcT-X40) - [example](https://github.com/samber/oops/examples/log)
+- slog: [playground](https://go.dev/play/p/-X2ZnqjyDLu) - [example](https://github.com/samber/oops/examples/slog)
+- logrus: [formatter](https://github.com/samber/oops/loggers/logrus) - [playground](https://go.dev/play/p/IVeDMt4ouP-) - [example](https://github.com/samber/oops/examples/logrus)
 
 We are looking for contributions and examples for:
 - zap

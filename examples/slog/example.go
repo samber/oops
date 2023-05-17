@@ -4,8 +4,6 @@ import (
 	"os"
 	"time"
 
-	_ "embed"
-
 	"github.com/samber/oops"
 	"golang.org/x/exp/slog"
 )

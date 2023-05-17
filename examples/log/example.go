@@ -4,8 +4,6 @@ import (
 	"log"
 	"time"
 
-	_ "embed"
-
 	"github.com/samber/oops"
 )
 
