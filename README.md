@@ -28,8 +28,8 @@ Jump:
   - [Stack trace](#stack-trace)
   - [Source fragments](#source-fragments)
   - [Output](#output)
-- [🥷 Tips and best practices](#🥷-tips-and-best-practices)
 - [📫 Loggers](#📫-loggers)
+- [🥷 Tips and best practices](#🥷-tips-and-best-practices)
 	
 ## 🤔 Motivations
 
@@ -461,6 +461,23 @@ attr := slog.Any("error")
 // slog.Group("error", ...)
 ```
 
+## 📫 Loggers
+
+Some loggers may need a custom formatter to extract attributes from `oops.OopsError`.
+
+Available loggers:
+- log: [playground](https://go.dev/play/p/uNx3CcT-X40) - [example](https://github.com/samber/oops/tree/master/examples/log)
+- slog: [playground](https://go.dev/play/p/-X2ZnqjyDLu) - [example](https://github.com/samber/oops/examples/slog)
+- logrus: [formatter](https://github.com/samber/oops/tree/master/loggers/logrus) - [playground](https://go.dev/play/p/lEaGjJ0dAWk) - [example](https://github.com/samber/oops/tree/master/examples/logrus)
+
+We are looking for contributions and examples for:
+- zap
+- zerolog
+- go-sentry
+- other?
+
+Examples of formatters can be found in `ToMap()`, `Format()`, `Marshal()` and `LogValuer` methods of `oops.OopsError`.
+
 ## 🥷 Tips and best practices
 
 ### Wrap/Wrapf shortcut
@@ -602,23 +619,6 @@ func d() error {
 		Errorf("permission denied")
 }
 ```
-
-## 📫 Loggers
-
-Some loggers may need a custom formatter to extract attributes from `oops.OopsError`.
-
-Available loggers:
-- log: [playground](https://go.dev/play/p/uNx3CcT-X40) - [example](https://github.com/samber/oops/tree/master/examples/log)
-- slog: [playground](https://go.dev/play/p/-X2ZnqjyDLu) - [example](https://github.com/samber/oops/examples/slog)
-- logrus: [formatter](https://github.com/samber/oops/tree/master/loggers/logrus) - [playground](https://go.dev/play/p/lEaGjJ0dAWk) - [example](https://github.com/samber/oops/tree/master/examples/logrus)
-
-We are looking for contributions and examples for:
-- zap
-- zerolog
-- go-sentry
-- other?
-
-Examples of formatters can be found in `ToMap()`, `Format()`, `Marshal()` and `LogValuer` methods of `oops.OopsError`.
 
 ## 🤝 Contributing
 
