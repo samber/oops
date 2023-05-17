@@ -14,7 +14,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         # we need control over the path, since stacktrace tests rely on it
-        path: github.com/samber
+        path: github.com/samber/oops
 
     - name: Set up Go
       uses: actions/setup-go@v2
@@ -23,15 +23,19 @@ jobs:
         stable: false
 
     - name: Build
+      working-directory: ./github.com/samber/oops
       run: make build
 
     - name: Test
+      working-directory: ./github.com/samber/oops
       run: make test
 
     - name: Test
+      working-directory: ./github.com/samber/oops
       run: make coverage
 
     - name: Codecov
+      working-directory: ./github.com/samber/oops
       uses: codecov/codecov-action@v2
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
