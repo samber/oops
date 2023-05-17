@@ -372,6 +372,9 @@ func (o OopsError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(o.ToMap())
 }
 
+// Format implements fmt.Formatter.
+// If the format is "%+v", then the details of the error are included.
+// Otherwise, using "%v", just the summary is included.
 func (o OopsError) Format(s fmt.State, verb rune) {
 	if verb == 'v' && s.Flag('+') {
 		fmt.Fprint(s, o.formatVerbose())

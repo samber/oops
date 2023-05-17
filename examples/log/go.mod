@@ -1,4 +1,4 @@
-module github.com/samber/oops/examples/slog
+module github.com/samber/oops/examples/log
 
 go 1.20
 

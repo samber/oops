@@ -1,0 +1,14 @@
+go 1.20
+
+use (
+	.
+
+	// logger formatters
+	./loggers/logrus
+
+	// examples
+	./examples/log
+	./examples/slog
+	./examples/logrus
+	./examples/sources
+)
