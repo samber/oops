@@ -1,17 +1,15 @@
 package main
 
 import (
-	"os"
+	"log"
 	"time"
 
 	_ "embed"
 
 	"github.com/samber/oops"
-	"golang.org/x/exp/slog"
 )
 
-// go run examples/slog/example.go | jq
-// go run examples/slog/example.go | jq .error.stacktrace -r
+// go run examples/log/example.go
 
 func d() error {
 	return oops.
@@ -42,12 +40,7 @@ func a() error {
 }
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-
 	err := a()
 
-	logger.Error(
-		err.Error(),
-		slog.Any("error", err),
-	)
+	log.Printf("%+v", err)
 }

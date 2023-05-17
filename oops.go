@@ -50,9 +50,14 @@ func Tags(tags ...string) OopsErrorBuilder {
 	return new().Tags(tags...)
 }
 
-// Tx set a transaction id, trace id or correlation id...
-func Tx(transactionID string) OopsErrorBuilder {
-	return new().Tx(transactionID)
+// Trace set a transaction id, trace id or correlation id...
+func Trace(trace string) OopsErrorBuilder {
+	return new().Trace(trace)
+}
+
+// Span represents a unit of work or operation.
+func Span(span string) OopsErrorBuilder {
+	return new().Span(span)
 }
 
 // With supplies a list of attributes declared by pair of key+value.

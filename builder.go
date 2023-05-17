@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 )
 
@@ -38,12 +39,15 @@ func new() OopsErrorBuilder {
 		duration: 0,
 
 		// context
-		domain:        "",
-		tags:          []string{},
-		transactionID: "",
-		context:       map[string]any{},
-		hint:          "",
-		owner:         "",
+		domain:  "",
+		tags:    []string{},
+		context: map[string]any{},
+
+		trace: "",
+		span:  "",
+
+		hint:  "",
+		owner: "",
 
 		// user
 		userID:   "",
@@ -62,12 +66,15 @@ func (o OopsErrorBuilder) copy() OopsErrorBuilder {
 		time:     o.time,
 		duration: o.duration,
 
-		domain:        o.domain,
-		tags:          o.tags,
-		transactionID: o.transactionID,
-		context:       lo.Assign(map[string]any{}, o.context),
-		hint:          o.hint,
-		owner:         o.owner,
+		domain:  o.domain,
+		tags:    o.tags,
+		context: lo.Assign(map[string]any{}, o.context),
+
+		trace: o.trace,
+		span:  o.span,
+
+		hint:  o.hint,
+		owner: o.owner,
 
 		userID:   o.userID,
 		userData: lo.Assign(map[string]any{}, o.userData),
@@ -84,7 +91,10 @@ func (o OopsErrorBuilder) Wrap(err error) error {
 
 	o2 := o.copy()
 	o2.err = err
-	o2.stacktrace = newStacktrace()
+	if o2.span == "" {
+		o2.span = ulid.Make().String()
+	}
+	o2.stacktrace = newStacktrace(o2.span)
 	return OopsError(o2)
 }
 
@@ -97,7 +107,10 @@ func (o OopsErrorBuilder) Wrapf(err error, format string, args ...any) error {
 	o2 := o.copy()
 	o2.err = err
 	o2.msg = fmt.Errorf(format, args...).Error()
-	o2.stacktrace = newStacktrace()
+	if o2.span == "" {
+		o2.span = ulid.Make().String()
+	}
+	o2.stacktrace = newStacktrace(o2.span)
 	return OopsError(o2)
 }
 
@@ -105,7 +118,10 @@ func (o OopsErrorBuilder) Wrapf(err error, format string, args ...any) error {
 func (o OopsErrorBuilder) Errorf(format string, args ...any) error {
 	o2 := o.copy()
 	o2.msg = fmt.Errorf(format, args...).Error()
-	o2.stacktrace = newStacktrace()
+	if o2.span == "" {
+		o2.span = ulid.Make().String()
+	}
+	o2.stacktrace = newStacktrace(o2.span)
 	return OopsError(o2)
 }
 
@@ -154,13 +170,6 @@ func (o OopsErrorBuilder) Tags(tags ...string) OopsErrorBuilder {
 	return o2
 }
 
-// Tx set a transaction id, trace id or correlation id...
-func (o OopsErrorBuilder) Tx(transactionID string) OopsErrorBuilder {
-	o2 := o.copy()
-	o2.transactionID = transactionID
-	return o2
-}
-
 // With supplies a list of attributes declared by pair of key+value.
 func (o OopsErrorBuilder) With(kv ...any) OopsErrorBuilder {
 	o2 := o.copy()
@@ -173,6 +182,20 @@ func (o OopsErrorBuilder) With(kv ...any) OopsErrorBuilder {
 		}
 	}
 
+	return o2
+}
+
+// Trace set a transaction id, trace id or correlation id...
+func (o OopsErrorBuilder) Trace(trace string) OopsErrorBuilder {
+	o2 := o.copy()
+	o2.trace = trace
+	return o2
+}
+
+// Span represents a unit of work or operation.
+func (o OopsErrorBuilder) Span(span string) OopsErrorBuilder {
+	o2 := o.copy()
+	o2.span = span
 	return o2
 }
 

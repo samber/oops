@@ -32,7 +32,7 @@ func c() error {
 func b() error {
 	return oops.
 		In("iam").
-		Tx("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
+		Trace("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
 		With("hello", "world").
 		Wrapf(c(), "something failed")
 }

@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
-
-	"github.com/samber/lo"
 )
 
 ///
@@ -39,7 +37,10 @@ func (frame *oopsStacktraceFrame) String() string {
 	return currentFrame
 }
 
-type oopsStacktrace []oopsStacktraceFrame
+type oopsStacktrace struct {
+	span   string
+	frames []oopsStacktraceFrame
+}
 
 func (st *oopsStacktrace) Error() string {
 	return st.String("")
@@ -54,7 +55,7 @@ func (st *oopsStacktrace) String(deepestFrame string) string {
 		}
 	}
 
-	for _, frame := range *st {
+	for _, frame := range st.frames {
 		if frame.file != "" {
 			currentFrame := frame.String()
 			if currentFrame == deepestFrame {
@@ -70,12 +71,11 @@ func (st *oopsStacktrace) String(deepestFrame string) string {
 }
 
 func (st *oopsStacktrace) Source() (string, []string) {
-	frames := ([]oopsStacktraceFrame)(*st)
-	if len(frames) == 0 {
+	if len(st.frames) == 0 {
 		return "", []string{}
 	}
 
-	firstFrame := frames[0]
+	firstFrame := st.frames[0]
 
 	header := firstFrame.String()
 	body := getSourceFromFrame(firstFrame)
@@ -83,7 +83,7 @@ func (st *oopsStacktrace) Source() (string, []string) {
 	return header, body
 }
 
-func newStacktrace() *oopsStacktrace {
+func newStacktrace(span string) *oopsStacktrace {
 	frames := []oopsStacktraceFrame{}
 
 	// We loop until we have StackTraceMaxDepth frames or we run out of frames.
@@ -116,7 +116,10 @@ func newStacktrace() *oopsStacktrace {
 		}
 	}
 
-	return lo.ToPtr(oopsStacktrace(frames))
+	return &oopsStacktrace{
+		span:   span,
+		frames: frames,
+	}
 }
 
 func shortFuncName(f *runtime.Func) string {

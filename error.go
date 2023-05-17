@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"golang.org/x/exp/slog"
 )
@@ -20,12 +21,15 @@ type OopsError struct {
 	duration time.Duration
 
 	// context
-	domain        string
-	tags          []string
-	transactionID string
-	context       map[string]any
-	hint          string
-	owner         string
+	domain  string
+	tags    []string
+	context map[string]any
+
+	trace string
+	span  string
+
+	hint  string
+	owner string
 
 	// user
 	userID   string
@@ -97,15 +101,6 @@ func (o OopsError) Tags() []string {
 	return lo.Uniq(tags)
 }
 
-func (o OopsError) Transaction() string {
-	return getDeepestErrorAttribute(
-		o,
-		func(e OopsError) string {
-			return e.transactionID
-		},
-	)
-}
-
 func (o OopsError) Context() map[string]any {
 	return mergeNestedErrorMap(
 		o,
@@ -113,6 +108,26 @@ func (o OopsError) Context() map[string]any {
 			return e.context
 		},
 	)
+}
+
+func (o OopsError) Trace() string {
+	trace := getDeepestErrorAttribute(
+		o,
+		func(e OopsError) string {
+			return e.trace
+		},
+	)
+
+	if trace != "" {
+		return trace
+	}
+
+	return ulid.Make().String()
+}
+
+// Span returns the current span instead of the deepest one.
+func (o OopsError) Span() string {
+	return o.span
 }
 
 func (o OopsError) Hint() string {
@@ -155,13 +170,13 @@ func (o OopsError) Stacktrace() string {
 	topFrame := ""
 
 	recursive(o, func(e OopsError) {
-		if e.stacktrace != nil && len(*e.stacktrace) > 0 {
+		if e.stacktrace != nil && len(e.stacktrace.frames) > 0 {
 			msg := coalesceOrEmpty(e.msg, "Error")
 			block := fmt.Sprintf("%s\n%s", msg, e.stacktrace.String(topFrame))
 
 			blocks = append([]string{block}, blocks...)
 
-			topFrame = (*e.stacktrace)[0].String()
+			topFrame = e.stacktrace.frames[0].String()
 		}
 	})
 
@@ -176,7 +191,7 @@ func (o OopsError) Sources() string {
 	blocks := [][]string{}
 
 	recursive(o, func(e OopsError) {
-		if e.stacktrace != nil && len(*e.stacktrace) > 0 {
+		if e.stacktrace != nil && len(e.stacktrace.frames) > 0 {
 			header, body := e.stacktrace.Source()
 
 			if e.msg != "" {
@@ -208,39 +223,43 @@ func (o OopsError) LogValuer() slog.Value {
 	attrs := []slog.Attr{slog.String("message", o.msg)}
 
 	if err := o.Error(); err != "" {
-		attrs = append(attrs, slog.String("err", o.Error()))
+		attrs = append(attrs, slog.String("err", err))
 	}
 
 	if code := o.Code(); code != "" {
-		attrs = append(attrs, slog.String("code", o.Code()))
+		attrs = append(attrs, slog.String("code", code))
 	}
 
 	if t := o.Time(); t != (time.Time{}) {
-		attrs = append(attrs, slog.Time("time", o.Time().UTC()))
+		attrs = append(attrs, slog.Time("time", t.UTC()))
 	}
 
 	if duration := o.Duration(); duration != 0 {
-		attrs = append(attrs, slog.Duration("duration", o.Duration()))
+		attrs = append(attrs, slog.Duration("duration", duration))
 	}
 
 	if domain := o.Domain(); domain != "" {
-		attrs = append(attrs, slog.String("domain", o.Domain()))
+		attrs = append(attrs, slog.String("domain", domain))
 	}
 
 	if tags := o.Tags(); len(tags) > 0 {
-		attrs = append(attrs, slog.Any("tags", o.Tags()))
+		attrs = append(attrs, slog.Any("tags", tags))
 	}
 
-	if transactionID := o.Transaction(); transactionID != "" {
-		attrs = append(attrs, slog.String("transaction", o.Transaction()))
+	if trace := o.Trace(); trace != "" {
+		attrs = append(attrs, slog.String("trace", trace))
 	}
+
+	// if span := o.Span(); span != "" {
+	// 	attrs = append(attrs, slog.String("span", span))
+	// }
 
 	if hint := o.Hint(); hint != "" {
-		attrs = append(attrs, slog.String("hint", o.Hint()))
+		attrs = append(attrs, slog.String("hint", hint))
 	}
 
 	if owner := o.Owner(); owner != "" {
-		attrs = append(attrs, slog.String("owner", o.Owner()))
+		attrs = append(attrs, slog.String("owner", owner))
 	}
 
 	if context := o.Context(); len(context) > 0 {
@@ -248,7 +267,7 @@ func (o OopsError) LogValuer() slog.Value {
 			slog.Group(
 				"context",
 				lo.ToAnySlice(
-					lo.MapToSlice(o.Context(), func(k string, v any) slog.Attr {
+					lo.MapToSlice(context, func(k string, v any) slog.Attr {
 						return slog.Any(k, v)
 					}),
 				)...,
@@ -272,11 +291,11 @@ func (o OopsError) LogValuer() slog.Value {
 	}
 
 	if stacktrace := o.Stacktrace(); stacktrace != "" {
-		attrs = append(attrs, slog.String("stacktrace", o.Stacktrace()))
+		attrs = append(attrs, slog.String("stacktrace", stacktrace))
 	}
 
 	if sources := o.Sources(); sources != "" && !SourceFragmentsHidden {
-		attrs = append(attrs, slog.String("sources", o.Sources()))
+		attrs = append(attrs, slog.String("sources", sources))
 	}
 
 	return slog.GroupValue(attrs...)
@@ -309,13 +328,17 @@ func (o OopsError) ToMap() map[string]any {
 		payload["tags"] = tags
 	}
 
-	if transactionID := o.Transaction(); transactionID != "" {
-		payload["transaction"] = transactionID
-	}
-
 	if context := o.Context(); len(context) > 0 {
 		payload["context"] = context
 	}
+
+	if trace := o.Trace(); trace != "" {
+		payload["trace"] = trace
+	}
+
+	// if span := o.Span(); span != "" {
+	// 	payload["span"] = span
+	// }
 
 	if hint := o.Hint(); hint != "" {
 		payload["hint"] = hint
@@ -365,7 +388,7 @@ func (o *OopsError) formatVerbose() string {
 	}
 
 	if t := o.Time(); t != (time.Time{}) {
-		output += fmt.Sprintf("At: %s\n", t.UTC())
+		output += fmt.Sprintf("Time: %s\n", t.UTC())
 	}
 
 	if duration := o.Duration(); duration != 0 {
@@ -380,9 +403,13 @@ func (o *OopsError) formatVerbose() string {
 		output += fmt.Sprintf("Tags: %s\n", strings.Join(tags, ", "))
 	}
 
-	if transactionID := o.Transaction(); transactionID != "" {
-		output += fmt.Sprintf("Transaction: %s\n", transactionID)
+	if trace := o.Trace(); trace != "" {
+		output += fmt.Sprintf("Trace: %s\n", trace)
 	}
+
+	// if span := o.Span(); span != "" {
+	// 	output += fmt.Sprintf("Span: %s\n", span)
+	// }
 
 	if hint := o.Hint(); hint != "" {
 		output += fmt.Sprintf("Hint: %s\n", hint)
@@ -412,6 +439,8 @@ func (o *OopsError) formatVerbose() string {
 	}
 
 	if stacktrace := o.Stacktrace(); stacktrace != "" {
+		lines := strings.Split(stacktrace, "\n")
+		stacktrace = "  " + strings.Join(lines, "\n  ")
 		output += fmt.Sprintf("Stackstrace:\n%s\n", stacktrace)
 	}
 

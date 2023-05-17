@@ -97,7 +97,7 @@ func b() error {
 	return oops.
 		In("iam").
 		Tags("iam").
-		Tx("e76031ee-a0c4-4a80-88cb-17086fdd19c0").
+		Trace("e76031ee-a0c4-4a80-88cb-17086fdd19c0").
 		With("hello", "world").
 		Wrapf(c(), "something failed")
 }
@@ -145,7 +145,7 @@ Output:
           --- at github.com/samber/oops/loggers/slog/example.go:36 (a)
           --- at github.com/samber/oops/loggers/slog/example.go:42 (main)",
     "time": "2023-05-02 05:26:48.570837Z",
-    "transaction": "e76031ee-a0c4-4a80-88cb-17086fdd19c0",
+    "trace": "e76031ee-a0c4-4a80-88cb-17086fdd19c0",
     "user": {
       "firstname": "john",
       "id": "user-123",
@@ -198,9 +198,10 @@ err3 := oops.
     With("query.duration", queryDuration).
     Errorf("could not fetch user")
 
-// with transaction
+// with trace+span
 err4 := oops.
-    Tx(traceID).
+    Trace(traceID).
+    Span(spanID).
     Errorf("could not fetch user")
 
 // with hint and ownership, for helping developer to solve the issue
@@ -258,7 +259,8 @@ The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)
 | `.Duration(time.Duration)` | `err.Duration() time.Duration`        | Set the error duration                                                                                                                                                                     |
 | `.In(string)`              | `err.Domain() string`                 | Set the feature category or domain                                                                                                                                                         |
 | `.Tags(...string)`         | `err.Tags() []string`                 | Add multiple tags, describing the feature returning an error                                                                                                                               |
-| `.Tx(string)`              | `err.Transaction() string`            | Add a transaction id, trace id, correlation id...                                                                                                                                          |
+| `.Trace(string)`           | `err.Trace() string`                  | Add a transaction id, trace id, correlation id... (default: ULID)                                                                                                                          |
+| `.Span(string)`            | `err.Span() string`                   | Add a span representing a unit of work or operation... (default: ULID)                                                                                                                     |
 | `.Hint(string)`            | `err.Hint() string`                   | Set a hint for faster debugging                                                                                                                                                            |
 | `.Owner(string)`           | `err.Owner() (string)`                | Set the name/email of the collegue/team responsible for handling this error. Useful for alerting purpose                                                                                   |
 | `.User(string, any...)`    | `err.User() (string, map[string]any)` | Supply user id and a chain of key/value                                                                                                                                                    |
@@ -350,7 +352,7 @@ github.com/samber/oops/examples/sources/example.go:34 b()
 29      func b() error {
 30              return oops.
 31                      In("iam").
-32                      Tx("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
+32                      Trace("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
 33                      With("hello", "world").
 34                      Wrapf(c(), "something failed")
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -390,11 +392,11 @@ str := fmt.Sprintf("%+v", oops.Errorf("permission denied"))
 // Output:
 // Oops: permission denied
 // Code: "iam_missing_permission"
-// At: 2023-05-02 05:26:48.570837 +0000 UTC
+// Time: 2023-05-02 05:26:48.570837 +0000 UTC
 // Duration: 42ms
 // Domain: authz
 // Tags: iam, authz
-// Transaction: 092abdf7-a0ad-40cd-bfdc-d25a9435a87d
+// Trace: 092abdf7-a0ad-40cd-bfdc-d25a9435a87d
 // Hint: Runbook: https://doc.acme.org/doc/abcd.md
 // Owner: authz-team@acme.org
 // Context:
@@ -403,7 +405,8 @@ str := fmt.Sprintf("%+v", oops.Errorf("permission denied"))
 //   * id: user-123
 //   * firstname: john
 //   * lastname: doe
-// Oops: permission denied
+// Stacktrace:
+//   Oops: permission denied
 //     --- at github.com/samber/oops/loggers/slog/example.go:20 (d)
 //     --- at github.com/samber/oops/loggers/slog/example.go:24 (c)
 //     --- at github.com/samber/oops/loggers/slog/example.go:32 (b)
@@ -437,7 +440,7 @@ b := json.MarshalIndent(err, "", "  ")
 //     --- at github.com/samber/oops/loggers/slog/example.go:32 (b)
 //     --- at github.com/samber/oops/loggers/slog/example.go:36 (a)
 //     --- at github.com/samber/oops/loggers/slog/example.go:42 (main)",
-//   "transaction": "4ab0e35e-8414-4d76-b09e-cba80c983e4b",
+//   "trace": "4ab0e35e-8414-4d76-b09e-cba80c983e4b",
 //   "user": {
 //     "firstname": "john",
 //     "id": "user-123",
@@ -490,7 +493,7 @@ err := mayFail1()
 if err != nil {
     return oops.
         In("iam").
-        Tx("77cb6664").
+        Trace("77cb6664").
         With("hello", "world").
         Wrap(err)
 }
@@ -499,14 +502,14 @@ err = mayFail2()
 if err != nil {
     return oops.
         In("iam").
-        Tx("77cb6664").
+        Trace("77cb6664").
         With("hello", "world").
         Wrap(err)
 }
 
 return oops.
     In("iam").
-    Tx("77cb6664").
+    Trace("77cb6664").
     With("hello", "world").
     Wrap(mayFail3())
 ```
@@ -516,7 +519,7 @@ return oops.
 ```go
 errorBuilder := oops.
     In("iam").
-    Tx("77cb6664").
+    Trace("77cb6664").
     With("hello", "world")
 
 err := mayFail1()
@@ -555,7 +558,7 @@ func d() error {
 	return oops.
 		Code("iam_missing_permission").
 		In("authz").
-		Tx("4ea76885-a371-46b0-8ce0-b72b277fa9af").
+		Trace("4ea76885-a371-46b0-8ce0-b72b277fa9af").
 		Time(time.Now()).
 		With("hello", "world").
 		With("user_id", 1234).
@@ -576,7 +579,7 @@ func a() error {
 func b() error {
 	return oops.
 		In("iam").
-		Tx("4ea76885-a371-46b0-8ce0-b72b277fa9af").
+		Trace("4ea76885-a371-46b0-8ce0-b72b277fa9af").
 		With("hello", "world").
 		Wrapf(c(), "something failed")
 }
@@ -603,6 +606,7 @@ func d() error {
 Some loggers may need a custom formatter to extract attributes from `oops.OopsError`.
 
 Available loggers:
+- log: [example](https://github.com/samber/oops/examples/log)
 - slog: [example](https://github.com/samber/oops/examples/slog)
 - logrus: [formatter](https://github.com/samber/oops/loggers/logrus) + [example](https://github.com/samber/oops/examples/logrus)
 
@@ -612,11 +616,11 @@ We are looking for contributions and examples for:
 - go-sentry
 - other?
 
-Examples of formatters can be found in `Format()`, `Marshal()` and `LogValuer` methods of `oops.OopsError`.
+Examples of formatters can be found in `ToMap()`, `Format()`, `Marshal()` and `LogValuer` methods of `oops.OopsError`.
 
 ## 🤝 Contributing
 
-- Ping me on twitter [@samuelberthe](https://twitter.com/samuelberthe) (DMs, mentions, whatever :))
+- Ping me on Twitter [@samuelberthe](https://twitter.com/samuelberthe) (DMs, mentions, whatever :))
 - Fork the [project](https://github.com/samber/oops)
 - Fix [open issues](https://github.com/samber/oops/issues) or request new features
 

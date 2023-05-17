@@ -110,10 +110,10 @@ func TestOopsTags(t *testing.T) {
 func TestOopsTx(t *testing.T) {
 	is := assert.New(t)
 
-	err := new().Tx("1234").Wrap(assert.AnError)
+	err := new().Trace("1234").Wrap(assert.AnError)
 	is.Error(err)
 	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).transactionID, "1234")
+	is.Equal(err.(OopsError).trace, "1234")
 }
 
 func TestOopsWith(t *testing.T) {
@@ -191,7 +191,7 @@ func TestOopsMixed(t *testing.T) {
 		Time(now).
 		Duration(time.Second).
 		In("authz").
-		Tx("1234").
+		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		Owner("authz-team@acme.org").
@@ -202,7 +202,7 @@ func TestOopsMixed(t *testing.T) {
 	is.Equal(err.(OopsError).time, now)
 	is.Equal(err.(OopsError).duration, time.Second)
 	is.Equal(err.(OopsError).domain, "authz")
-	is.Equal(err.(OopsError).transactionID, "1234")
+	is.Equal(err.(OopsError).trace, "1234")
 	is.Equal(err.(OopsError).context, map[string]any{"user_id": 1234})
 	is.Equal(err.(OopsError).hint, "Runbook: https://doc.acme.org/doc/abcd.md")
 	is.Equal(err.(OopsError).owner, "authz-team@acme.org")
@@ -222,7 +222,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 		Time(now).
 		Duration(time.Second).
 		In("authz").
-		Tx("1234").
+		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/1234.md").
 		Owner("authz-team@acme.org").
@@ -234,7 +234,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 		Time(now.Add(time.Hour)).
 		Duration(2*time.Second).
 		In("iam").
-		Tx("abcd").
+		Trace("abcd").
 		With("workspace_id", 5678).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		Owner("iam-team@acme.org").
@@ -247,7 +247,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal(err.(OopsError).Time(), now)
 	is.Equal(err.(OopsError).Duration(), time.Second)
 	is.Equal(err.(OopsError).Domain(), "authz")
-	is.Equal(err.(OopsError).Transaction(), "1234")
+	is.Equal(err.(OopsError).Trace(), "1234")
 	is.Equal(err.(OopsError).Context(), map[string]any{"user_id": 1234, "workspace_id": 5678})
 	is.Equal(err.(OopsError).Hint(), "Runbook: https://doc.acme.org/doc/1234.md")
 	is.Equal(err.(OopsError).Owner(), "authz-team@acme.org")
@@ -260,7 +260,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal(err.(OopsError).time, now.Add(time.Hour))
 	is.Equal(err.(OopsError).duration, 2*time.Second)
 	is.Equal(err.(OopsError).domain, "iam")
-	is.Equal(err.(OopsError).transactionID, "abcd")
+	is.Equal(err.(OopsError).trace, "abcd")
 	is.Equal(err.(OopsError).context, map[string]any{"workspace_id": 5678})
 	is.Equal(err.(OopsError).hint, "Runbook: https://doc.acme.org/doc/abcd.md")
 	is.Equal(err.(OopsError).owner, "iam-team@acme.org")
@@ -274,7 +274,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal(err.(OopsError).Unwrap().(OopsError).time, now)
 	is.Equal(err.(OopsError).Unwrap().(OopsError).duration, time.Second)
 	is.Equal(err.(OopsError).Unwrap().(OopsError).domain, "authz")
-	is.Equal(err.(OopsError).Unwrap().(OopsError).transactionID, "1234")
+	is.Equal(err.(OopsError).Unwrap().(OopsError).trace, "1234")
 	is.Equal(err.(OopsError).Unwrap().(OopsError).context, map[string]any{"user_id": 1234})
 	is.Equal(err.(OopsError).Unwrap().(OopsError).hint, "Runbook: https://doc.acme.org/doc/1234.md")
 	is.Equal(err.(OopsError).Unwrap().(OopsError).owner, "authz-team@acme.org")
@@ -295,7 +295,7 @@ func TestOopsLogValuer(t *testing.T) {
 		Duration(time.Second).
 		In("authz").
 		Tags("iam", "authz").
-		Tx("1234").
+		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		Owner("authz-team@acme.org").
@@ -313,7 +313,7 @@ func TestOopsLogValuer(t *testing.T) {
 		slog.Duration("duration", time.Second),
 		slog.String("domain", "authz"),
 		slog.Any("tags", []string{"iam", "authz"}),
-		slog.String("transaction", "1234"),
+		slog.String("trace", "1234"),
 		slog.String("hint", "Runbook: https://doc.acme.org/doc/abcd.md"),
 		slog.String("owner", "authz-team@acme.org"),
 		slog.Group(
@@ -346,7 +346,7 @@ func TestOopsFormatSummary(t *testing.T) {
 		Time(now).
 		Duration(time.Second).
 		In("authz").
-		Tx("1234").
+		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		Owner("authz-team@acme.org").
@@ -367,7 +367,7 @@ func TestOopsFormatVerbose(t *testing.T) {
 		Time(now).
 		Duration(time.Second).
 		In("authz").
-		Tx("1234").
+		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		Owner("authz-team@acme.org").
@@ -376,10 +376,10 @@ func TestOopsFormatVerbose(t *testing.T) {
 
 	expected := `Oops: a message 42: assert.AnError general error for testing
 Code: iam_missing_permission
-At: 2023-05-02 05:26:48.570837 +0000 UTC
+Time: 2023-05-02 05:26:48.570837 +0000 UTC
 Duration: 1s
 Domain: authz
-Transaction: 1234
+Trace: 1234
 Hint: Runbook: https://doc.acme.org/doc/abcd.md
 Owner: authz-team@acme.org
 Context:
@@ -402,13 +402,13 @@ func TestOopsMarshalJSON(t *testing.T) {
 		Time(now).
 		Duration(time.Second).
 		In("authz").
-		Tx("1234").
+		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		User("user-123", "firstname", "john", "lastname", "doe").
 		Wrapf(assert.AnError, "a message %d", 42)
 
-	expected := `{"code":"iam_missing_permission","context":{"user_id":1234},"domain":"authz","duration":"1s","error":"a message 42: assert.AnError general error for testing","hint":"Runbook: https://doc.acme.org/doc/abcd.md","time":"2023-05-02T05:26:48.570837Z","transaction":"1234","user":{"firstname":"john","id":"user-123","lastname":"doe"}}`
+	expected := `{"code":"iam_missing_permission","context":{"user_id":1234},"domain":"authz","duration":"1s","error":"a message 42: assert.AnError general error for testing","hint":"Runbook: https://doc.acme.org/doc/abcd.md","time":"2023-05-02T05:26:48.570837Z","trace":"1234","user":{"firstname":"john","id":"user-123","lastname":"doe"}}`
 
 	got, err := json.Marshal(withoutStacktrace(err.(OopsError)))
 	is.NoError(err)

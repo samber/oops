@@ -28,31 +28,32 @@ func e() *oopsStacktrace {
 }
 
 func f() *oopsStacktrace {
-	return newStacktrace()
+	return newStacktrace("1234")
 }
 
 func TestStacktrace(t *testing.T) {
 	is := assert.New(t)
 
-	frames := a()
+	st := a()
 
-	is.NotNil(frames)
+	is.NotNil(st)
+	is.Equal("1234", st.span)
 
-	if frames != nil {
-		for _, f := range *frames {
+	if st.frames != nil {
+		for _, f := range st.frames {
 			is.True(strings.Contains(f.file, "github.com/samber/oops/stacktrace_test.go"))
 		}
 
-		is.Len(*frames, 7, "expected 7 frames")
+		is.Len(st.frames, 7, "expected 7 frames")
 
-		if len(*frames) == 7 {
-			is.Equal("f", (*frames)[0].function)
-			is.Equal("e", (*frames)[1].function)
-			is.Equal("d", (*frames)[2].function)
-			is.Equal("c", (*frames)[3].function)
-			is.Equal("b", (*frames)[4].function)
-			is.Equal("a", (*frames)[5].function)
-			is.Equal("TestStacktrace", (*frames)[6].function)
+		if len(st.frames) == 7 {
+			is.Equal("f", (st.frames)[0].function)
+			is.Equal("e", (st.frames)[1].function)
+			is.Equal("d", (st.frames)[2].function)
+			is.Equal("c", (st.frames)[3].function)
+			is.Equal("b", (st.frames)[4].function)
+			is.Equal("a", (st.frames)[5].function)
+			is.Equal("TestStacktrace", (st.frames)[6].function)
 		}
 	}
 }
