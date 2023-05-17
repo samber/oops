@@ -12,7 +12,7 @@
 
 (Yet another) error handling library: `oops.OopsError` is a dead-simple drop-in replacement for built-in `error`, adding contextual information such as stack trace, extra attributes, trigger time, error code, and bug-fixing hints...
 
-> ⚠️ This is NOT a logging library. `oops` should be used as a complement to your existing logging toolchain (zap, zerolog, logrus, slog...).
+> ⚠️ This is NOT a logging library. `oops` should be used as a complement to your existing logging toolchain (zap, zerolog, logrus, slog, go-sentry...).
 
 <img align="right" title="Oops gopher logo" alt="logo: thanks Gimp" width="280" src="assets/logo.png">
 
@@ -33,7 +33,7 @@ Jump:
 	
 ## 🤔 Motivations
 
-Loggers usually allow developers to build records with contextual attributes, that describe errors (such as `zap.Infow("failed to fetch URL", "url", url)` or `logrus.WithFields("url", url).Error("failed to fetch URL")`). But Go recommends cascading error handling, so the error may be writen very far from the call to the logger.
+Loggers usually allow developers to build records with contextual attributes, that describe errors (such as `zap.Infow("failed to fetch URL", "url", url)` or `logrus.WithFields("url", url).Error("failed to fetch URL")`). But Go recommends cascading error handling, so the error may be written very far from the call to the logger.
 
 Also, the stack trace should be gathered at the `fmt.Errorf` call, instead of `logger.Error()`.
 
@@ -140,7 +140,7 @@ Output:
         "Oops: permission denied
           --- at github.com/samber/oops/loggers/slog/example.go:20 (d)
           --- at github.com/samber/oops/loggers/slog/example.go:24 (c)
-        Thrown at: something failed
+        Thrown: something failed
           --- at github.com/samber/oops/loggers/slog/example.go:32 (b)
           --- at github.com/samber/oops/loggers/slog/example.go:36 (a)
           --- at github.com/samber/oops/loggers/slog/example.go:42 (main)",
@@ -237,11 +237,11 @@ GoDoc: [https://godoc.org/github.com/samber/oops](https://godoc.org/github.com/s
 
 ### Error constructors
 
-| Builder method                                            | Description                                                                                        |
-| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `oops.Errorf(format string, args ...any) error`           | Formats an error and returns `oops.OopsError` object that satisfies `error`                        |
-| `oops.Wrap(err error) error`                              | Wraps an error into an `oops.OopsError` object that satisfies `error`                              |
-| `oops.Wrapf(err error, format string, args ...any) error` | Wraps an error into an `oops.OopsError` object that satisfies `error` and formats an error message |
+| Builder method                                        | Description                                                                                        |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `.Errorf(format string, args ...any) error`           | Formats an error and returns `oops.OopsError` object that satisfies `error`                        |
+| `.Wrap(err error) error`                              | Wraps an error into an `oops.OopsError` object that satisfies `error`                              |
+| `.Wrapf(err error, format string, args ...any) error` | Wraps an error into an `oops.OopsError` object that satisfies `error` and formats an error message |
 
 ### Context
 
@@ -249,19 +249,19 @@ The library provides an error builder. Each method can be used standalone (eg: `
 
 The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)` or `.Wrapf(...)`.
 
-| Builder method             | Getter                                | Description                                                                                                                                                                                  |
-| -------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.With(string, any)`       | `err.Context() map[string]any`        | Supply a list of attributes key+value                                                                                                                                                        |
-| `.Code(string)`            | `err.Code() string`                   | Set a code or slug that describes the error. Error messages are intented to be read by humans, but such code is expected to be read by machines and even transported over different services |
-| `.Time(time.Time)`         | `err.Time() time.Time`                | Set the error time (default: `time.Now()`)                                                                                                                                                   |
-| `.Since(time.Time)`        | `err.Duration() time.Duration`        | Set the error duration                                                                                                                                                                       |
-| `.Duration(time.Duration)` | `err.Duration() time.Duration`        | Set the error duration                                                                                                                                                                       |
-| `.In(string)`              | `err.Domain() string`                 | Set the feature category or domain                                                                                                                                                           |
-| `.Tags(...string)`         | `err.Tags() []string`                 | Add multiple tags, describing the feature returning an error                                                                                                                                 |
-| `.Tx(string)`              | `err.Transaction() string`            | Add a transaction id, trace id, correlation id...                                                                                                                                            |
-| `.Hint(string)`            | `err.Hint() string`                   | Set a hint for faster debugging                                                                                                                                                              |
-| `.Owner(string)`           | `err.Owner() (string)`                | Set the name/email of the collegue/team responsible for handling this error. Useful for alerting purpose                                                                                     |
-| `.User(string, any...)`    | `err.User() (string, map[string]any)` | Supply user id and a chain of key/value                                                                                                                                                      |
+| Builder method             | Getter                                | Description                                                                                                                                                                                |
+| -------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.With(string, any)`       | `err.Context() map[string]any`        | Supply a list of attributes key+value                                                                                                                                                      |
+| `.Code(string)`            | `err.Code() string`                   | Set a code or slug that describes the error. Error messages are intented to be read by humans, but such code is expected to be read by machines and be transported over different services |
+| `.Time(time.Time)`         | `err.Time() time.Time`                | Set the error time (default: `time.Now()`)                                                                                                                                                 |
+| `.Since(time.Time)`        | `err.Duration() time.Duration`        | Set the error duration                                                                                                                                                                     |
+| `.Duration(time.Duration)` | `err.Duration() time.Duration`        | Set the error duration                                                                                                                                                                     |
+| `.In(string)`              | `err.Domain() string`                 | Set the feature category or domain                                                                                                                                                         |
+| `.Tags(...string)`         | `err.Tags() []string`                 | Add multiple tags, describing the feature returning an error                                                                                                                               |
+| `.Tx(string)`              | `err.Transaction() string`            | Add a transaction id, trace id, correlation id...                                                                                                                                          |
+| `.Hint(string)`            | `err.Hint() string`                   | Set a hint for faster debugging                                                                                                                                                            |
+| `.Owner(string)`           | `err.Owner() (string)`                | Set the name/email of the collegue/team responsible for handling this error. Useful for alerting purpose                                                                                   |
+| `.User(string, any...)`    | `err.User() (string, map[string]any)` | Supply user id and a chain of key/value                                                                                                                                                    |
 
 ### Other helpers
 
@@ -303,7 +303,7 @@ err2.(oops.OopsError).Stacktrace()
 // Oops: permission denied
 //   --- at github.com/samber/oops/loggers/slog/example.go:20 (d)
 //   --- at github.com/samber/oops/loggers/slog/example.go:24 (c)
-// Thrown at: something failed
+// Thrown: something failed
 //   --- at github.com/samber/oops/loggers/slog/example.go:32 (b)
 //   --- at github.com/samber/oops/loggers/slog/example.go:36 (a)
 //   --- at github.com/samber/oops/loggers/slog/example.go:42 (main)
@@ -315,9 +315,11 @@ The exact error location can be provided in a Go file extract.
 
 Source fragments are hidden by default. You must run `oops.SourceFragmentsHidden = false` to enable this feature. Go source files being read at run time, you have to keep the source code at the same location.
 
-Later, this library is expected to output a colorized extract. Please contribute!
+In a future release, this library is expected to output a colorized extract. Please contribute!
 
 ```go
+oops.SourceFragmentsHidden = false
+
 err1 := oops.Errorf("permission denied")
 // ...
 err2 := oops.Wrapf(err, "something failed")
@@ -328,33 +330,35 @@ err2.(oops.OopsError).Sources()
 Output:
 
 ```txt
-// github.com/samber/oops/examples/sources/example.go:22 d()
-// 17                      Time(time.Now()).
-// 18                      With("user_id", 1234).
-// 19                      With("permission", "post.create").
-// 20                      Hint("Runbook: https://doc.acme.org/doc/abcd.md").
-// 21                      User("user-123", "firstname", "john", "lastname", "doe").
-// 22                      Errorf("permission denied")
-//                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-// 23      }
-// 24
-// 25      func c() error {
-// 26              return d()
-// 27      }
+Oops: permission denied
+github.com/samber/oops/examples/sources/example.go:22 d()
+17                      Time(time.Now()).
+18                      With("user_id", 1234).
+19                      With("permission", "post.create").
+20                      Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+21                      User("user-123", "firstname", "john", "lastname", "doe").
+22                      Errorf("permission denied")
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+23      }
+24
+25      func c() error {
+26              return d()
+27      }
 
-// github.com/samber/oops/examples/sources/example.go:34 b()
-// 29      func b() error {
-// 30              return oops.
-// 31                      In("iam").
-// 32                      Tx("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
-// 33                      With("hello", "world").
-// 34                      Wrapf(c(), "something failed")
-//                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-// 35      }
-// 36
-// 37      func a() error {
-// 38              return b()
-// 39      }
+Thrown: something failed
+github.com/samber/oops/examples/sources/example.go:34 b()
+29      func b() error {
+30              return oops.
+31                      In("iam").
+32                      Tx("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
+33                      With("hello", "world").
+34                      Wrapf(c(), "something failed")
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+35      }
+36
+37      func a() error {
+38              return b()
+39      }
 ```
 
 ### Output
@@ -427,6 +431,12 @@ b := json.MarshalIndent(err, "", "  ")
 //   "hint": "Runbook: https://doc.acme.org/doc/abcd.md",
 //   "time": "2023-05-02T05:26:48.570837Z",
 //   "duration": "42ms",
+//   "stacktrace": "Oops: permission denied
+//     --- at github.com/samber/oops/loggers/slog/example.go:20 (d)
+//     --- at github.com/samber/oops/loggers/slog/example.go:24 (c)
+//     --- at github.com/samber/oops/loggers/slog/example.go:32 (b)
+//     --- at github.com/samber/oops/loggers/slog/example.go:36 (a)
+//     --- at github.com/samber/oops/loggers/slog/example.go:42 (main)",
 //   "transaction": "4ab0e35e-8414-4d76-b09e-cba80c983e4b",
 //   "user": {
 //     "firstname": "john",
@@ -434,6 +444,7 @@ b := json.MarshalIndent(err, "", "  ")
 //     "lastname": "doe"
 //   }
 // }
+
 ```
 
 #### slog.Valuer
@@ -454,6 +465,7 @@ attr := slog.Any("error")
 ❌ So don't write:
 
 ```go
+err := mayFail()
 if err != nil {
     return oops.Wrapf(err, ...)
 }

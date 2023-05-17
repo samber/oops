@@ -169,7 +169,7 @@ func (o OopsError) Stacktrace() string {
 		return ""
 	}
 
-	return "Oops: " + strings.Join(blocks, "\nThrown at: ")
+	return "Oops: " + strings.Join(blocks, "\nThrown: ")
 }
 
 func (o OopsError) Sources() string {
@@ -178,6 +178,10 @@ func (o OopsError) Sources() string {
 	recursive(o, func(e OopsError) {
 		if e.stacktrace != nil && len(*e.stacktrace) > 0 {
 			header, body := e.stacktrace.Source()
+
+			if e.msg != "" {
+				header = fmt.Sprintf("%s\n%s", e.msg, header)
+			}
 
 			if header != "" && len(body) > 0 {
 				blocks = append(
@@ -192,11 +196,11 @@ func (o OopsError) Sources() string {
 		return ""
 	}
 
-	return strings.Join(
+	return "Oops: " + strings.Join(
 		lo.Map(blocks, func(items []string, _ int) string {
 			return strings.Join(items, "\n")
 		}),
-		"\n\n",
+		"\n\nThrown: ",
 	)
 }
 

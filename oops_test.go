@@ -299,7 +299,7 @@ func TestOopsLogValuer(t *testing.T) {
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		Owner("authz-team@acme.org").
-		User("user-123", "firstname", "john", "lastname", "doe").
+		User("user-123", "firstname", "john").
 		Wrapf(assert.AnError, "a message %d", 42)
 
 	is.Error(err)
@@ -324,15 +324,14 @@ func TestOopsLogValuer(t *testing.T) {
 			"user",
 			slog.String("id", "user-123"),
 			slog.String("firstname", "john"),
-			slog.String("lastname", "doe"),
 		),
 		slog.String("stacktrace", err.(OopsError).Stacktrace()),
 	}
 
 	is.Len(got, len(expectedAttrs))
 	for i := range got {
-		is.EqualValues(expectedAttrs[i].Key, got[i].Key)
-		is.EqualValues(expectedAttrs[i].Value.Kind(), got[i].Value.Kind())
+		is.Equal(expectedAttrs[i].Key, got[i].Key)
+		is.Equal(expectedAttrs[i].Value.Kind(), got[i].Value.Kind())
 		is.EqualValues(expectedAttrs[i].Value.Any(), got[i].Value.Any())
 	}
 }
@@ -372,7 +371,7 @@ func TestOopsFormatVerbose(t *testing.T) {
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		Owner("authz-team@acme.org").
-		User("user-123", "firstname", "john", "lastname", "doe").
+		User("user-123", "firstname", "john").
 		Wrapf(assert.AnError, "a message %d", 42)
 
 	expected := `Oops: a message 42: assert.AnError general error for testing
@@ -388,7 +387,6 @@ Context:
 User:
   * id: user-123
   * firstname: john
-  * lastname: doe
 `
 
 	is.Equal(expected, fmt.Sprintf("%+v", withoutStacktrace(err.(OopsError))))
