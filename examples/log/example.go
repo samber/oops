@@ -39,6 +39,7 @@ func a() error {
 
 func main() {
 	err := a()
-
-	log.Printf("%+v", err)
+	if err != nil {
+		log.Printf("%+v", err)
+	}
 }

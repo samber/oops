@@ -45,6 +45,7 @@ func main() {
 	}))
 
 	err := a()
-
-	logrus.WithError(err).Error(err)
+	if err != nil {
+		logrus.WithError(err).Error(err)
+	}
 }

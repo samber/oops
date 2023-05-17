@@ -43,9 +43,10 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	err := a()
-
-	logger.Error(
-		err.Error(),
-		slog.Any("error", err),
-	)
+	if err != nil {
+		logger.Error(
+			err.Error(),
+			slog.Any("error", err),
+		)
+	}
 }

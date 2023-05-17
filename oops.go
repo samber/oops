@@ -4,17 +4,35 @@ import "time"
 
 // Wrap wraps an error into an `oops.OopsError` object that satisfies `error`
 func Wrap(err error) error {
+	if err == nil {
+		return nil
+	}
+
 	return new().Wrap(err)
 }
 
 // Wrapf wraps an error into an `oops.OopsError` object that satisfies `error` and formats an error message.
 func Wrapf(err error, format string, args ...any) error {
+	if err == nil {
+		return nil
+	}
+
 	return new().Wrapf(err, format, args...)
 }
 
 // Errorf formats an error and returns `oops.OopsError` object that satisfies `error`.
 func Errorf(format string, args ...any) error {
 	return new().Errorf(format, args...)
+}
+
+// Recover handle panic and returns `oops.OopsError` object that satisfies `error`.
+func Recover(cb func()) (err error) {
+	return new().Recover(cb)
+}
+
+// Recoverf handle panic and returns `oops.OopsError` object that satisfies `error` and formats an error message.
+func Recoverf(cb func(), msg string, args ...any) (err error) {
+	return new().Recoverf(cb, msg, args...)
 }
 
 // Code set a code or slug that describes the error.

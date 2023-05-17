@@ -14,6 +14,8 @@
 
 > ⚠️ This is NOT a logging library. `oops` should be used as a complement to your existing logging toolchain (zap, zerolog, logrus, slog, go-sentry...).
 
+🥷 Start hacking `oops` with this [playground](https://go.dev/play/p/-_7EBnceJ_A).
+
 <img align="right" title="Oops gopher logo" alt="logo: thanks Gimp" width="280" src="assets/logo.png">
 
 Jump:
@@ -27,6 +29,7 @@ Jump:
   - [Other helpers](#other-helpers)
   - [Stack trace](#stack-trace)
   - [Source fragments](#source-fragments)
+  - [Panic handling](#panic-handling)
   - [Output](#output)
 - [📫 Loggers](#📫-loggers)
 - [🥷 Tips and best practices](#🥷-tips-and-best-practices)
@@ -181,7 +184,7 @@ This library provides a simple `error` builder for composing structured errors, 
 
 Since `oops.OopsError` implements the `error` interface, you will be able to compose and wrap native errors with `oops.OopsError`.
 
-🥷 You can start hacking this library with the following [playground](https://go.dev/play/p/lEaGjJ0dAWk).
+🥷 Start hacking `oops` with this [playground](https://go.dev/play/p/-_7EBnceJ_A).
 
 ```go
 // simple error with stacktrace
@@ -240,11 +243,13 @@ GoDoc: [https://godoc.org/github.com/samber/oops](https://godoc.org/github.com/s
 
 ### Error constructors
 
-| Builder method                                        | Description                                                                                        |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `.Errorf(format string, args ...any) error`           | Formats an error and returns `oops.OopsError` object that satisfies `error`                        |
-| `.Wrap(err error) error`                              | Wraps an error into an `oops.OopsError` object that satisfies `error`                              |
-| `.Wrapf(err error, format string, args ...any) error` | Wraps an error into an `oops.OopsError` object that satisfies `error` and formats an error message |
+| Constructor                                              | Description                                                                                           |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `.Errorf(format string, args ...any) error`              | Formats an error and returns `oops.OopsError` object that satisfies `error`                           |
+| `.Wrap(err error) error`                                 | Wraps an error into an `oops.OopsError` object that satisfies `error`                                 |
+| `.Wrapf(err error, format string, args ...any) error`    | Wraps an error into an `oops.OopsError` object that satisfies `error` and formats an error message    |
+| `.Recover(cb func()) error`                              | Handle panic and returns `oops.OopsError` object that satisfies `error`.                              |
+| `.Recoverf(cb func(), format string, args ...any) error` | Handle panic and returns `oops.OopsError` object that satisfies `error` and formats an error message. |
 
 ### Context
 
@@ -365,7 +370,35 @@ github.com/samber/oops/examples/sources/example.go:34 b()
 39      }
 ```
 
+### Panic handling
+
+`oops` library is delivered with a try/catch -ish error handler. 2 handlers variants are available: `oops.Recover()` and `oops.Recoverf()`. Both can be used in the `oops` error builder with usual methods.
+
+🥷 Start hacking `oops.Recover()` with this [playground](https://go.dev/play/p/uGwrFj9mII8).
+
+```go
+func mayPanic() {
+	panic("permission denied")
+}
+
+func handlePanic() error {
+	return oops.
+		Code("iam_authz_missing_permission").
+		In("authz").
+		With("permission", "post.create").
+		Trace("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
+		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+		Recoverf(func() {
+			// ...
+			mayPanic()
+			// ...
+		}, "unexpected error %d", 42)
+}
+```
+
 ### Output
+
+Errors can be printed in many ways. Logger formatters provided in this library use these methods.
 
 #### Errorf `%w`
 
@@ -468,7 +501,7 @@ Some loggers may need a custom formatter to extract attributes from `oops.OopsEr
 Available loggers:
 - log: [playground](https://go.dev/play/p/uNx3CcT-X40) - [example](https://github.com/samber/oops/tree/master/examples/log)
 - slog: [playground](https://go.dev/play/p/-X2ZnqjyDLu) - [example](https://github.com/samber/oops/examples/slog)
-- logrus: [formatter](https://github.com/samber/oops/tree/master/loggers/logrus) - [playground](https://go.dev/play/p/lEaGjJ0dAWk) - [example](https://github.com/samber/oops/tree/master/examples/logrus)
+- logrus: [formatter](https://github.com/samber/oops/tree/master/loggers/logrus) - [playground](https://go.dev/play/p/-_7EBnceJ_A) - [example](https://github.com/samber/oops/tree/master/examples/logrus)
 
 We are looking for contributions and examples for:
 - zap

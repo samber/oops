@@ -125,6 +125,38 @@ func (o OopsErrorBuilder) Errorf(format string, args ...any) error {
 	return OopsError(o2)
 }
 
+// Recover handle panic and returns `oops.OopsError` object that satisfies `error`.
+func (o OopsErrorBuilder) Recover(cb func()) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = o.Wrap(e)
+			} else {
+				err = o.Wrap(fmt.Errorf("%v", r))
+			}
+		}
+	}()
+
+	cb()
+	return
+}
+
+// Recoverf handle panic and returns `oops.OopsError` object that satisfies `error` and formats an error message.
+func (o OopsErrorBuilder) Recoverf(cb func(), msg string, args ...any) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = o.Wrapf(e, msg, args...)
+			} else {
+				err = o.Wrapf(o.Errorf("%v", r), msg, args...)
+			}
+		}
+	}()
+
+	cb()
+	return
+}
+
 // Code set a code or slug that describes the error.
 // Error messages are intented to be read by humans, but such code is expected to
 // be read by machines and even transported over different services.

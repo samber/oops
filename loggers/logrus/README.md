@@ -17,7 +17,8 @@ func main() {
         With("query", query).
         With("query.duration", queryDuration).
         Errorf("could not fetch user")
-
-	logrus.WithError(err).Error(err)
+	if err != nil {
+    	logrus.WithError(err).Error(err)
+    }
 }
 ```
