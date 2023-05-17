@@ -40,7 +40,9 @@ func a() error {
 }
 
 func main() {
-	logrus.SetFormatter(oopslogrus.NewOopsFormatter(&logrus.JSONFormatter{}))
+	logrus.SetFormatter(oopslogrus.NewOopsFormatter(&logrus.JSONFormatter{
+		PrettyPrint: true,
+	}))
 
 	err := a()
 
