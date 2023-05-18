@@ -40,9 +40,9 @@ Loggers usually allow developers to build records with contextual attributes, th
 - `zap.Infow("failed to fetch URL", "url", url)`
 - `logrus.WithFields("url", url).Error("failed to fetch URL")`).
 
-But Go recommends cascading error handling, so the error may be triggered very far from the call to the logger. Returning context over X callers is painful. To be meaningful, the stack trace must be gathered by the error builder instead of the logger.
+Go recommends cascading error handling, which can cause the error to be triggered far away from the call to the logger. Returning context over X callers is painful, and to be meaningful, the stack trace must be gathered by the error builder instead of the logger.
 
-This is why I consider we need an `error` wrapper!
+This is why we need an `error` wrapper!
 
 ### ❌ Before samber/oops
 
@@ -278,7 +278,7 @@ err.(oops.OopsError).Stacktrace()
     <img alt="Stacktrace" src="./assets/stacktrace1.png" style="max-width: 650px;">
 </div>
 
-Wrapping errors will be reported as an annotated stack trace:
+Wrapped errors will be reported as an annotated stack trace:
 
 ```go
 err1 := oops.Errorf("permission denied")
