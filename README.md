@@ -1,5 +1,5 @@
 
-# Oops - Error handling with context, stack trace and source fragments
+# Oops - Error handling with context, assertion, stack trace and source fragments
 
 [![tag](https://img.shields.io/github/tag/samber/oops.svg)](https://github.com/samber/oops/releases)
 ![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.20.3-%23007d9c)
