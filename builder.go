@@ -162,6 +162,26 @@ func (o OopsErrorBuilder) Recoverf(cb func(), msg string, args ...any) (err erro
 	return
 }
 
+// Assert panics if condition is false. Panic payload will be of type oops.OopsError.
+// Assertions can be chained.
+func (o OopsErrorBuilder) Assert(condition bool) OopsErrorBuilder {
+	if !condition {
+		panic(o.Errorf("assertion failed"))
+	}
+
+	return o // no need to copy
+}
+
+// Assertf panics if condition is false. Panic payload will be of type oops.OopsError.
+// Assertions can be chained.
+func (o OopsErrorBuilder) Assertf(condition bool, msg string, args ...any) OopsErrorBuilder {
+	if !condition {
+		panic(o.Errorf(msg, args...))
+	}
+
+	return o // no need to copy
+}
+
 // Code set a code or slug that describes the error.
 // Error messages are intented to be read by humans, but such code is expected to
 // be read by machines and even transported over different services.

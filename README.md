@@ -30,6 +30,7 @@ Jump:
   - [Stack trace](#stack-trace)
   - [Source fragments](#source-fragments)
   - [Panic handling](#panic-handling)
+  - [Assertions](#assertions)
   - [Output](#output)
 - [📫 Loggers](#-loggers)
 - [🥷 Tips and best practices](#-tips-and-best-practices)
@@ -43,6 +44,17 @@ Loggers usually allow developers to build records with contextual attributes, th
 Go recommends cascading error handling, which can cause the error to be triggered far away from the call to the logger. Returning context over X callers is painful, and to be meaningful, the stack trace must be gathered by the error builder instead of the logger.
 
 This is why we need an `error` wrapper!
+
+🥵 Why develop yet another library?
+- drop-in replacement to `error`
+- easy to integrate without large refactoring
+- separation of concern (logger vs error)
+- extra attributes
+- developer-friendly error builder
+- no extra code for [output](#output): can be used with loggers, printf syntax...
+- out-of-the-box stack trace and source fragments
+- one-line panic handling
+- one-line assertion
 
 ### ❌ Before samber/oops
 
@@ -213,6 +225,24 @@ err9 := oops.
     With("query", query).
     With("query.duration", time.Since(queryTime)).
     Wrapf(sql.Exec(query), "could not fetch user")  // Wrapf returns nil when sql.Exec() is nil
+
+// with panic recovery
+err10 := oops.
+    In("repository").
+    Tags("database", "sql").
+    Recover(func () {
+        panic("caramba!")
+    })
+
+// with assertion
+err11 := oops.
+    In("repository").
+    Tags("database", "sql").
+    Recover(func () {
+        // ...
+        oops.Assertf(time.Now().Weekday() == 1, "This code should run on Monday only.")
+        // ...
+    })
 ```
 
 ## 🧠 Spec
@@ -221,13 +251,15 @@ GoDoc: [https://godoc.org/github.com/samber/oops](https://godoc.org/github.com/s
 
 ### Error constructors
 
-| Constructor                                              | Description                                                                                           |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `.Errorf(format string, args ...any) error`              | Formats an error and returns `oops.OopsError` object that satisfies `error`                           |
-| `.Wrap(err error) error`                                 | Wraps an error into an `oops.OopsError` object that satisfies `error`                                 |
-| `.Wrapf(err error, format string, args ...any) error`    | Wraps an error into an `oops.OopsError` object that satisfies `error` and formats an error message    |
-| `.Recover(cb func()) error`                              | Handle panic and returns `oops.OopsError` object that satisfies `error`.                              |
-| `.Recoverf(cb func(), format string, args ...any) error` | Handle panic and returns `oops.OopsError` object that satisfies `error` and formats an error message. |
+| Constructor                                                             | Description                                                                                           |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `.Errorf(format string, args ...any) error`                             | Formats an error and returns `oops.OopsError` object that satisfies `error`                           |
+| `.Wrap(err error) error`                                                | Wraps an error into an `oops.OopsError` object that satisfies `error`                                 |
+| `.Wrapf(err error, format string, args ...any) error`                   | Wraps an error into an `oops.OopsError` object that satisfies `error` and formats an error message    |
+| `.Recover(cb func()) error`                                             | Handle panic and returns `oops.OopsError` object that satisfies `error`.                              |
+| `.Recoverf(cb func(), format string, args ...any) error`                | Handle panic and returns `oops.OopsError` object that satisfies `error` and formats an error message. |
+| `.Assert(condition bool) OopsErrorBuilder`                              | Panics if condition is false. Assertions can be chained.                                              |
+| `.Assertf(condition bool, format string, args ...any) OopsErrorBuilder` | Panics if condition is false and formats an error message. Assertions can be chained.                 |
 
 ### Context
 
@@ -337,6 +369,38 @@ func handlePanic() error {
             mayPanic()
             // ...
         }, "unexpected error %d", 42)
+}
+```
+
+### Assertions
+
+Assertions may be considered an anti-pattern for Golang, since we only call `panic()` for unexpected and critical errors. In this situation, assertions might help developers to write safer code.
+
+```go
+func mayPanic() {
+    x := 42
+
+    oops.
+        Trace("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
+        Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+        Assertf(time.Now().Weekday() == 1, "This code should run on Monday only.").
+        With("x", x).
+        Assertf(x == 42, "expected x to be equal to 42, but got %d", x)
+
+    oops.Assert(re.Match(email))
+
+    // ...
+}
+
+func handlePanic() error {
+    return oops.
+        Code("iam_authz_missing_permission").
+        In("authz").
+        Recover(func() {
+            // ...
+            mayPanic()
+            // ...
+        })
 }
 ```
 
