@@ -10,7 +10,7 @@
 [![Contributors](https://img.shields.io/github/contributors/samber/oops)](https://github.com/samber/oops/graphs/contributors)
 [![License](https://img.shields.io/github/license/samber/oops)](./LICENSE)
 
-(Yet another) error handling library: `oops.OopsError` is a dead-simple drop-in replacement for built-in `error`, adding contextual information such as stack trace, extra attributes, trigger time, error code, and bug-fixing hints...
+(Yet another) error handling library: `oops.OopsError` is a dead-simple drop-in replacement for built-in `error`, adding contextual information such as stack trace, extra attributes, error code, and bug-fixing hints...
 
 > ⚠️ This is NOT a logging library. `oops` should be used as a complement to your existing logging toolchain (zap, zerolog, logrus, slog, go-sentry...).
 
@@ -40,11 +40,9 @@ Loggers usually allow developers to build records with contextual attributes, th
 - `zap.Infow("failed to fetch URL", "url", url)`
 - `logrus.WithFields("url", url).Error("failed to fetch URL")`).
 
-But Go recommends cascading error handling, so the error may be triggered very far from the call to the logger and returning context over X callers is painful.
+But Go recommends cascading error handling, so the error may be triggered very far from the call to the logger. Returning context over X callers is painful. To be meaningful, the stack trace must be gathered by the error builder instead of the logger.
 
-Also, the stack trace should be gathered at the `fmt.Errorf` call, instead of `logger.Error()`.
-
-So this is why I consider the error context and stack trace need to be transported in an `error` wrapper!
+This is why I consider we need an `error` wrapper!
 
 ### ❌ Before samber/oops
 
@@ -92,7 +90,7 @@ func d() error {
         With("permission", "post.create").
         Hint("Runbook: https://doc.acme.org/doc/abcd.md").
         User("user-123", "firstname", "john", "lastname", "doe").
-Errorf("permission denied")
+        Errorf("permission denied")
 }
 
 func c() error {
@@ -132,7 +130,7 @@ func main() {
 
 ### Why "oops"?
 
-Have you already heard a developer yelling for receiving badly written error messages in Sentry, with no context, just before figuring out he wrote this piece of shit by himself?
+Have you already heard a developer yelling at unclear error messages in Sentry, with no context, just before figuring out he wrote this piece of shit by himself?
 
 Yes. Me too.
 
