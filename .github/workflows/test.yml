@@ -35,9 +35,9 @@ jobs:
       run: make coverage
 
     - name: Codecov
-      working-directory: ./github.com/samber/oops
       uses: codecov/codecov-action@v2
       with:
+        working-directory: ./github.com/samber/oops
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./cover.out
         flags: unittests
