@@ -36,7 +36,11 @@ Jump:
 	
 ## 🤔 Motivations
 
-Loggers usually allow developers to build records with contextual attributes, that describe errors (such as `zap.Infow("failed to fetch URL", "url", url)` or `logrus.WithFields("url", url).Error("failed to fetch URL")`). But Go recommends cascading error handling, so the error may be written very far from the call to the logger.
+Loggers usually allow developers to build records with contextual attributes, that describe errors, such as:
+- `zap.Infow("failed to fetch URL", "url", url)`
+- `logrus.WithFields("url", url).Error("failed to fetch URL")`).
+
+But Go recommends cascading error handling, so the error may be triggered very far from the call to the logger and returning context over X callers is painful.
 
 Also, the stack trace should be gathered at the `fmt.Errorf` call, instead of `logger.Error()`.
 
@@ -97,7 +101,7 @@ func c() error {
 
 func b() error {
     // add more context
-	return oops.
+    return oops.
 		In("iam").
 		Tags("iam").
 		Trace("e76031ee-a0c4-4a80-88cb-17086fdd19c0").
@@ -113,50 +117,18 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	err := a()
-
-	logger.Error(
-		err.Error(),
-		slog.Any("error", err), // unwraps and flattens error context
-	)
-}
-```
-
-Output:
-
-```json
-{
-  "time": "2023-05-02 05:26:48.570837Z",
-  "level": "ERROR",
-  "msg": "something failed: permission denied",
-  "error": {
-    "code": "iam_missing_permission",
-    "context": {
-      "hello": "world",
-      "permission": "post.create",
-      "user_id": 1234
-    },
-    "domain": "authz",
-    "tags": ["iam", "authz"],
-    "error": "something failed: permission denied",
-    "hint": "Runbook: https://doc.acme.org/doc/abcd.md",
-    "stacktrace":
-        "Oops: permission denied
-          --- at github.com/samber/oops/loggers/slog/example.go:20 (d)
-          --- at github.com/samber/oops/loggers/slog/example.go:24 (c)
-        Thrown: something failed
-          --- at github.com/samber/oops/loggers/slog/example.go:32 (b)
-          --- at github.com/samber/oops/loggers/slog/example.go:36 (a)
-          --- at github.com/samber/oops/loggers/slog/example.go:42 (main)",
-    "time": "2023-05-02 05:26:48.570837Z",
-    "trace": "e76031ee-a0c4-4a80-88cb-17086fdd19c0",
-    "user": {
-      "firstname": "john",
-      "id": "user-123",
-      "lastname": "doe"
+    if err != nil {
+        logger.Error(
+            err.Error(),
+            slog.Any("error", err), // unwraps and flattens error context
+        )
     }
-  }
 }
 ```
+
+<div style="text-align:center;">
+    <img alt="Why oops?" src="./assets/motivation.png" style="max-width: 700px;">
+</div>
 
 ### Why "oops"?
 
@@ -212,7 +184,7 @@ err4 := oops.
 // with hint and ownership, for helping developer to solve the issue
 err5 := oops.
     Hint("The user could have been removed. Please check deleted_at column.").
-    Owner("api-team@acme.org").
+    Owner("Slack: #api-gateway").
     Errorf("could not fetch user")
 
 // with optional userID
@@ -293,13 +265,11 @@ The stack trace will be printed this way:
 err := oops.Errorf("permission denied")
 
 err.(oops.OopsError).Stacktrace()
-// Oops: permission denied
-//   --- at github.com/samber/oops/loggers/slog/example.go:20 (d)
-//   --- at github.com/samber/oops/loggers/slog/example.go:24 (c)
-//   --- at github.com/samber/oops/loggers/slog/example.go:32 (b)
-//   --- at github.com/samber/oops/loggers/slog/example.go:36 (a)
-//   --- at github.com/samber/oops/loggers/slog/example.go:42 (main)
 ```
+
+<div style="text-align:center;">
+    <img alt="Stacktrace" src="./assets/stacktrace1.png" style="max-width: 700px;">
+</div>
 
 Wrapping errors will be reported as an annotated stack trace:
 
@@ -309,14 +279,11 @@ err1 := oops.Errorf("permission denied")
 err2 := oops.Wrapf(err, "something failed")
 
 err2.(oops.OopsError).Stacktrace()
-// Oops: permission denied
-//   --- at github.com/samber/oops/loggers/slog/example.go:20 (d)
-//   --- at github.com/samber/oops/loggers/slog/example.go:24 (c)
-// Thrown: something failed
-//   --- at github.com/samber/oops/loggers/slog/example.go:32 (b)
-//   --- at github.com/samber/oops/loggers/slog/example.go:36 (a)
-//   --- at github.com/samber/oops/loggers/slog/example.go:42 (main)
 ```
+
+<div style="text-align:center;">
+    <img alt="Stacktrace" src="./assets/stacktrace2.png" style="max-width: 700px;">
+</div>
 
 ### Source fragments
 
@@ -336,39 +303,9 @@ err2 := oops.Wrapf(err, "something failed")
 err2.(oops.OopsError).Sources()
 ```
 
-Output:
-
-```txt
-Oops: permission denied
-github.com/samber/oops/examples/sources/example.go:22 d()
-17                      Time(time.Now()).
-18                      With("user_id", 1234).
-19                      With("permission", "post.create").
-20                      Hint("Runbook: https://doc.acme.org/doc/abcd.md").
-21                      User("user-123", "firstname", "john", "lastname", "doe").
-22                      Errorf("permission denied")
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-23      }
-24
-25      func c() error {
-26              return d()
-27      }
-
-Thrown: something failed
-github.com/samber/oops/examples/sources/example.go:34 b()
-29      func b() error {
-30              return oops.
-31                      In("iam").
-32                      Trace("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
-33                      With("hello", "world").
-34                      Wrapf(c(), "something failed")
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-35      }
-36
-37      func a() error {
-38              return b()
-39      }
-```
+<div style="text-align:center;">
+    <img alt="Sources" src="./assets/sources1.png" style="max-width: 700px;">
+</div>
 
 ### Panic handling
 
@@ -423,67 +360,21 @@ str := fmt.Sprintf("%+v", oops.Errorf("permission denied"))
 
 ```go
 str := fmt.Sprintf("%+v", oops.Errorf("permission denied"))
-
-// Output:
-// Oops: permission denied
-// Code: "iam_missing_permission"
-// Time: 2023-05-02 05:26:48.570837 +0000 UTC
-// Duration: 42ms
-// Domain: authz
-// Tags: iam, authz
-// Trace: 092abdf7-a0ad-40cd-bfdc-d25a9435a87d
-// Hint: Runbook: https://doc.acme.org/doc/abcd.md
-// Owner: authz-team@acme.org
-// Context:
-//   * user_id: 1234
-// User:
-//   * id: user-123
-//   * firstname: john
-//   * lastname: doe
-// Stacktrace:
-//   Oops: permission denied
-//     --- at github.com/samber/oops/loggers/slog/example.go:20 (d)
-//     --- at github.com/samber/oops/loggers/slog/example.go:24 (c)
-//     --- at github.com/samber/oops/loggers/slog/example.go:32 (b)
-//     --- at github.com/samber/oops/loggers/slog/example.go:36 (a)
-//     --- at github.com/samber/oops/loggers/slog/example.go:42 (main)
 ```
+
+<div style="text-align:center;">
+    <img alt="Output" src="./assets/output-printf-plusv.png" style="max-width: 700px;">
+</div>
 
 #### JSON Marshal
 
 ```go
 b := json.MarshalIndent(err, "", "  ")
-
-// Output:
-// {
-//   "code": "iam_missing_permission",
-//   "context": {
-//     "user_id": 1234
-//   },
-//   "domain": "authz",
-//   "tags": [
-//     "iam",
-//     "authz"
-//   ],
-//   "error": "Permission denied",
-//   "hint": "Runbook: https://doc.acme.org/doc/abcd.md",
-//   "time": "2023-05-02T05:26:48.570837Z",
-//   "duration": "42ms",
-//   "stacktrace": "Oops: permission denied
-//     --- at github.com/samber/oops/loggers/slog/example.go:20 (d)
-//     --- at github.com/samber/oops/loggers/slog/example.go:24 (c)
-//     --- at github.com/samber/oops/loggers/slog/example.go:32 (b)
-//     --- at github.com/samber/oops/loggers/slog/example.go:36 (a)
-//     --- at github.com/samber/oops/loggers/slog/example.go:42 (main)",
-//   "trace": "4ab0e35e-8414-4d76-b09e-cba80c983e4b",
-//   "user": {
-//     "firstname": "john",
-//     "id": "user-123",
-//     "lastname": "doe"
-//   }
-// }
-
 ```
+
+<div style="text-align:center;">
+    <img alt="Output" src="./assets/output-json.png" style="max-width: 700px;">
+</div>
 
 #### slog.Valuer
 
