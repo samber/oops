@@ -32,8 +32,10 @@ type OopsError struct {
 	owner string
 
 	// user
-	userID   string
-	userData map[string]any
+	userID     string
+	userData   map[string]any
+	tenantID   string
+	tenantData map[string]any
 
 	// stacktrace
 	stacktrace *oopsStacktrace
@@ -165,6 +167,23 @@ func (o OopsError) User() (string, map[string]any) {
 	return userID, userData
 }
 
+func (o OopsError) Tenant() (string, map[string]any) {
+	tenantID := getDeepestErrorAttribute(
+		o,
+		func(e OopsError) string {
+			return e.tenantID
+		},
+	)
+	tenantData := mergeNestedErrorMap(
+		o,
+		func(e OopsError) map[string]any {
+			return e.tenantData
+		},
+	)
+
+	return tenantID, tenantData
+}
+
 func (o OopsError) Stacktrace() string {
 	blocks := []string{}
 	topFrame := ""
@@ -290,6 +309,21 @@ func (o OopsError) LogValuer() slog.Value {
 		attrs = append(attrs, slog.Group("user", lo.ToAnySlice(userPayload)...))
 	}
 
+	if tenantID, tenantData := o.Tenant(); tenantID != "" || len(tenantData) > 0 {
+		tenantPayload := []slog.Attr{}
+		if tenantID != "" {
+			tenantPayload = append(tenantPayload, slog.String("id", tenantID))
+			tenantPayload = append(
+				tenantPayload,
+				lo.MapToSlice(tenantData, func(k string, v any) slog.Attr {
+					return slog.Any(k, v)
+				})...,
+			)
+		}
+
+		attrs = append(attrs, slog.Group("tenant", lo.ToAnySlice(tenantPayload)...))
+	}
+
 	if stacktrace := o.Stacktrace(); stacktrace != "" {
 		attrs = append(attrs, slog.String("stacktrace", stacktrace))
 	}
@@ -355,6 +389,15 @@ func (o OopsError) ToMap() map[string]any {
 		}
 
 		payload["user"] = user
+	}
+
+	if tenantID, tenantData := o.Tenant(); tenantID != "" || len(tenantData) > 0 {
+		tenant := lo.Assign(map[string]any{}, tenantData)
+		if tenantID != "" {
+			tenant["id"] = tenantID
+		}
+
+		payload["tenant"] = tenant
 	}
 
 	if stacktrace := o.Stacktrace(); stacktrace != "" {
@@ -437,6 +480,18 @@ func (o *OopsError) formatVerbose() string {
 		}
 
 		for k, v := range userData {
+			output += fmt.Sprintf("  * %s: %v\n", k, v)
+		}
+	}
+
+	if tenantID, tenantData := o.Tenant(); tenantID != "" || len(tenantData) > 0 {
+		output += "Tenant:\n"
+
+		if tenantID != "" {
+			output += fmt.Sprintf("  * id: %s\n", tenantID)
+		}
+
+		for k, v := range tenantData {
 			output += fmt.Sprintf("  * %s: %v\n", k, v)
 		}
 	}

@@ -14,7 +14,8 @@ import (
  * oops.Errorf("Could not fetch users: %w", err)
  *
  * oops.
- *	User("samuel@screeb.app", "firstname", "Samuel").
+ *	User("steve@apple.com", "firstname", "Samuel").
+ *	Tenant("apple", "country", "us").
  *	Errorf("403 not permitted")
  *
  * oops.
@@ -24,7 +25,7 @@ import (
  *	Errorf("Failed to execute http request")
  *
  * oops.
- *	With("tenant_id", tenant.ID, "created_at", tenant.CreatedAt).
+ *	With("project_id", project.ID, "created_at", project.CreatedAt).
  *	Errorf("Could not update settings")
  *
  */
@@ -50,8 +51,10 @@ func new() OopsErrorBuilder {
 		owner: "",
 
 		// user
-		userID:   "",
-		userData: map[string]any{},
+		userID:     "",
+		userData:   map[string]any{},
+		tenantID:   "",
+		tenantData: map[string]any{},
 
 		// stacktrace
 		stacktrace: nil,
@@ -76,8 +79,10 @@ func (o OopsErrorBuilder) copy() OopsErrorBuilder {
 		hint:  o.hint,
 		owner: o.owner,
 
-		userID:   o.userID,
-		userData: lo.Assign(map[string]any{}, o.userData),
+		userID:     o.userID,
+		userData:   lo.Assign(map[string]any{}, o.userData),
+		tenantID:   o.tenantID,
+		tenantData: lo.Assign(map[string]any{}, o.tenantData),
 
 		// stacktrace: o.stacktrace,
 	}
@@ -257,6 +262,23 @@ func (o OopsErrorBuilder) User(userID string, userData ...any) OopsErrorBuilder 
 
 		if key, ok := k.(string); ok {
 			o2.userData[key] = v
+		}
+	}
+
+	return o2
+}
+
+// Tenant supplies tenant id and a chain of key/value.
+func (o OopsErrorBuilder) Tenant(tenantID string, tenantData ...any) OopsErrorBuilder {
+	o2 := o.copy()
+	o2.tenantID = tenantID
+
+	for i := 0; i < len(tenantData)-1; i += 2 {
+		k := tenantData[i]
+		v := tenantData[i+1]
+
+		if key, ok := k.(string); ok {
+			o2.tenantData[key] = v
 		}
 	}
 

@@ -98,3 +98,8 @@ func Owner(owner string) OopsErrorBuilder {
 func User(userID string, data map[string]any) OopsErrorBuilder {
 	return new().User(userID, data)
 }
+
+// Tenant supplies tenant id and a chain of key/value.
+func Tenant(tenantID string, data map[string]any) OopsErrorBuilder {
+	return new().Tenant(tenantID, data)
+}
