@@ -41,10 +41,12 @@ type OopsError struct {
 	stacktrace *oopsStacktrace
 }
 
+// Unwrap returns the underlying error.
 func (o OopsError) Unwrap() error {
 	return o.err
 }
 
+// Error returns the error message, without context.
 func (o OopsError) Error() string {
 	if o.err != nil {
 		if o.msg == "" {
@@ -57,6 +59,7 @@ func (o OopsError) Error() string {
 	return o.msg
 }
 
+// Code returns the error cause. Error code is intented to be used by machines.
 func (o OopsError) Code() string {
 	return getDeepestErrorAttribute(
 		o,
@@ -66,6 +69,7 @@ func (o OopsError) Code() string {
 	)
 }
 
+// Time returns the time when the error occured.
 func (o OopsError) Time() time.Time {
 	return getDeepestErrorAttribute(
 		o,
@@ -75,6 +79,7 @@ func (o OopsError) Time() time.Time {
 	)
 }
 
+// Duration returns the duration of the error.
 func (o OopsError) Duration() time.Duration {
 	return getDeepestErrorAttribute(
 		o,
@@ -84,6 +89,7 @@ func (o OopsError) Duration() time.Duration {
 	)
 }
 
+// Domain returns the domain of the error.
 func (o OopsError) Domain() string {
 	return getDeepestErrorAttribute(
 		o,
@@ -93,6 +99,7 @@ func (o OopsError) Domain() string {
 	)
 }
 
+// Tags returns the tags of the error.
 func (o OopsError) Tags() []string {
 	tags := []string{}
 
@@ -103,6 +110,7 @@ func (o OopsError) Tags() []string {
 	return lo.Uniq(tags)
 }
 
+// Context returns a k/v context of the error.
 func (o OopsError) Context() map[string]any {
 	return mergeNestedErrorMap(
 		o,
@@ -112,6 +120,7 @@ func (o OopsError) Context() map[string]any {
 	)
 }
 
+// Trace returns the transaction id, trace id, request id, correlation id, etc.
 func (o OopsError) Trace() string {
 	trace := getDeepestErrorAttribute(
 		o,
@@ -132,6 +141,7 @@ func (o OopsError) Span() string {
 	return o.span
 }
 
+// Hint returns a hint to the user on how to resolve the error.
 func (o OopsError) Hint() string {
 	return getDeepestErrorAttribute(
 		o,
@@ -141,6 +151,7 @@ func (o OopsError) Hint() string {
 	)
 }
 
+// Owner identify the owner responsible for resolving the error.
 func (o OopsError) Owner() string {
 	return getDeepestErrorAttribute(
 		o,
@@ -150,6 +161,7 @@ func (o OopsError) Owner() string {
 	)
 }
 
+// User returns the user id and user data.
 func (o OopsError) User() (string, map[string]any) {
 	userID := getDeepestErrorAttribute(
 		o,
@@ -167,6 +179,7 @@ func (o OopsError) User() (string, map[string]any) {
 	return userID, userData
 }
 
+// Tenant returns the tenant id and tenant data.
 func (o OopsError) Tenant() (string, map[string]any) {
 	tenantID := getDeepestErrorAttribute(
 		o,
@@ -184,6 +197,7 @@ func (o OopsError) Tenant() (string, map[string]any) {
 	return tenantID, tenantData
 }
 
+// Stacktrace returns a pretty printed stacktrace of the error.
 func (o OopsError) Stacktrace() string {
 	blocks := []string{}
 	topFrame := ""
@@ -206,6 +220,7 @@ func (o OopsError) Stacktrace() string {
 	return "Oops: " + strings.Join(blocks, "\nThrown: ")
 }
 
+// Sources returns the source fragments of the error.
 func (o OopsError) Sources() string {
 	blocks := [][]string{}
 
@@ -238,6 +253,7 @@ func (o OopsError) Sources() string {
 	)
 }
 
+// LogValuer returns a slog.Value for logging.
 func (o OopsError) LogValuer() slog.Value {
 	attrs := []slog.Attr{slog.String("message", o.msg)}
 
@@ -335,6 +351,7 @@ func (o OopsError) LogValuer() slog.Value {
 	return slog.GroupValue(attrs...)
 }
 
+// ToMap returns a map representation of the error.
 func (o OopsError) ToMap() map[string]any {
 	payload := map[string]any{}
 
@@ -411,6 +428,7 @@ func (o OopsError) ToMap() map[string]any {
 	return payload
 }
 
+// MarshalJSON implements json.Marshaler.
 func (o OopsError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(o.ToMap())
 }
