@@ -20,10 +20,10 @@
 
 Jump:
 
-- [🤔 Motivations](#🤔-motivations)
-- [🚀 Install](#🚀-install)
-- [💡 Quick start](#💡-quick-start)
-- [🧠 Spec](#🧠-spec)
+- [🤔 Motivations](#-motivations)
+- [🚀 Install](#-install)
+- [💡 Quick start](#-quick-start)
+- [🧠 Spec](#-spec)
   - [Error constructors](#error-constructors)
   - [Context](#context)
   - [Other helpers](#other-helpers)
@@ -31,8 +31,8 @@ Jump:
   - [Source fragments](#source-fragments)
   - [Panic handling](#panic-handling)
   - [Output](#output)
-- [📫 Loggers](#📫-loggers)
-- [🥷 Tips and best practices](#🥷-tips-and-best-practices)
+- [📫 Loggers](#-loggers)
+- [🥷 Tips and best practices](#-tips-and-best-practices)
 	
 ## 🤔 Motivations
 
@@ -83,16 +83,16 @@ I would rather write something like that:
 
 ```go
 func d() error {
-	return oops.
-		Code("iam_missing_permission").
-		In("authz").
-		Tags("authz").
-		Time(time.Now()).
-		With("user_id", 1234).
-		With("permission", "post.create").
-		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
-		User("user-123", "firstname", "john", "lastname", "doe").
-		Errorf("permission denied")
+    return oops.
+        Code("iam_missing_permission").
+        In("authz").
+        Tags("authz").
+        Time(time.Now()).
+        With("user_id", 1234).
+        With("permission", "post.create").
+        Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+        User("user-123", "firstname", "john", "lastname", "doe").
+Errorf("permission denied")
 }
 
 func c() error {
@@ -102,11 +102,11 @@ func c() error {
 func b() error {
     // add more context
     return oops.
-		In("iam").
-		Tags("iam").
-		Trace("e76031ee-a0c4-4a80-88cb-17086fdd19c0").
-		With("hello", "world").
-		Wrapf(c(), "something failed")
+        In("iam").
+        Tags("iam").
+        Trace("e76031ee-a0c4-4a80-88cb-17086fdd19c0").
+        With("hello", "world").
+        Wrapf(c(), "something failed")
 }
 
 func a() error {
@@ -114,9 +114,9 @@ func a() error {
 }
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+    logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	err := a()
+    err := a()
     if err != nil {
         logger.Error(
             err.Error(),
@@ -127,7 +127,7 @@ func main() {
 ```
 
 <div style="text-align:center;">
-    <img alt="Why oops?" src="./assets/motivation.png" style="max-width: 700px;">
+    <img alt="Why 'oops'?" src="./assets/motivation.png" style="max-width: 650px;">
 </div>
 
 ### Why "oops"?
@@ -136,7 +136,9 @@ Have you already heard a developer yelling for receiving badly written error mes
 
 Yes. Me too.
 
-![oops!](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDU2MjE1ZTk1ZjFmMWNkOGZlY2YyZGYzNjA4ZWIyZWU4NTI3MmE1OCZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/mvyvXwL26FfAtRCLPk/giphy.gif)
+<div style="text-align:center;">
+    <img alt="oops!" src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDU2MjE1ZTk1ZjFmMWNkOGZlY2YyZGYzNjA4ZWIyZWU4NTI3MmE1OCZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/mvyvXwL26FfAtRCLPk/giphy.gif">
+</div>
 
 ## 🚀 Install
 
@@ -268,7 +270,7 @@ err.(oops.OopsError).Stacktrace()
 ```
 
 <div style="text-align:center;">
-    <img alt="Stacktrace" src="./assets/stacktrace1.png" style="max-width: 700px;">
+    <img alt="Stacktrace" src="./assets/stacktrace1.png" style="max-width: 650px;">
 </div>
 
 Wrapping errors will be reported as an annotated stack trace:
@@ -282,7 +284,7 @@ err2.(oops.OopsError).Stacktrace()
 ```
 
 <div style="text-align:center;">
-    <img alt="Stacktrace" src="./assets/stacktrace2.png" style="max-width: 700px;">
+    <img alt="Stacktrace" src="./assets/stacktrace2.png" style="max-width: 650px;">
 </div>
 
 ### Source fragments
@@ -304,7 +306,7 @@ err2.(oops.OopsError).Sources()
 ```
 
 <div style="text-align:center;">
-    <img alt="Sources" src="./assets/sources1.png" style="max-width: 700px;">
+    <img alt="Sources" src="./assets/sources1.png" style="max-width: 650px;">
 </div>
 
 ### Panic handling
@@ -319,17 +321,17 @@ func mayPanic() {
 }
 
 func handlePanic() error {
-	return oops.
-		Code("iam_authz_missing_permission").
-		In("authz").
-		With("permission", "post.create").
-		Trace("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
-		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
-		Recoverf(func() {
-			// ...
-			mayPanic()
-			// ...
-		}, "unexpected error %d", 42)
+    return oops.
+        Code("iam_authz_missing_permission").
+        In("authz").
+        With("permission", "post.create").
+        Trace("6710668a-2b2a-4de6-b8cf-3272a476a1c9").
+        Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+        Recoverf(func() {
+            // ...
+            mayPanic()
+            // ...
+        }, "unexpected error %d", 42)
 }
 ```
 
@@ -363,7 +365,7 @@ str := fmt.Sprintf("%+v", oops.Errorf("permission denied"))
 ```
 
 <div style="text-align:center;">
-    <img alt="Output" src="./assets/output-printf-plusv.png" style="max-width: 700px;">
+    <img alt="Output" src="./assets/output-printf-plusv.png" style="max-width: 650px;">
 </div>
 
 #### JSON Marshal
@@ -373,7 +375,7 @@ b := json.MarshalIndent(err, "", "  ")
 ```
 
 <div style="text-align:center;">
-    <img alt="Output" src="./assets/output-json.png" style="max-width: 700px;">
+    <img alt="Output" src="./assets/output-json.png" style="max-width: 650px;">
 </div>
 
 #### slog.Valuer
@@ -486,29 +488,29 @@ Also, think about feeding error context in every caller, instead of adding extra
 
 ```go
 func a() error {
-	return b()
+    return b()
 }
 
 func b() error {
-	return c()
+    return c()
 }
 
 func c() error {
-	return d()
+    return d()
 }
 
 func d() error {
-	return oops.
-		Code("iam_missing_permission").
-		In("authz").
-		Trace("4ea76885-a371-46b0-8ce0-b72b277fa9af").
-		Time(time.Now()).
-		With("hello", "world").
-		With("user_id", 1234).
-		With("permission", "post.create").
-		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
-		By("user-123", "firstname", "john", "lastname", "doe").
-		Errorf("permission denied")
+    return oops.
+        Code("iam_missing_permission").
+        In("authz").
+        Trace("4ea76885-a371-46b0-8ce0-b72b277fa9af").
+        Time(time.Now()).
+        With("hello", "world").
+        With("user_id", 1234).
+        With("permission", "post.create").
+        Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+        By("user-123", "firstname", "john", "lastname", "doe").
+        Errorf("permission denied")
 }
 ```
 
@@ -520,27 +522,27 @@ func a() error {
 }
 
 func b() error {
-	return oops.
-		In("iam").
-		Trace("4ea76885-a371-46b0-8ce0-b72b277fa9af").
-		With("hello", "world").
-		Wrapf(c(), "something failed")
+    return oops.
+        In("iam").
+        Trace("4ea76885-a371-46b0-8ce0-b72b277fa9af").
+        With("hello", "world").
+        Wrapf(c(), "something failed")
 }
 
 func c() error {
-	return d()
+    return d()
 }
 
 func d() error {
-	return oops.
-		Code("iam_missing_permission").
-		In("authz").
-		Time(time.Now()).
-		With("user_id", 1234).
-		With("permission", "post.create").
-		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
-		By("user-123", "firstname", "john", "lastname", "doe").
-		Errorf("permission denied")
+    return oops.
+        Code("iam_missing_permission").
+        In("authz").
+        Time(time.Now()).
+        With("user_id", 1234).
+        With("permission", "post.create").
+        Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+        By("user-123", "firstname", "john", "lastname", "doe").
+        Errorf("permission denied")
 }
 ```
 
