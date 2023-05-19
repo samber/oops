@@ -303,7 +303,7 @@ The stack trace will be printed this way:
 ```go
 err := oops.Errorf("permission denied")
 
-err.(oops.OopsError).Stacktrace()
+fmt.Println(err.(oops.OopsError).Stacktrace())
 ```
 
 <div style="text-align:center;">
@@ -317,7 +317,7 @@ err1 := oops.Errorf("permission denied")
 // ...
 err2 := oops.Wrapf(err, "something failed")
 
-err2.(oops.OopsError).Stacktrace()
+fmt.Println(err2.(oops.OopsError).Stacktrace())
 ```
 
 <div style="text-align:center;">
@@ -339,7 +339,7 @@ err1 := oops.Errorf("permission denied")
 // ...
 err2 := oops.Wrapf(err, "something failed")
 
-err2.(oops.OopsError).Sources()
+fmt.Println(err2.(oops.OopsError).Sources())
 ```
 
 <div style="text-align:center;">
@@ -413,7 +413,7 @@ Errors can be printed in many ways. Logger formatters provided in this library u
 ```go
 str := fmt.Errorf("something failed: %w", oops.Errorf("permission denied"))
 
-err.Error()
+fmt.Println(err.Error())
 // Output:
 // something failed: permission denied
 ```
@@ -421,8 +421,9 @@ err.Error()
 #### printf `%v`
 
 ```go
-str := fmt.Sprintf("%+v", oops.Errorf("permission denied"))
+err := oops.Errorf("permission denied")
 
+fmt.Printf("%v", err)
 // Output:
 // permission denied
 ```
@@ -430,7 +431,9 @@ str := fmt.Sprintf("%+v", oops.Errorf("permission denied"))
 #### printf `%+v`
 
 ```go
-str := fmt.Sprintf("%+v", oops.Errorf("permission denied"))
+err := oops.Errorf("permission denied")
+
+fmt.Printf("%+v", err)
 ```
 
 <div style="text-align:center;">
@@ -450,7 +453,10 @@ b := json.MarshalIndent(err, "", "  ")
 #### slog.Valuer
 
 ```go
-attr := slog.Any("error")
+err := oops.Errorf("permission denied")
+
+attr := slog.Error(err.Error(),
+    slog.Any("error", err))
 
 // Output:
 // slog.Group("error", ...)
