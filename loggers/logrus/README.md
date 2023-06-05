@@ -4,9 +4,9 @@
 import "github.com/samber/oops/loggers/logrus"
 
 func init() {
-	logrus.SetFormatter(
+    logrus.SetFormatter(
         oopslogrus.NewOopsFormatter(
-            &logrus.JSONFormatter{},
+	    &logrus.JSONFormatter{},
         )
     )
 }
@@ -17,7 +17,8 @@ func main() {
         With("query", query).
         With("query.duration", queryDuration).
         Errorf("could not fetch user")
-	if err != nil {
+
+    if err != nil {
     	logrus.WithError(err).Error(err)
     }
 }
