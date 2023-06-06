@@ -43,8 +43,8 @@ func oopsErrorToEntryData(err *oops.OopsError, entry *logrus.Entry) {
 	payload := err.ToMap()
 
 	if entry.Level < logrus.ErrorLevel {
-		payload["stacktrace"] = nil
-		payload["sources"] = nil
+		delete(payload, "stacktrace")
+		delete(payload, "sources")
 	}
 
 	for k, v := range payload {
