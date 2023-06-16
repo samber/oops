@@ -2,6 +2,7 @@ package oops
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -56,6 +57,10 @@ func new() OopsErrorBuilder {
 		tenantID:   "",
 		tenantData: map[string]any{},
 
+		// http
+		req: nil,
+		res: nil,
+
 		// stacktrace
 		stacktrace: nil,
 	}
@@ -83,6 +88,9 @@ func (o OopsErrorBuilder) copy() OopsErrorBuilder {
 		userData:   lo.Assign(map[string]any{}, o.userData),
 		tenantID:   o.tenantID,
 		tenantData: lo.Assign(map[string]any{}, o.tenantData),
+
+		req: o.req,
+		res: o.res,
 
 		// stacktrace: o.stacktrace,
 	}
@@ -302,5 +310,19 @@ func (o OopsErrorBuilder) Tenant(tenantID string, tenantData ...any) OopsErrorBu
 		}
 	}
 
+	return o2
+}
+
+// Request supplies a http.Request.
+func (o OopsErrorBuilder) Request(req *http.Request, withBody bool) OopsErrorBuilder {
+	o2 := o.copy()
+	o2.req = lo.ToPtr(lo.T2(req, withBody))
+	return o2
+}
+
+// Response supplies a http.Response.
+func (o OopsErrorBuilder) Response(res *http.Response, withBody bool) OopsErrorBuilder {
+	o2 := o.copy()
+	o2.res = lo.ToPtr(lo.T2(res, withBody))
 	return o2
 }

@@ -3,6 +3,8 @@ package oops
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -209,10 +211,43 @@ func TestOopsTenant(t *testing.T) {
 	is.Equal(err.(OopsError).tenantData, map[string]any{"name": "My 'hello world' project", "date": "2023-01-01"})
 }
 
+func TestOopsRequest(t *testing.T) {
+	is := assert.New(t)
+
+	req, _ := http.NewRequest("POST", "http://localhost:1337/foobar", strings.NewReader("hello world"))
+
+	err := new().Request(req, false).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(err.(OopsError).err, assert.AnError)
+	is.NotNil(err.(OopsError).req)
+	if err.(OopsError).req != nil {
+		is.Equal(err.(OopsError).req.A, req)
+		is.Equal(err.(OopsError).req.B, false)
+	}
+	is.NotNil(err.(OopsError).Request())
+	if err.(OopsError).Request() != nil {
+		is.Equal(err.(OopsError).Request(), req)
+	}
+
+	err = new().Request(req, true).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(err.(OopsError).err, assert.AnError)
+	is.NotNil(err.(OopsError).req)
+	if err.(OopsError).req != nil {
+		is.Equal(err.(OopsError).req.A, req)
+		is.Equal(err.(OopsError).req.B, true)
+	}
+	is.NotNil(err.(OopsError).Request())
+	if err.(OopsError).Request() != nil {
+		is.Equal(err.(OopsError).Request(), req)
+	}
+}
+
 func TestOopsMixed(t *testing.T) {
 	is := assert.New(t)
 
 	now := time.Now()
+	req, _ := http.NewRequest("POST", "http://localhost:1337/foobar", strings.NewReader("hello world"))
 
 	err := new().
 		Code("iam_missing_permission").
@@ -225,6 +260,7 @@ func TestOopsMixed(t *testing.T) {
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "john", "lastname", "doe").
 		Tenant("workspace-123", "name", "little project").
+		Request(req, false).
 		Wrapf(assert.AnError, "a message %d", 42)
 	is.Error(err)
 	is.Equal(err.(OopsError).code, "iam_missing_permission")
@@ -239,6 +275,7 @@ func TestOopsMixed(t *testing.T) {
 	is.Equal(err.(OopsError).userData, map[string]any{"firstname": "john", "lastname": "doe"})
 	is.Equal(err.(OopsError).tenantID, "workspace-123")
 	is.Equal(err.(OopsError).tenantData, map[string]any{"name": "little project"})
+	is.Equal(err.(OopsError).req, lo.ToPtr(lo.T2(req, false)))
 	is.Equal(err.(OopsError).err, assert.AnError)
 	is.Equal(err.(OopsError).msg, "a message 42")
 }
@@ -247,6 +284,8 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is := assert.New(t)
 
 	now := time.Now()
+	req1, _ := http.NewRequest("POST", "http://localhost:1337/foo", strings.NewReader("hello world"))
+	req2, _ := http.NewRequest("POST", "http://localhost:1337/bar", strings.NewReader("hello world"))
 
 	err := new().
 		Code("iam_authz_missing_permission").
@@ -259,6 +298,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "bob", "lastname", "martin").
 		Tenant("workspace-123", "name", "little project").
+		Request(req1, true).
 		Wrapf(assert.AnError, "a message %d", 42)
 
 	err = new().
@@ -272,6 +312,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 		Owner("iam-team@acme.org").
 		User("user-123", "firstname", "john", "lastname", "doe", "email", "john@doe.org").
 		Tenant("workspace-123", "name", "little project", "deleted", false).
+		Request(req2, true).
 		Wrapf(err, "hello world")
 
 	// current error
@@ -286,6 +327,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal(err.(OopsError).Owner(), "authz-team@acme.org")
 	is.Equal(lo.T2(err.(OopsError).User()), lo.T2("user-123", map[string]any{"firstname": "bob", "lastname": "martin", "email": "john@doe.org"}))
 	is.Equal(lo.T2(err.(OopsError).Tenant()), lo.T2("workspace-123", map[string]any{"name": "little project", "deleted": false}))
+	is.Equal(err.(OopsError).Request(), req1)
 	is.Equal(err.(OopsError).Error(), "hello world: a message 42: assert.AnError general error for testing")
 
 	// first-level error
@@ -302,6 +344,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal(err.(OopsError).userData, map[string]any{"email": "john@doe.org", "firstname": "john", "lastname": "doe"})
 	is.Equal(err.(OopsError).tenantID, "workspace-123")
 	is.Equal(err.(OopsError).tenantData, map[string]any{"deleted": false, "name": "little project"})
+	is.Equal(err.(OopsError).req, lo.ToPtr(lo.T2(req2, true)))
 	is.Equal(err.(OopsError).err.Error(), "a message 42: assert.AnError general error for testing")
 	is.Equal(err.(OopsError).msg, "hello world")
 
@@ -318,6 +361,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal(err.(OopsError).Unwrap().(OopsError).userData, map[string]any{"firstname": "bob", "lastname": "martin"})
 	is.Equal(err.(OopsError).Unwrap().(OopsError).tenantID, "workspace-123")
 	is.Equal(err.(OopsError).Unwrap().(OopsError).tenantData, map[string]any{"name": "little project"})
+	is.Equal(err.(OopsError).Unwrap().(OopsError).req, lo.ToPtr(lo.T2(req1, true)))
 	is.Equal(err.(OopsError).Unwrap().(OopsError).err.Error(), assert.AnError.Error())
 	is.Equal(err.(OopsError).Unwrap().(OopsError).msg, "a message 42")
 }
@@ -326,6 +370,7 @@ func TestOopsLogValuer(t *testing.T) {
 	is := assert.New(t)
 
 	now := time.Now()
+	req, _ := http.NewRequest("POST", "http://localhost:1337/foobar", strings.NewReader("hello world"))
 
 	err := new().
 		Code("iam_missing_permission").
@@ -339,6 +384,7 @@ func TestOopsLogValuer(t *testing.T) {
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "john").
 		Tenant("workspace-123", "name", "little project").
+		Request(req, true).
 		Wrapf(assert.AnError, "a message %d", 42)
 
 	is.Error(err)
@@ -369,6 +415,7 @@ func TestOopsLogValuer(t *testing.T) {
 			slog.String("id", "workspace-123"),
 			slog.String("name", "little project"),
 		),
+		slog.String("request", "POST /foobar HTTP/1.1\r\nHost: localhost:1337\r\nUser-Agent: Go-http-client/1.1\r\nContent-Length: 11\r\nAccept-Encoding: gzip\r\n\r\nhello world"),
 		slog.String("stacktrace", err.(OopsError).Stacktrace()),
 	}
 
@@ -384,6 +431,7 @@ func TestOopsFormatSummary(t *testing.T) {
 	is := assert.New(t)
 
 	now := time.Now()
+	req, _ := http.NewRequest("POST", "http://localhost:1337/foobar", strings.NewReader("hello world"))
 
 	err := new().
 		Code("iam_missing_permission").
@@ -396,6 +444,7 @@ func TestOopsFormatSummary(t *testing.T) {
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "john", "lastname", "doe").
 		Tenant("workspace-123", "name", "little project").
+		Request(req, true).
 		Wrapf(assert.AnError, "a message %d", 42)
 
 	expected := "a message 42: assert.AnError general error for testing"
@@ -406,6 +455,7 @@ func TestOopsFormatVerbose(t *testing.T) {
 	is := assert.New(t)
 
 	now, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", "2023-05-02 05:26:48.570837 +0000 UTC")
+	req, _ := http.NewRequest("POST", "http://localhost:1337/foobar", strings.NewReader("hello world"))
 
 	err := new().
 		Code("iam_missing_permission").
@@ -418,6 +468,7 @@ func TestOopsFormatVerbose(t *testing.T) {
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "john").
 		Tenant("workspace-123", "name", "little project").
+		Request(req, true).
 		Wrapf(assert.AnError, "a message %d", 42)
 
 	expected := `Oops: a message 42: assert.AnError general error for testing
@@ -436,15 +487,26 @@ User:
 Tenant:
   * id: workspace-123
   * name: little project
+Request:
+  * POST /foobar HTTP/1.1
+  * Host: localhost:1337
+  * User-Agent: Go-http-client/1.1
+  * Content-Length: 11
+  * Accept-Encoding: gzip
+  * 
+  * hello world
 `
 
-	is.Equal(expected, fmt.Sprintf("%+v", withoutStacktrace(err.(OopsError))))
+	got := fmt.Sprintf("%+v", withoutStacktrace(err.(OopsError)))
+	got = strings.ReplaceAll(got, "\r", "") // remove \r from request
+	is.Equal(expected, got)
 }
 
 func TestOopsMarshalJSON(t *testing.T) {
 	is := assert.New(t)
 
 	now, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", "2023-05-02 05:26:48.570837 +0200 UTC")
+	req, _ := http.NewRequest("POST", "http://localhost:1337/foobar", strings.NewReader("hello world"))
 
 	err := new().
 		Code("iam_missing_permission").
@@ -456,9 +518,10 @@ func TestOopsMarshalJSON(t *testing.T) {
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		User("user-123", "firstname", "john", "lastname", "doe").
 		Tenant("workspace-123", "name", "little project").
+		Request(req, true).
 		Wrapf(assert.AnError, "a message %d", 42)
 
-	expected := `{"code":"iam_missing_permission","context":{"user_id":1234},"domain":"authz","duration":"1s","error":"a message 42: assert.AnError general error for testing","hint":"Runbook: https://doc.acme.org/doc/abcd.md","tenant":{"id":"workspace-123","name":"little project"},"time":"2023-05-02T05:26:48.570837Z","trace":"1234","user":{"firstname":"john","id":"user-123","lastname":"doe"}}`
+	expected := `{"code":"iam_missing_permission","context":{"user_id":1234},"domain":"authz","duration":"1s","error":"a message 42: assert.AnError general error for testing","hint":"Runbook: https://doc.acme.org/doc/abcd.md","request":"POST /foobar HTTP/1.1\r\nHost: localhost:1337\r\nUser-Agent: Go-http-client/1.1\r\nContent-Length: 11\r\nAccept-Encoding: gzip\r\n\r\nhello world","tenant":{"id":"workspace-123","name":"little project"},"time":"2023-05-02T05:26:48.570837Z","trace":"1234","user":{"firstname":"john","id":"user-123","lastname":"doe"}}`
 
 	got, err := json.Marshal(withoutStacktrace(err.(OopsError)))
 	is.NoError(err)
