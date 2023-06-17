@@ -3,6 +3,8 @@ package oops
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httputil"
 	"strings"
 	"time"
 
@@ -36,6 +38,10 @@ type OopsError struct {
 	userData   map[string]any
 	tenantID   string
 	tenantData map[string]any
+
+	// http
+	req *lo.Tuple2[*http.Request, bool]
+	res *lo.Tuple2[*http.Response, bool]
 
 	// stacktrace
 	stacktrace *oopsStacktrace
@@ -197,6 +203,44 @@ func (o OopsError) Tenant() (string, map[string]any) {
 	return tenantID, tenantData
 }
 
+// Request returns the http request.
+func (o OopsError) Request() *http.Request {
+	t := o.request()
+	if t != nil {
+		return t.A
+	}
+
+	return nil
+}
+
+func (o OopsError) request() *lo.Tuple2[*http.Request, bool] {
+	return getDeepestErrorAttribute(
+		o,
+		func(e OopsError) *lo.Tuple2[*http.Request, bool] {
+			return e.req
+		},
+	)
+}
+
+// Response returns the http response.
+func (o OopsError) Response() *http.Response {
+	t := o.response()
+	if t != nil {
+		return t.A
+	}
+
+	return nil
+}
+
+func (o OopsError) response() *lo.Tuple2[*http.Response, bool] {
+	return getDeepestErrorAttribute(
+		o,
+		func(e OopsError) *lo.Tuple2[*http.Response, bool] {
+			return e.res
+		},
+	)
+}
+
 // Stacktrace returns a pretty printed stacktrace of the error.
 func (o OopsError) Stacktrace() string {
 	blocks := []string{}
@@ -340,6 +384,20 @@ func (o OopsError) LogValuer() slog.Value {
 		attrs = append(attrs, slog.Group("tenant", lo.ToAnySlice(tenantPayload)...))
 	}
 
+	if req := o.request(); req != nil {
+		dump, e := httputil.DumpRequestOut(req.A, req.B)
+		if e == nil {
+			attrs = append(attrs, slog.String("request", string(dump)))
+		}
+	}
+
+	if res := o.response(); res != nil {
+		dump, e := httputil.DumpResponse(res.A, res.B)
+		if e == nil {
+			attrs = append(attrs, slog.String("response", string(dump)))
+		}
+	}
+
 	if stacktrace := o.Stacktrace(); stacktrace != "" {
 		attrs = append(attrs, slog.String("stacktrace", stacktrace))
 	}
@@ -415,6 +473,20 @@ func (o OopsError) ToMap() map[string]any {
 		}
 
 		payload["tenant"] = tenant
+	}
+
+	if req := o.request(); req != nil {
+		dump, e := httputil.DumpRequestOut(req.A, req.B)
+		if e == nil {
+			payload["request"] = string(dump)
+		}
+	}
+
+	if res := o.response(); res != nil {
+		dump, e := httputil.DumpResponse(res.A, res.B)
+		if e == nil {
+			payload["response"] = string(dump)
+		}
 	}
 
 	if stacktrace := o.Stacktrace(); stacktrace != "" {
@@ -511,6 +583,28 @@ func (o *OopsError) formatVerbose() string {
 
 		for k, v := range tenantData {
 			output += fmt.Sprintf("  * %s: %v\n", k, v)
+		}
+	}
+
+	if req := o.request(); req != nil {
+		dump, e := httputil.DumpRequestOut(req.A, req.B)
+		if e == nil {
+			lines := strings.Split(string(dump), "\n")
+			lines = lo.Map(lines, func(line string, _ int) string {
+				return "  * " + line
+			})
+			output += fmt.Sprintf("Request:\n%s\n", strings.Join(lines, "\n"))
+		}
+	}
+
+	if res := o.response(); res != nil {
+		dump, e := httputil.DumpResponse(res.A, res.B)
+		if e == nil {
+			lines := strings.Split(string(dump), "\n")
+			lines = lo.Map(lines, func(line string, _ int) string {
+				return "  * " + line
+			})
+			output += fmt.Sprintf("Response:\n%s\n", strings.Join(lines, "\n"))
 		}
 	}
 

@@ -215,8 +215,14 @@ err8 := oops.
     Tenant(workspaceID, "name", "my little project").
     Errorf("could not fetch user")
 
-// with error wrapping
+// with optional http request and response
 err9 := oops.
+    Request(req, false).
+    Response(res, true).
+    Errorf("could not fetch user")
+
+// with error wrapping
+err10 := oops.
     In("repository").
     Tags("database", "sql").
     User(userID).
@@ -227,7 +233,7 @@ err9 := oops.
     Wrapf(sql.Exec(query), "could not fetch user")  // Wrapf returns nil when sql.Exec() is nil
 
 // with panic recovery
-err10 := oops.
+err11 := oops.
     In("repository").
     Tags("database", "sql").
     Recover(func () {
@@ -235,7 +241,7 @@ err10 := oops.
     })
 
 // with assertion
-err11 := oops.
+err12 := oops.
     In("repository").
     Tags("database", "sql").
     Recover(func () {
@@ -267,21 +273,23 @@ The library provides an error builder. Each method can be used standalone (eg: `
 
 The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)` or `.Wrapf(...)`.
 
-| Builder method             | Getter                                  | Description                                                                                                                                                                                |
-| -------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `.With(string, any)`       | `err.Context() map[string]any`          | Supply a list of attributes key+value                                                                                                                                                      |
-| `.Code(string)`            | `err.Code() string`                     | Set a code or slug that describes the error. Error messages are intented to be read by humans, but such code is expected to be read by machines and be transported over different services |
-| `.Time(time.Time)`         | `err.Time() time.Time`                  | Set the error time (default: `time.Now()`)                                                                                                                                                 |
-| `.Since(time.Time)`        | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
-| `.Duration(time.Duration)` | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
-| `.In(string)`              | `err.Domain() string`                   | Set the feature category or domain                                                                                                                                                         |
-| `.Tags(...string)`         | `err.Tags() []string`                   | Add multiple tags, describing the feature returning an error                                                                                                                               |
-| `.Trace(string)`           | `err.Trace() string`                    | Add a transaction id, trace id, correlation id... (default: ULID)                                                                                                                          |
-| `.Span(string)`            | `err.Span() string`                     | Add a span representing a unit of work or operation... (default: ULID)                                                                                                                     |
-| `.Hint(string)`            | `err.Hint() string`                     | Set a hint for faster debugging                                                                                                                                                            |
-| `.Owner(string)`           | `err.Owner() (string)`                  | Set the name/email of the collegue/team responsible for handling this error. Useful for alerting purpose                                                                                   |
-| `.User(string, any...)`    | `err.User() (string, map[string]any)`   | Supply user id and a chain of key/value                                                                                                                                                    |
-| `.Tenant(string, any...)`  | `err.Tenant() (string, map[string]any)` | Supply tenant id and a chain of key/value                                                                                                                                                  |
+| Builder method                    | Getter                                  | Description                                                                                                                                                                                |
+| --------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.With(string, any)`              | `err.Context() map[string]any`          | Supply a list of attributes key+value                                                                                                                                                      |
+| `.Code(string)`                   | `err.Code() string`                     | Set a code or slug that describes the error. Error messages are intented to be read by humans, but such code is expected to be read by machines and be transported over different services |
+| `.Time(time.Time)`                | `err.Time() time.Time`                  | Set the error time (default: `time.Now()`)                                                                                                                                                 |
+| `.Since(time.Time)`               | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
+| `.Duration(time.Duration)`        | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
+| `.In(string)`                     | `err.Domain() string`                   | Set the feature category or domain                                                                                                                                                         |
+| `.Tags(...string)`                | `err.Tags() []string`                   | Add multiple tags, describing the feature returning an error                                                                                                                               |
+| `.Trace(string)`                  | `err.Trace() string`                    | Add a transaction id, trace id, correlation id... (default: ULID)                                                                                                                          |
+| `.Span(string)`                   | `err.Span() string`                     | Add a span representing a unit of work or operation... (default: ULID)                                                                                                                     |
+| `.Hint(string)`                   | `err.Hint() string`                     | Set a hint for faster debugging                                                                                                                                                            |
+| `.Owner(string)`                  | `err.Owner() (string)`                  | Set the name/email of the collegue/team responsible for handling this error. Useful for alerting purpose                                                                                   |
+| `.User(string, any...)`           | `err.User() (string, map[string]any)`   | Supply user id and a chain of key/value                                                                                                                                                    |
+| `.Tenant(string, any...)`         | `err.Tenant() (string, map[string]any)` | Supply tenant id and a chain of key/value                                                                                                                                                  |
+| `.Request(*http.Request, bool)`   | `err.Request() *http.Request`           | Supply http request                                                                                                                                                                        |
+| `.Response(*http.Response, bool)` | `err.Response() *http.Response`         | Supply http response                                                                                                                                                                       |
 
 ### Other helpers
 
@@ -374,7 +382,7 @@ func handlePanic() error {
 
 ### Assertions
 
-Assertions may be considered an anti-pattern for Golang, since we only call `panic()` for unexpected and critical errors. In this situation, assertions might help developers to write safer code.
+Assertions may be considered an anti-pattern for Golang since we only call `panic()` for unexpected and critical errors. In this situation, assertions might help developers to write safer code.
 
 ```go
 func mayPanic() {
@@ -483,7 +491,7 @@ Examples of formatters can be found in `ToMap()`, `Format()`, `Marshal()` and `L
 
 ### Wrap/Wrapf shortcut
 
-`oops.Wrap(...)` and `oops.Wrapf(...)` return nil if the provided `error` is nil.
+`oops.Wrap(...)` and `oops.Wrapf(...)` returns nil if the provided `error` is nil.
 
 ❌ So don't write:
 

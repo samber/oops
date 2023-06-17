@@ -1,7 +1,9 @@
 package main
 
 import (
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/samber/oops"
@@ -12,6 +14,8 @@ import (
 // go run examples/slog/example.go | jq .error.stacktrace -r
 
 func d() error {
+	req, _ := http.NewRequest("POST", "http://localhost:1337/foobar", strings.NewReader("hello world"))
+
 	return oops.
 		Code("iam_authz_missing_permission").
 		In("authz").
@@ -20,6 +24,7 @@ func d() error {
 		With("permission", "post.create").
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		User("user-123", "firstname", "john", "lastname", "doe").
+		Request(req, true).
 		Errorf("permission denied")
 }
 

@@ -1,6 +1,9 @@
 package oops
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 // Wrap wraps an error into an `oops.OopsError` object that satisfies `error`
 func Wrap(err error) error {
@@ -116,4 +119,14 @@ func User(userID string, data map[string]any) OopsErrorBuilder {
 // Tenant supplies tenant id and a chain of key/value.
 func Tenant(tenantID string, data map[string]any) OopsErrorBuilder {
 	return new().Tenant(tenantID, data)
+}
+
+// Request supplies a http.Request.
+func Request(req *http.Request, withBody bool) OopsErrorBuilder {
+	return new().Request(req, withBody)
+}
+
+// Response supplies a http.Response.
+func Response(res *http.Response, withBody bool) OopsErrorBuilder {
+	return new().Response(res, withBody)
 }
