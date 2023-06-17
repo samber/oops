@@ -170,6 +170,76 @@ Since `oops.OopsError` implements the `error` interface, you will be able to com
 
 🥷 Start hacking `oops` with this [playground](https://go.dev/play/p/-_7EBnceJ_A).
 
+## 🧠 Spec
+
+GoDoc: [https://godoc.org/github.com/samber/oops](https://godoc.org/github.com/samber/oops)
+
+### Error constructors
+
+| Constructor                                                             | Description                                                                                           |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `.Errorf(format string, args ...any) error`                             | Formats an error and returns `oops.OopsError` object that satisfies `error`                           |
+| `.Wrap(err error) error`                                                | Wraps an error into an `oops.OopsError` object that satisfies `error`                                 |
+| `.Wrapf(err error, format string, args ...any) error`                   | Wraps an error into an `oops.OopsError` object that satisfies `error` and formats an error message    |
+| `.Recover(cb func()) error`                                             | Handle panic and returns `oops.OopsError` object that satisfies `error`.                              |
+| `.Recoverf(cb func(), format string, args ...any) error`                | Handle panic and returns `oops.OopsError` object that satisfies `error` and formats an error message. |
+| `.Assert(condition bool) OopsErrorBuilder`                              | Panics if condition is false. Assertions can be chained.                                              |
+| `.Assertf(condition bool, format string, args ...any) OopsErrorBuilder` | Panics if condition is false and formats an error message. Assertions can be chained.                 |
+
+#### Examples
+
+```go
+// with error wrapping
+err0 := oops.
+    In("repository").
+    Tags("database", "sql").
+    Wrapf(sql.Exec(query), "could not fetch user")  // Wrapf returns nil when sql.Exec() is nil
+
+// with panic recovery
+err1 := oops.
+    In("repository").
+    Tags("database", "sql").
+    Recover(func () {
+        panic("caramba!")
+    })
+
+// with assertion
+err2 := oops.
+    In("repository").
+    Tags("database", "sql").
+    Recover(func () {
+        // ...
+        oops.Assertf(time.Now().Weekday() == 1, "This code should run on Monday only.")
+        // ...
+    })
+```
+
+### Context
+
+The library provides an error builder. Each method can be used standalone (eg: `oops.With(...)`) or from a previous builder instance (eg: `oops.In("iam").User("user-42")`).
+
+The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)` or `.Wrapf(...)`.
+
+| Builder method                    | Getter                                  | Description                                                                                                                                                                                |
+| --------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.With(string, any)`              | `err.Context() map[string]any`          | Supply a list of attributes key+value                                                                                                                                                      |
+| `.Code(string)`                   | `err.Code() string`                     | Set a code or slug that describes the error. Error messages are intented to be read by humans, but such code is expected to be read by machines and be transported over different services |
+| `.Time(time.Time)`                | `err.Time() time.Time`                  | Set the error time (default: `time.Now()`)                                                                                                                                                 |
+| `.Since(time.Time)`               | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
+| `.Duration(time.Duration)`        | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
+| `.In(string)`                     | `err.Domain() string`                   | Set the feature category or domain                                                                                                                                                         |
+| `.Tags(...string)`                | `err.Tags() []string`                   | Add multiple tags, describing the feature returning an error                                                                                                                               |
+| `.Trace(string)`                  | `err.Trace() string`                    | Add a transaction id, trace id, correlation id... (default: ULID)                                                                                                                          |
+| `.Span(string)`                   | `err.Span() string`                     | Add a span representing a unit of work or operation... (default: ULID)                                                                                                                     |
+| `.Hint(string)`                   | `err.Hint() string`                     | Set a hint for faster debugging                                                                                                                                                            |
+| `.Owner(string)`                  | `err.Owner() (string)`                  | Set the name/email of the collegue/team responsible for handling this error. Useful for alerting purpose                                                                                   |
+| `.User(string, any...)`           | `err.User() (string, map[string]any)`   | Supply user id and a chain of key/value                                                                                                                                                    |
+| `.Tenant(string, any...)`         | `err.Tenant() (string, map[string]any)` | Supply tenant id and a chain of key/value                                                                                                                                                  |
+| `.Request(*http.Request, bool)`   | `err.Request() *http.Request`           | Supply http request                                                                                                                                                                        |
+| `.Response(*http.Response, bool)` | `err.Response() *http.Response`         | Supply http response                                                                                                                                                                       |
+
+#### Examples
+
 ```go
 // simple error with stacktrace
 err1 := oops.Errorf("could not fetch user")
@@ -220,80 +290,11 @@ err9 := oops.
     Request(req, false).
     Response(res, true).
     Errorf("could not fetch user")
-
-// with error wrapping
-err10 := oops.
-    In("repository").
-    Tags("database", "sql").
-    User(userID).
-    Time(queryTime).
-    With("driver", "postgresql").
-    With("query", query).
-    With("query.duration", time.Since(queryTime)).
-    Wrapf(sql.Exec(query), "could not fetch user")  // Wrapf returns nil when sql.Exec() is nil
-
-// with panic recovery
-err11 := oops.
-    In("repository").
-    Tags("database", "sql").
-    Recover(func () {
-        panic("caramba!")
-    })
-
-// with assertion
-err12 := oops.
-    In("repository").
-    Tags("database", "sql").
-    Recover(func () {
-        // ...
-        oops.Assertf(time.Now().Weekday() == 1, "This code should run on Monday only.")
-        // ...
-    })
 ```
-
-## 🧠 Spec
-
-GoDoc: [https://godoc.org/github.com/samber/oops](https://godoc.org/github.com/samber/oops)
-
-### Error constructors
-
-| Constructor                                                             | Description                                                                                           |
-| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `.Errorf(format string, args ...any) error`                             | Formats an error and returns `oops.OopsError` object that satisfies `error`                           |
-| `.Wrap(err error) error`                                                | Wraps an error into an `oops.OopsError` object that satisfies `error`                                 |
-| `.Wrapf(err error, format string, args ...any) error`                   | Wraps an error into an `oops.OopsError` object that satisfies `error` and formats an error message    |
-| `.Recover(cb func()) error`                                             | Handle panic and returns `oops.OopsError` object that satisfies `error`.                              |
-| `.Recoverf(cb func(), format string, args ...any) error`                | Handle panic and returns `oops.OopsError` object that satisfies `error` and formats an error message. |
-| `.Assert(condition bool) OopsErrorBuilder`                              | Panics if condition is false. Assertions can be chained.                                              |
-| `.Assertf(condition bool, format string, args ...any) OopsErrorBuilder` | Panics if condition is false and formats an error message. Assertions can be chained.                 |
-
-### Context
-
-The library provides an error builder. Each method can be used standalone (eg: `oops.With(...)`) or from a previous builder instance (eg: `oops.In("iam").User("user-42")`).
-
-The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)` or `.Wrapf(...)`.
-
-| Builder method                    | Getter                                  | Description                                                                                                                                                                                |
-| --------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `.With(string, any)`              | `err.Context() map[string]any`          | Supply a list of attributes key+value                                                                                                                                                      |
-| `.Code(string)`                   | `err.Code() string`                     | Set a code or slug that describes the error. Error messages are intented to be read by humans, but such code is expected to be read by machines and be transported over different services |
-| `.Time(time.Time)`                | `err.Time() time.Time`                  | Set the error time (default: `time.Now()`)                                                                                                                                                 |
-| `.Since(time.Time)`               | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
-| `.Duration(time.Duration)`        | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
-| `.In(string)`                     | `err.Domain() string`                   | Set the feature category or domain                                                                                                                                                         |
-| `.Tags(...string)`                | `err.Tags() []string`                   | Add multiple tags, describing the feature returning an error                                                                                                                               |
-| `.Trace(string)`                  | `err.Trace() string`                    | Add a transaction id, trace id, correlation id... (default: ULID)                                                                                                                          |
-| `.Span(string)`                   | `err.Span() string`                     | Add a span representing a unit of work or operation... (default: ULID)                                                                                                                     |
-| `.Hint(string)`                   | `err.Hint() string`                     | Set a hint for faster debugging                                                                                                                                                            |
-| `.Owner(string)`                  | `err.Owner() (string)`                  | Set the name/email of the collegue/team responsible for handling this error. Useful for alerting purpose                                                                                   |
-| `.User(string, any...)`           | `err.User() (string, map[string]any)`   | Supply user id and a chain of key/value                                                                                                                                                    |
-| `.Tenant(string, any...)`         | `err.Tenant() (string, map[string]any)` | Supply tenant id and a chain of key/value                                                                                                                                                  |
-| `.Request(*http.Request, bool)`   | `err.Request() *http.Request`           | Supply http request                                                                                                                                                                        |
-| `.Response(*http.Response, bool)` | `err.Response() *http.Response`         | Supply http response                                                                                                                                                                       |
 
 ### Other helpers
 
-- `oops.AsError(error) (oops.OopsError, bool)` as an alias to `errors.As(...)`
+- `oops.AsError[MyError](error) (MyError, bool)` as an alias to `errors.As(...)`
 
 ### Stack trace
 
