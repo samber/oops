@@ -204,7 +204,7 @@ func (o OopsError) Stacktrace() string {
 
 	recursive(o, func(e OopsError) {
 		if e.stacktrace != nil && len(e.stacktrace.frames) > 0 {
-			msg := coalesceOrEmpty(e.msg, "Error")
+			msg := coalesceOrEmpty(e.msg, e.err.Error(), "Error")
 			block := fmt.Sprintf("%s\n%s", msg, e.stacktrace.String(topFrame))
 
 			blocks = append([]string{block}, blocks...)

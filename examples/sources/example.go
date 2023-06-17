@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -10,7 +11,11 @@ import (
 
 // go run examples/sources/example.go | jq .error.sources -r
 
-func d() error {
+func f() error {
+	return fmt.Errorf("permission denied")
+}
+
+func e() error {
 	return oops.
 		Code("iam_authz_missing_permission").
 		In("authz").
@@ -19,7 +24,11 @@ func d() error {
 		With("permission", "post.create").
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		User("user-123", "firstname", "john", "lastname", "doe").
-		Errorf("permission denied")
+		Wrap(f())
+}
+
+func d() error {
+	return oops.Wrap(e())
 }
 
 func c() error {
