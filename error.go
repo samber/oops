@@ -248,7 +248,8 @@ func (o OopsError) Stacktrace() string {
 
 	recursive(o, func(e OopsError) {
 		if e.stacktrace != nil && len(e.stacktrace.frames) > 0 {
-			msg := coalesceOrEmpty(e.msg, e.err.Error(), "Error")
+			err := lo.TernaryF(e.err != nil, func() string { return e.err.Error() }, func() string { return "" })
+			msg := coalesceOrEmpty(e.msg, err, "Error")
 			block := fmt.Sprintf("%s\n%s", msg, e.stacktrace.String(topFrame))
 
 			blocks = append([]string{block}, blocks...)
