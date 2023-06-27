@@ -11,4 +11,5 @@ use (
 	./examples/slog
 	./examples/logrus
 	./examples/sources
+	./examples/panic
 )

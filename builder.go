@@ -147,6 +147,12 @@ func (o OopsErrorBuilder) Recover(cb func()) (err error) {
 			} else {
 				err = o.Wrap(fmt.Errorf("%v", r))
 			}
+
+			// without this, the stacktrace would have start to the Wrap() call
+			e := err.(OopsError)
+			if len(e.stacktrace.frames) > 0 { // just for safety, should always be true
+				e.stacktrace.frames = e.stacktrace.frames[1:]
+			}
 		}
 	}()
 
@@ -162,6 +168,12 @@ func (o OopsErrorBuilder) Recoverf(cb func(), msg string, args ...any) (err erro
 				err = o.Wrapf(e, msg, args...)
 			} else {
 				err = o.Wrapf(o.Errorf("%v", r), msg, args...)
+			}
+
+			// without this, the stacktrace would have start to the Wrapf() call
+			e := err.(OopsError)
+			if len(e.stacktrace.frames) > 0 { // just for safety, should always be true
+				e.stacktrace.frames = e.stacktrace.frames[1:]
 			}
 		}
 	}()
