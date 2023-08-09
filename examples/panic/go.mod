@@ -1,6 +1,6 @@
 module github.com/samber/oops/examples/panic
 
-go 1.20
+go 1.21
 
 require (
 	github.com/stretchr/testify v1.8.2
