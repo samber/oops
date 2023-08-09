@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"slog/slog"
+	"log/slog"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
