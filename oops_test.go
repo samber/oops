@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"slog/slog"
+
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/exp/slog"
 )
 
 func TestOopsWrap(t *testing.T) {

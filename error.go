@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"log/slog"
+
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
-	"golang.org/x/exp/slog"
 )
 
 var SourceFragmentsHidden = true
@@ -49,7 +50,11 @@ type OopsError struct {
 
 // Unwrap returns the underlying error.
 func (o OopsError) Unwrap() error {
-	return o.err
+	return nil
+}
+
+func (c OopsError) Is(err error) bool {
+	return c.err == err
 }
 
 // Error returns the error message, without context.

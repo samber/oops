@@ -5,8 +5,9 @@ import (
 	"os"
 	"time"
 
+	"log/slog"
+
 	"github.com/samber/oops"
-	"golang.org/x/exp/slog"
 )
 
 // go run examples/sources/example.go | jq .error.sources -r

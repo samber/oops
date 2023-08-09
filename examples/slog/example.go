@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/samber/oops"
-	"golang.org/x/exp/slog"
 )
 
 // go run examples/slog/example.go | jq
@@ -44,14 +44,47 @@ func a() error {
 	return b()
 }
 
+type myError1 struct {
+	err error
+}
+
+func (e myError1) Error() string {
+	return fmt.Errorf("fuck %w", e.err).Error()
+}
+
+func (c myError1) Unwrap() error {
+	if c.err != nil {
+		return c.err
+	}
+	return nil
+}
+
+type myError2 struct {
+	err error
+}
+
+func (e myError2) Error() string {
+	return fmt.Errorf("fuck %w", e.err).Error()
+}
+
+func (c myError2) Unwrap() error {
+	if c.err != nil {
+		return c.err
+	}
+	return nil
+}
+
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	// logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	err := a()
-	if err != nil {
-		logger.Error(
-			err.Error(),
-			slog.Any("error", err),
-		)
-	}
+	// if err != nil {
+	// 	logger.Error(
+	// 		err.Error(),
+	// 		slog.Any("error", err),
+	// 	)
+	// }
+	err2 := &myError1{err: err}
+	err3 := &myError2{err: err2}
+	fmt.Println(lo.ErrorsAs[oops.OopsError](err3))
 }
