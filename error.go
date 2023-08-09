@@ -50,7 +50,7 @@ type OopsError struct {
 
 // Unwrap returns the underlying error.
 func (o OopsError) Unwrap() error {
-	return nil
+	return o.err
 }
 
 func (c OopsError) Is(err error) bool {
