@@ -222,7 +222,7 @@ The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)
 
 | Builder method                    | Getter                                  | Description                                                                                                                                                                                |
 | --------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `.With(string, any)`              | `err.Context() map[string]any`          | Supply a list of attributes key+value                                                                                                                                                      |
+| `.With(string, any)`              | `err.Context() map[string]any`          | Supply a list of attributes key+value. Values of type `func() any {}` are accepted and evaluated lazily.                                                                                   |
 | `.Code(string)`                   | `err.Code() string`                     | Set a code or slug that describes the error. Error messages are intented to be read by humans, but such code is expected to be read by machines and be transported over different services |
 | `.Time(time.Time)`                | `err.Time() time.Time`                  | Set the error time (default: `time.Now()`)                                                                                                                                                 |
 | `.Since(time.Time)`               | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
@@ -255,6 +255,7 @@ err3 := oops.
     With("driver", "postgresql").
     With("query", query).
     With("query.duration", queryDuration).
+    With("lorem", func() string { return "ipsum" }).	// lazy evaluation
     Errorf("could not fetch user")
 
 // with trace+span

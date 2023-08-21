@@ -15,7 +15,7 @@ func d() error {
 		In("authz").
 		Time(time.Now()).
 		With("user_id", 1234).
-		With("permission", "post.create").
+		With("permission", func() any { return "post.create" }). // lazy evaluation
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		User("user-123", "firstname", "john", "lastname", "doe").
 		Errorf("permission denied")

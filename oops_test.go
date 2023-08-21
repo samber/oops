@@ -138,6 +138,15 @@ func TestOopsWith(t *testing.T) {
 	is.Equal(err.(OopsError).context, map[string]any{"user_id": 1234, "foo": "bar"})
 }
 
+func TestOopsWithLazyEvaluation(t *testing.T) {
+	is := assert.New(t)
+
+	// lazy evaluation
+	err := new().With("user_id", func() int { return 1234 }, "foo", map[string]any{"bar": func() string { return "baz" }}).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(err.(OopsError).Context(), map[string]any{"user_id": 1234, "foo": map[string]any{"bar": "baz"}})
+}
+
 func TestOopsHint(t *testing.T) {
 	is := assert.New(t)
 

@@ -123,11 +123,13 @@ func (o OopsError) Tags() []string {
 
 // Context returns a k/v context of the error.
 func (o OopsError) Context() map[string]any {
-	return mergeNestedErrorMap(
-		o,
-		func(e OopsError) map[string]any {
-			return e.context
-		},
+	return lazyMapEvaluation(
+		mergeNestedErrorMap(
+			o,
+			func(e OopsError) map[string]any {
+				return e.context
+			},
+		),
 	)
 }
 
@@ -180,11 +182,13 @@ func (o OopsError) User() (string, map[string]any) {
 			return e.userID
 		},
 	)
-	userData := mergeNestedErrorMap(
-		o,
-		func(e OopsError) map[string]any {
-			return e.userData
-		},
+	userData := lazyMapEvaluation(
+		mergeNestedErrorMap(
+			o,
+			func(e OopsError) map[string]any {
+				return e.userData
+			},
+		),
 	)
 
 	return userID, userData
@@ -198,11 +202,13 @@ func (o OopsError) Tenant() (string, map[string]any) {
 			return e.tenantID
 		},
 	)
-	tenantData := mergeNestedErrorMap(
-		o,
-		func(e OopsError) map[string]any {
-			return e.tenantData
-		},
+	tenantData := lazyMapEvaluation(
+		mergeNestedErrorMap(
+			o,
+			func(e OopsError) map[string]any {
+				return e.tenantData
+			},
+		),
 	)
 
 	return tenantID, tenantData
