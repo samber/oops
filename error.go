@@ -637,30 +637,6 @@ func (o *OopsError) formatSummary() string {
 	return o.Error()
 }
 
-func getDeepestErrorAttribute[T comparable](err OopsError, getter func(OopsError) T) T {
-	if err.err == nil {
-		return getter(err)
-	}
-
-	if child, ok := AsOops(err.err); ok {
-		return coalesceOrEmpty(getDeepestErrorAttribute(child, getter), getter(err))
-	}
-
-	return getter(err)
-}
-
-func mergeNestedErrorMap(err OopsError, getter func(OopsError) map[string]any) map[string]any {
-	if err.err == nil {
-		return getter(err)
-	}
-
-	if child, ok := AsOops(err.err); ok {
-		return lo.Assign(map[string]any{}, getter(err), mergeNestedErrorMap(child, getter))
-	}
-
-	return getter(err)
-}
-
 func recursive(err OopsError, tap func(OopsError)) {
 	tap(err)
 
