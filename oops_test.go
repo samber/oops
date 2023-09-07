@@ -1,6 +1,7 @@
 package oops
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -138,6 +139,46 @@ func TestOopsWith(t *testing.T) {
 	is.Equal(err.(OopsError).context, map[string]any{"user_id": 1234, "foo": "bar"})
 }
 
+func TestOopsWithContext(t *testing.T) {
+	is := assert.New(t)
+
+	type test string
+	const fooo test = "fooo"
+
+	ctx := context.WithValue(context.Background(), "foo", "bar")
+	ctx = context.WithValue(ctx, fooo, "baz")
+
+	// string
+	err := new().WithContext(ctx, "foo").Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(err.(OopsError).err, assert.AnError)
+	is.Equal(err.(OopsError).context, map[string]any{"foo": "bar"})
+
+	// type alias
+	err = new().WithContext(ctx, fooo).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(err.(OopsError).err, assert.AnError)
+	is.Equal(err.(OopsError).context, map[string]any{"fooo": "baz"})
+
+	// multiple
+	err = new().WithContext(ctx, "foo", fooo).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(err.(OopsError).err, assert.AnError)
+	is.Equal(err.(OopsError).context, map[string]any{"foo": "bar", "fooo": "baz"})
+
+	// not found
+	err = new().WithContext(ctx, "bar").Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(err.(OopsError).err, assert.AnError)
+	is.Equal(err.(OopsError).context, map[string]any{"bar": nil})
+
+	// none
+	err = new().WithContext(ctx).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(err.(OopsError).err, assert.AnError)
+	is.Equal(err.(OopsError).context, map[string]any{})
+}
+
 func TestOopsWithLazyEvaluation(t *testing.T) {
 	is := assert.New(t)
 
@@ -266,6 +307,7 @@ func TestOopsMixed(t *testing.T) {
 		In("authz").
 		Trace("1234").
 		With("user_id", 1234).
+		WithContext(context.WithValue(context.Background(), "foo", "bar"), "foo").
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "john", "lastname", "doe").
@@ -278,7 +320,7 @@ func TestOopsMixed(t *testing.T) {
 	is.Equal(err.(OopsError).duration, time.Second)
 	is.Equal(err.(OopsError).domain, "authz")
 	is.Equal(err.(OopsError).trace, "1234")
-	is.Equal(err.(OopsError).context, map[string]any{"user_id": 1234})
+	is.Equal(err.(OopsError).context, map[string]any{"user_id": 1234, "foo": "bar"})
 	is.Equal(err.(OopsError).hint, "Runbook: https://doc.acme.org/doc/abcd.md")
 	is.Equal(err.(OopsError).owner, "authz-team@acme.org")
 	is.Equal(err.(OopsError).userID, "user-123")

@@ -16,6 +16,8 @@ import (
 
 var SourceFragmentsHidden = true
 
+var _ error = (*OopsError)(nil)
+
 type OopsError struct {
 	err      error
 	msg      string

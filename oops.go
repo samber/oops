@@ -1,6 +1,7 @@
 package oops
 
 import (
+	"context"
 	"net/http"
 	"time"
 )
@@ -98,6 +99,11 @@ func Span(span string) OopsErrorBuilder {
 // With supplies a list of attributes declared by pair of key+value.
 func With(kv ...any) OopsErrorBuilder {
 	return new().With(kv...)
+}
+
+// With supplies a list of attributes declared by pair of key+value.
+func WithContext(ctx context.Context, keys ...any) OopsErrorBuilder {
+	return new().WithContext(ctx, keys...)
 }
 
 // Hint set a hint for faster debugging.

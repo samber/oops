@@ -1,6 +1,7 @@
 package oops
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -256,6 +257,26 @@ func (o OopsErrorBuilder) With(kv ...any) OopsErrorBuilder {
 
 		if key, ok := k.(string); ok {
 			o2.context[key] = v
+		}
+	}
+
+	return o2
+}
+
+// WithContext supplies a list of values declared in context.
+func (o OopsErrorBuilder) WithContext(ctx context.Context, keys ...any) OopsErrorBuilder {
+	o2 := o.copy()
+
+	for i := 0; i < len(keys); i++ {
+		switch k := keys[i].(type) {
+		case fmt.Stringer:
+			o2.context[k.String()] = contextValueOrNil(ctx, k.String())
+		case string:
+			o2.context[k] = contextValueOrNil(ctx, k)
+		case *string:
+			o2.context[*k] = contextValueOrNil(ctx, *k)
+		default:
+			o2.context[fmt.Sprint(k)] = contextValueOrNil(ctx, k)
 		}
 	}
 
