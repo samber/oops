@@ -145,7 +145,7 @@ func TestOopsWithContext(t *testing.T) {
 	type test string
 	const fooo test = "fooo"
 
-	ctx := context.WithValue(context.Background(), "foo", "bar")
+	ctx := context.WithValue(context.Background(), "foo", "bar") //nolint:staticcheck
 	ctx = context.WithValue(ctx, fooo, "baz")
 
 	// string
@@ -307,7 +307,7 @@ func TestOopsMixed(t *testing.T) {
 		In("authz").
 		Trace("1234").
 		With("user_id", 1234).
-		WithContext(context.WithValue(context.Background(), "foo", "bar"), "foo").
+		WithContext(context.WithValue(context.Background(), "foo", "bar"), "foo"). //nolint:staticcheck
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "john", "lastname", "doe").
