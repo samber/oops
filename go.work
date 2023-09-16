@@ -12,4 +12,5 @@ use (
 	./examples/logrus
 	./examples/sources
 	./examples/panic
+	./examples/segfault
 )
