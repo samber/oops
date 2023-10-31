@@ -6,6 +6,9 @@ use (
 	// logger formatters
 	./loggers/logrus
 
+	// recovery middlewares
+	./recovery/gin
+
 	// examples
 	./examples/log
 	./examples/slog
