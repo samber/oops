@@ -1,6 +1,7 @@
 package oops
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -147,12 +148,6 @@ func (o OopsErrorBuilder) Recover(cb func()) (err error) {
 			} else {
 				err = o.Wrap(fmt.Errorf("%v", r))
 			}
-
-			// without this, the stacktrace would have start to the Wrap() call
-			e := err.(OopsError)
-			if len(e.stacktrace.frames) > 0 { // just for safety, should always be true
-				e.stacktrace.frames = e.stacktrace.frames[1:]
-			}
 		}
 	}()
 
@@ -162,24 +157,7 @@ func (o OopsErrorBuilder) Recover(cb func()) (err error) {
 
 // Recoverf handle panic and returns `oops.OopsError` object that satisfies `error` and formats an error message.
 func (o OopsErrorBuilder) Recoverf(cb func(), msg string, args ...any) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if e, ok := r.(error); ok {
-				err = o.Wrapf(e, msg, args...)
-			} else {
-				err = o.Wrapf(o.Errorf("%v", r), msg, args...)
-			}
-
-			// without this, the stacktrace would have start to the Wrapf() call
-			e := err.(OopsError)
-			if len(e.stacktrace.frames) > 0 { // just for safety, should always be true
-				e.stacktrace.frames = e.stacktrace.frames[1:]
-			}
-		}
-	}()
-
-	cb()
-	return
+	return o.Wrapf(o.Recover(cb), msg, args...)
 }
 
 // Assert panics if condition is false. Panic payload will be of type oops.OopsError.
@@ -256,6 +234,26 @@ func (o OopsErrorBuilder) With(kv ...any) OopsErrorBuilder {
 
 		if key, ok := k.(string); ok {
 			o2.context[key] = v
+		}
+	}
+
+	return o2
+}
+
+// WithContext supplies a list of values declared in context.
+func (o OopsErrorBuilder) WithContext(ctx context.Context, keys ...any) OopsErrorBuilder {
+	o2 := o.copy()
+
+	for i := 0; i < len(keys); i++ {
+		switch k := keys[i].(type) {
+		case fmt.Stringer:
+			o2.context[k.String()] = contextValueOrNil(ctx, k.String())
+		case string:
+			o2.context[k] = contextValueOrNil(ctx, k)
+		case *string:
+			o2.context[*k] = contextValueOrNil(ctx, *k)
+		default:
+			o2.context[fmt.Sprint(k)] = contextValueOrNil(ctx, k)
 		}
 	}
 

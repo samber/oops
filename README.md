@@ -220,23 +220,24 @@ The library provides an error builder. Each method can be used standalone (eg: `
 
 The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)` or `.Wrapf(...)`.
 
-| Builder method                    | Getter                                  | Description                                                                                                                                                                                |
-| --------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `.With(string, any)`              | `err.Context() map[string]any`          | Supply a list of attributes key+value. Values of type `func() any {}` are accepted and evaluated lazily.                                                                                   |
-| `.Code(string)`                   | `err.Code() string`                     | Set a code or slug that describes the error. Error messages are intented to be read by humans, but such code is expected to be read by machines and be transported over different services |
-| `.Time(time.Time)`                | `err.Time() time.Time`                  | Set the error time (default: `time.Now()`)                                                                                                                                                 |
-| `.Since(time.Time)`               | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
-| `.Duration(time.Duration)`        | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
-| `.In(string)`                     | `err.Domain() string`                   | Set the feature category or domain                                                                                                                                                         |
-| `.Tags(...string)`                | `err.Tags() []string`                   | Add multiple tags, describing the feature returning an error                                                                                                                               |
-| `.Trace(string)`                  | `err.Trace() string`                    | Add a transaction id, trace id, correlation id... (default: ULID)                                                                                                                          |
-| `.Span(string)`                   | `err.Span() string`                     | Add a span representing a unit of work or operation... (default: ULID)                                                                                                                     |
-| `.Hint(string)`                   | `err.Hint() string`                     | Set a hint for faster debugging                                                                                                                                                            |
-| `.Owner(string)`                  | `err.Owner() (string)`                  | Set the name/email of the collegue/team responsible for handling this error. Useful for alerting purpose                                                                                   |
-| `.User(string, any...)`           | `err.User() (string, map[string]any)`   | Supply user id and a chain of key/value                                                                                                                                                    |
-| `.Tenant(string, any...)`         | `err.Tenant() (string, map[string]any)` | Supply tenant id and a chain of key/value                                                                                                                                                  |
-| `.Request(*http.Request, bool)`   | `err.Request() *http.Request`           | Supply http request                                                                                                                                                                        |
-| `.Response(*http.Response, bool)` | `err.Response() *http.Response`         | Supply http response                                                                                                                                                                       |
+| Builder method                          | Getter                                  | Description                                                                                                                                                                                |
+| --------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.With(string, any)`                    | `err.Context() map[string]any`          | Supply a list of attributes key+value. Values of type `func() any {}` are accepted and evaluated lazily.                                                                                   |
+| `.WithContext(context.Context, ...any)` | `err.Context() map[string]any`          | Supply a list of values declared in context. Values of type `func() any {}` are accepted and evaluated lazily.                                                                             |
+| `.Code(string)`                         | `err.Code() string`                     | Set a code or slug that describes the error. Error messages are intented to be read by humans, but such code is expected to be read by machines and be transported over different services |
+| `.Time(time.Time)`                      | `err.Time() time.Time`                  | Set the error time (default: `time.Now()`)                                                                                                                                                 |
+| `.Since(time.Time)`                     | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
+| `.Duration(time.Duration)`              | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
+| `.In(string)`                           | `err.Domain() string`                   | Set the feature category or domain                                                                                                                                                         |
+| `.Tags(...string)`                      | `err.Tags() []string`                   | Add multiple tags, describing the feature returning an error                                                                                                                               |
+| `.Trace(string)`                        | `err.Trace() string`                    | Add a transaction id, trace id, correlation id... (default: ULID)                                                                                                                          |
+| `.Span(string)`                         | `err.Span() string`                     | Add a span representing a unit of work or operation... (default: ULID)                                                                                                                     |
+| `.Hint(string)`                         | `err.Hint() string`                     | Set a hint for faster debugging                                                                                                                                                            |
+| `.Owner(string)`                        | `err.Owner() (string)`                  | Set the name/email of the collegue/team responsible for handling this error. Useful for alerting purpose                                                                                   |
+| `.User(string, any...)`                 | `err.User() (string, map[string]any)`   | Supply user id and a chain of key/value                                                                                                                                                    |
+| `.Tenant(string, any...)`               | `err.Tenant() (string, map[string]any)` | Supply tenant id and a chain of key/value                                                                                                                                                  |
+| `.Request(*http.Request, bool)`         | `err.Request() *http.Request`           | Supply http request                                                                                                                                                                        |
+| `.Response(*http.Response, bool)`       | `err.Response() *http.Response`         | Supply http response                                                                                                                                                                       |
 
 #### Examples
 
@@ -251,11 +252,13 @@ err2 := oops.
     Errorf("could not fetch user")
 
 // with custom attributes
+ctx := context.WithContext(context.Background(), "a key", "value")
 err3 := oops.
     With("driver", "postgresql").
     With("query", query).
     With("query.duration", queryDuration).
     With("lorem", func() string { return "ipsum" }).	// lazy evaluation
+    WithContext(ctx, "a key", "another key").
     Errorf("could not fetch user")
 
 // with trace+span
