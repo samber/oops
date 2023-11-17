@@ -625,7 +625,7 @@ func (o *OopsError) formatVerbose() string {
 	if stacktrace := o.Stacktrace(); stacktrace != "" {
 		lines := strings.Split(stacktrace, "\n")
 		stacktrace = "  " + strings.Join(lines, "\n  ")
-		output += fmt.Sprintf("Stackstrace:\n%s\n", stacktrace)
+		output += fmt.Sprintf("Stacktrace:\n%s\n", stacktrace)
 	}
 
 	if sources := o.Sources(); sources != "" && !SourceFragmentsHidden {

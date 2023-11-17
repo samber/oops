@@ -101,10 +101,10 @@ func newStacktrace(span string) *oopsStacktrace {
 		}
 		function := shortFuncName(f)
 
-		isGoPkg := strings.Contains(file, runtime.GOROOT())         // skip frames in GOROOT
-		isOopsPkg := strings.Contains(file, packageName)            // skip frames in this package
-		isExamplePkg := strings.Contains(file, packageNameExamples) // do not skip frames in this package examples
-		isTestPkg := strings.Contains(file, "_test.go")             // do not skip frames in tests
+		isGoPkg := len(runtime.GOROOT()) > 0 && strings.Contains(file, runtime.GOROOT()) // skip frames in GOROOT if it's set
+		isOopsPkg := strings.Contains(file, packageName)                                 // skip frames in this package
+		isExamplePkg := strings.Contains(file, packageNameExamples)                      // do not skip frames in this package examples
+		isTestPkg := strings.Contains(file, "_test.go")                                  // do not skip frames in tests
 
 		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) {
 			frames = append(frames, oopsStacktraceFrame{
