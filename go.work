@@ -16,4 +16,5 @@ use (
 	./examples/sources
 	./examples/panic
 	./examples/segfault
+	./examples/zerolog
 )
