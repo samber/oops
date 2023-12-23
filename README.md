@@ -56,40 +56,17 @@ This is why we need an `error` wrapper!
 - one-line panic handling
 - one-line assertion
 
-### ❌ Before samber/oops
+### Why "oops"?
 
-In the following example, we try to propagate an error with contextual information and stack trace, to the caller function `handler()`:
+Have you already heard a developer yelling at unclear error messages in Sentry, with no context, just before figuring out he wrote this piece of shit by himself?
 
-```go
-func c(token string) error {
-    userID := ...   // <-- How do I transport `userID` and `role` from here...
-    role := ...
+Yes. Me too.
 
-    // ...
+<div style="text-align:center;">
+    <img alt="oops!" src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDU2MjE1ZTk1ZjFmMWNkOGZlY2YyZGYzNjA4ZWIyZWU4NTI3MmE1OCZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/mvyvXwL26FfAtRCLPk/giphy.gif">
+</div>
 
-    return fmt.Errorf("an error")
-}
-
-func b() error {
-    // ...
-    return c()
-}
-
-func a() {
-    err := b()
-    if err != nil {
-        // print log
-        slog.Error(err.Error(),
-            slog.String("user.id", "????"),      // <-- ...to here ??
-            slog.String("user.role", "????"),    // <-- ...and here ??
-            slog.String("stracktrace", generateStacktrace()))  // <-- this won't contain the exact error location 😩
-    }
-}
-```
-
-### ✅ Using samber/oops
-
-I would rather write something like that:
+### Example
 
 ```go
 func d() error {
@@ -138,16 +115,6 @@ func main() {
 
 <div style="text-align:center;">
     <img alt="Why 'oops'?" src="./assets/motivation.png" style="max-width: 650px;">
-</div>
-
-### Why "oops"?
-
-Have you already heard a developer yelling at unclear error messages in Sentry, with no context, just before figuring out he wrote this piece of shit by himself?
-
-Yes. Me too.
-
-<div style="text-align:center;">
-    <img alt="oops!" src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDU2MjE1ZTk1ZjFmMWNkOGZlY2YyZGYzNjA4ZWIyZWU4NTI3MmE1OCZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/mvyvXwL26FfAtRCLPk/giphy.gif">
 </div>
 
 ## 🚀 Install
