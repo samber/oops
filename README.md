@@ -114,7 +114,7 @@ func main() {
 ```
 
 <div style="text-align:center;">
-    <img alt="Why 'oops'?" src="./assets/motivation.png" style="max-width: 650px;">
+	<img alt="Why 'oops'?" src="./assets/motivation.png" width="550">
 </div>
 
 ## 🚀 Install
