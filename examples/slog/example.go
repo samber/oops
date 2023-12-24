@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
-	"github.com/samber/lo"
 	"github.com/samber/oops"
 )
 
@@ -75,16 +76,13 @@ func (c myError2) Unwrap() error {
 }
 
 func main() {
-	// logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	err := a()
-	// if err != nil {
-	// 	logger.Error(
-	// 		err.Error(),
-	// 		slog.Any("error", err),
-	// 	)
-	// }
-	err2 := &myError1{err: err}
-	err3 := &myError2{err: err2}
-	fmt.Println(lo.ErrorsAs[oops.OopsError](err3))
+	if err != nil {
+		logger.Error(
+			err.Error(),
+			slog.Any("error", err),
+		)
+	}
 }
