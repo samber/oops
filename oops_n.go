@@ -35,3 +35,39 @@ func Wrap9[A any, B any, C any, D any, E any, F any, G any, H any](a A, b B, c C
 func Wrap10[A any, B any, C any, D any, E any, F any, G any, H any, I any](a A, b B, c C, d D, e E, f F, g G, h H, i I, err error) (A, B, C, D, E, F, G, H, I, error) {
 	return a, b, c, d, e, f, g, h, i, Wrap(err)
 }
+
+func Wrapf2[A any](a A, err error, format string, args ...any) (A, error) {
+	return a, Wrapf(err, format, args...)
+}
+
+func Wrapf3[A any, B any](a A, b B, err error, format string, args ...any) (A, B, error) {
+	return a, b, Wrapf(err, format, args...)
+}
+
+func Wrapf4[A any, B any, C any](a A, b B, c C, err error, format string, args ...any) (A, B, C, error) {
+	return a, b, c, Wrapf(err, format, args...)
+}
+
+func Wrapf5[A any, B any, C any, D any](a A, b B, c C, d D, err error, format string, args ...any) (A, B, C, D, error) {
+	return a, b, c, d, Wrapf(err, format, args...)
+}
+
+func Wrapf6[A any, B any, C any, D any, E any](a A, b B, c C, d D, e E, err error, format string, args ...any) (A, B, C, D, E, error) {
+	return a, b, c, d, e, Wrapf(err, format, args...)
+}
+
+func Wrapf7[A any, B any, C any, D any, E any, F any](a A, b B, c C, d D, e E, f F, err error, format string, args ...any) (A, B, C, D, E, F, error) {
+	return a, b, c, d, e, f, Wrapf(err, format, args...)
+}
+
+func Wrapf8[A any, B any, C any, D any, E any, F any, G any](a A, b B, c C, d D, e E, f F, g G, err error, format string, args ...any) (A, B, C, D, E, F, G, error) {
+	return a, b, c, d, e, f, g, Wrapf(err, format, args...)
+}
+
+func Wrapf9[A any, B any, C any, D any, E any, F any, G any, H any](a A, b B, c C, d D, e E, f F, g G, h H, err error, format string, args ...any) (A, B, C, D, E, F, G, H, error) {
+	return a, b, c, d, e, f, g, h, Wrapf(err, format, args...)
+}
+
+func Wrapf10[A any, B any, C any, D any, E any, F any, G any, H any, I any](a A, b B, c C, d D, e E, f F, g G, h H, i I, err error, format string, args ...any) (A, B, C, D, E, F, G, H, I, error) {
+	return a, b, c, d, e, f, g, h, i, Wrapf(err, format, args...)
+}
