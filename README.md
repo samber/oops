@@ -56,17 +56,40 @@ This is why we need an `error` wrapper!
 - one-line panic handling
 - one-line assertion
 
-### Why "oops"?
+### ❌ Before samber/oops
 
-Have you already heard a developer yelling at unclear error messages in Sentry, with no context, just before figuring out he wrote this piece of shit by himself?
+In the following example, we try to propagate an error with contextual information and stack trace, to the caller function `handler()`:
 
-Yes. Me too.
+```go
+func c(token string) error {
+    userID := ...   // <-- How do I transport `userID` and `role` from here...
+    role := ...
 
-<div style="text-align:center;">
-    <img alt="oops!" src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDU2MjE1ZTk1ZjFmMWNkOGZlY2YyZGYzNjA4ZWIyZWU4NTI3MmE1OCZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/mvyvXwL26FfAtRCLPk/giphy.gif">
-</div>
+    // ...
 
-### Example
+    return fmt.Errorf("an error")
+}
+
+func b() error {
+    // ...
+    return c()
+}
+
+func a() {
+    err := b()
+    if err != nil {
+        // print log
+        slog.Error(err.Error(),
+            slog.String("user.id", "????"),      // <-- ...to here ??
+            slog.String("user.role", "????"),    // <-- ...and here ??
+            slog.String("stracktrace", generateStacktrace()))  // <-- this won't contain the exact error location 😩
+    }
+}
+```
+
+### ✅ Using samber/oops
+
+I would rather write something like that:
 
 ```go
 func d() error {
@@ -114,7 +137,17 @@ func main() {
 ```
 
 <div style="text-align:center;">
-	<img alt="Why 'oops'?" src="./assets/motivation.png" width="550">
+    <img alt="Why 'oops'?" src="./assets/motivation.png" style="max-width: 650px;">
+</div>
+
+### Why "oops"?
+
+Have you already heard a developer yelling at unclear error messages in Sentry, with no context, just before figuring out he wrote this piece of shit by himself?
+
+Yes. Me too.
+
+<div style="text-align:center;">
+    <img alt="oops!" src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDU2MjE1ZTk1ZjFmMWNkOGZlY2YyZGYzNjA4ZWIyZWU4NTI3MmE1OCZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/mvyvXwL26FfAtRCLPk/giphy.gif">
 </div>
 
 ## 🚀 Install
@@ -449,11 +482,11 @@ Some loggers may need a custom formatter to extract attributes from `oops.OopsEr
 Available loggers:
 - log: [playground](https://go.dev/play/p/uNx3CcT-X40) - [example](https://github.com/samber/oops/tree/master/examples/log)
 - slog: [playground](https://go.dev/play/p/-X2ZnqjyDLu) - [example](https://github.com/samber/oops/examples/slog)
-- zerolog: [playground](https://go.dev/play/p/DaHzR4Zc-jj) - [example](https://github.com/samber/oops/examples/zerolog)
 - logrus: [formatter](https://github.com/samber/oops/tree/master/loggers/logrus) - [playground](https://go.dev/play/p/-_7EBnceJ_A) - [example](https://github.com/samber/oops/tree/master/examples/logrus)
 
 We are looking for contributions and examples for:
 - zap
+- zerolog
 - go-sentry
 - other?
 
