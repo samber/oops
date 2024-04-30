@@ -475,6 +475,13 @@ attr := slog.Error(err.Error(),
 // slog.Group("error", ...)
 ```
 
+#### Custom timezone
+
+```go
+loc, _ := time.LoadLocation("Europe/Paris")
+oops.Local = loc
+```
+
 ## 📫 Loggers
 
 Some loggers may need a custom formatter to extract attributes from `oops.OopsError`.

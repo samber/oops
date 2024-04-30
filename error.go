@@ -15,6 +15,7 @@ import (
 )
 
 var SourceFragmentsHidden = true
+var Local *time.Location = time.UTC
 
 var _ error = (*OopsError)(nil)
 
@@ -324,7 +325,7 @@ func (o OopsError) LogValuer() slog.Value {
 	}
 
 	if t := o.Time(); t != (time.Time{}) {
-		attrs = append(attrs, slog.Time("time", t.UTC()))
+		attrs = append(attrs, slog.Time("time", t.In(Local)))
 	}
 
 	if duration := o.Duration(); duration != 0 {
@@ -436,7 +437,7 @@ func (o OopsError) ToMap() map[string]any {
 	}
 
 	if t := o.Time(); t != (time.Time{}) {
-		payload["time"] = t.UTC()
+		payload["time"] = t.In(Local)
 	}
 
 	if duration := o.Duration(); duration != 0 {
@@ -538,7 +539,7 @@ func (o *OopsError) formatVerbose() string {
 	}
 
 	if t := o.Time(); t != (time.Time{}) {
-		output += fmt.Sprintf("Time: %s\n", t.UTC())
+		output += fmt.Sprintf("Time: %s\n", t.In(Local))
 	}
 
 	if duration := o.Duration(); duration != 0 {
