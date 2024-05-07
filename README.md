@@ -10,7 +10,7 @@
 [![Contributors](https://img.shields.io/github/contributors/samber/oops)](https://github.com/samber/oops/graphs/contributors)
 [![License](https://img.shields.io/github/license/samber/oops)](./LICENSE)
 
-(Yet another) error handling library: `oops.OopsError` is a dead-simple drop-in replacement for built-in `error`, adding contextual information such as stack trace, extra attributes, error code, and bug-fixing hints...
+(Yet another) error handling library: `oops.Errorf` is a dead-simple drop-in replacement for built-in `error`, adding contextual information such as stack trace, extra attributes, error code, and bug-fixing hints...
 
 > ⚠️ This is NOT a logging library. `oops` should be used as a complement to your existing logging toolchain (zap, zerolog, logrus, slog, go-sentry...).
 
