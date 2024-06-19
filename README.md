@@ -495,6 +495,7 @@ We are looking for contributions and examples for:
 - zap
 - zerolog
 - go-sentry
+- otel
 - other?
 
 Examples of formatters can be found in `ToMap()`, `Format()`, `Marshal()` and `LogValuer` methods of `oops.OopsError`.

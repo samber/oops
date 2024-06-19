@@ -6,6 +6,23 @@ import (
 	"github.com/samber/lo"
 )
 
+func dereferencePointers(data map[string]any) map[string]any {
+	if !DereferencePointers {
+		return data
+	}
+
+	for key, value := range data {
+		val := reflect.ValueOf(value)
+		if val.Kind() == reflect.Ptr {
+			// @TODO: might be a pointer to a pointer
+			data[key] = val.Elem().Interface()
+		}
+	}
+
+	return data
+
+}
+
 func lazyMapEvaluation(data map[string]any) map[string]any {
 	for key, value := range data {
 		switch v := value.(type) {
@@ -18,6 +35,7 @@ func lazyMapEvaluation(data map[string]any) map[string]any {
 
 	return data
 }
+
 func lazyValueEvaluation(value any) any {
 	v := reflect.ValueOf(value)
 	if !v.IsValid() || v.Kind() != reflect.Func {

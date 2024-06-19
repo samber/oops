@@ -15,6 +15,7 @@ import (
 )
 
 var SourceFragmentsHidden = true
+var DereferencePointers = true
 var Local *time.Location = time.UTC
 
 var _ error = (*OopsError)(nil)
@@ -126,12 +127,14 @@ func (o OopsError) Tags() []string {
 
 // Context returns a k/v context of the error.
 func (o OopsError) Context() map[string]any {
-	return lazyMapEvaluation(
-		mergeNestedErrorMap(
-			o,
-			func(e OopsError) map[string]any {
-				return e.context
-			},
+	return dereferencePointers(
+		lazyMapEvaluation(
+			mergeNestedErrorMap(
+				o,
+				func(e OopsError) map[string]any {
+					return e.context
+				},
+			),
 		),
 	)
 }
