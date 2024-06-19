@@ -185,6 +185,7 @@ GoDoc: [https://godoc.org/github.com/samber/oops](https://godoc.org/github.com/s
 | `.Recoverf(cb func(), format string, args ...any) error`                | Handle panic and returns `oops.OopsError` object that satisfies `error` and formats an error message. |
 | `.Assert(condition bool) OopsErrorBuilder`                              | Panics if condition is false. Assertions can be chained.                                              |
 | `.Assertf(condition bool, format string, args ...any) OopsErrorBuilder` | Panics if condition is false and formats an error message. Assertions can be chained.                 |
+| `.Join(err1 error, err2 error, ...) error`                              | Join returns an error that wraps the given errors.                                                    |
 
 #### Examples
 

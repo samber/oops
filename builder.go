@@ -2,6 +2,7 @@ package oops
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -178,6 +179,10 @@ func (o OopsErrorBuilder) Assertf(condition bool, msg string, args ...any) OopsE
 	}
 
 	return o // no need to copy
+}
+
+func (o OopsErrorBuilder) Join(e ...error) error {
+	return o.Wrap(errors.Join(e...))
 }
 
 // Code set a code or slug that describes the error.
