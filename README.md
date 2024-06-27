@@ -489,7 +489,7 @@ Some loggers may need a custom formatter to extract attributes from `oops.OopsEr
 
 Available loggers:
 - log: [playground](https://go.dev/play/p/uNx3CcT-X40) - [example](https://github.com/samber/oops/tree/master/examples/log)
-- slog: [playground](https://go.dev/play/p/-X2ZnqjyDLu) - [example](https://github.com/samber/oops/examples/slog)
+- slog: [playground](https://go.dev/play/p/-X2ZnqjyDLu) - [example](https://github.com/samber/oops/tree/master/examples/slog)
 - logrus: [formatter](https://github.com/samber/oops/tree/master/loggers/logrus) - [playground](https://go.dev/play/p/-_7EBnceJ_A) - [example](https://github.com/samber/oops/tree/master/examples/logrus)
 
 We are looking for contributions and examples for:
