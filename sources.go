@@ -24,6 +24,11 @@ func readFile(path string) ([]string, bool) {
 		return lines, true
 	}
 
+	if !strings.HasSuffix(path, ".go") {
+		return nil, false
+	}
+
+	// bearer:disable go_gosec_filesystem_filereadtaint
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, false
