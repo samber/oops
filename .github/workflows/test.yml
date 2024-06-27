@@ -10,6 +10,12 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go:
+          - '1.21'
+          - '1.22'
+          - '1.x'
     steps:
     - uses: actions/checkout@v2
       with:
@@ -19,7 +25,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.21
+        go-version: ${{ matrix.go }}
         stable: false
 
     - name: Build
@@ -42,3 +48,4 @@ jobs:
         file: ./cover.out
         flags: unittests
         verbose: true
+      if: matrix.go == '1.21'
