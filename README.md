@@ -22,10 +22,10 @@
   <br>
   <a href="https://quickwit.io">
     <div>
-      <img src="https://github.com/samber/oops/assets/2951285/49aaaa2b-b8c6-4f21-909f-c12577bb6a2e" width="200" alt="Better Stack">
+      <img src="https://github.com/samber/oops/assets/2951285/49aaaa2b-b8c6-4f21-909f-c12577bb6a2e" width="240" alt="Quickwit">
     </div>
     <div>
-      Sub-second search & analytics engine on cloud storage.
+      Cloud-native search engine for observability - An OSS alternative to Splunk, Elasticsearch, Loki, and Tempo.
     </div>
   </a>
   <hr>
