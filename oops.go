@@ -29,6 +29,10 @@ func Errorf(format string, args ...any) error {
 	return new().Errorf(format, args...)
 }
 
+func Join(e ...error) error {
+	return new().Join(e...)
+}
+
 // Recover handle panic and returns `oops.OopsError` object that satisfies `error`.
 func Recover(cb func()) (err error) {
 	return new().Recover(cb)
