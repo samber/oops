@@ -20,8 +20,8 @@ func TestOopsWrap(t *testing.T) {
 
 	err := new().Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).msg, "")
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Empty(err.(OopsError).msg)
 
 	err = new().Wrap(nil)
 	is.Nil(err)
@@ -32,8 +32,8 @@ func TestOopsWrapf(t *testing.T) {
 
 	err := new().Wrapf(assert.AnError, "a message %d", 42)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).msg, "a message 42")
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("a message 42", err.(OopsError).msg)
 
 	err = new().Wrapf(nil, "a message %d", 42)
 	is.Nil(err)
@@ -44,8 +44,8 @@ func TestOopsErrorf(t *testing.T) {
 
 	err := new().Errorf("a message %d", 42)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, nil)
-	is.Equal(err.(OopsError).msg, "a message 42")
+	is.Equal(fmt.Errorf("a message %d", 42), err.(OopsError).err)
+	is.Equal("a message 42", err.(OopsError).msg)
 }
 
 func TestOopsCode(t *testing.T) {
@@ -53,8 +53,8 @@ func TestOopsCode(t *testing.T) {
 
 	err := new().Code("iam_missing_permission").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).code, "iam_missing_permission")
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("iam_missing_permission", err.(OopsError).code)
 }
 
 func TestOopsTime(t *testing.T) {
@@ -64,8 +64,8 @@ func TestOopsTime(t *testing.T) {
 
 	err := new().Time(now).Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).time, now)
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal(now, err.(OopsError).time)
 }
 
 func TestOopsSince(t *testing.T) {
@@ -76,7 +76,7 @@ func TestOopsSince(t *testing.T) {
 
 	err := new().Since(start).Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
+	is.Equal(assert.AnError, err.(OopsError).err)
 	is.True(err.(OopsError).duration.Milliseconds() >= 10)
 }
 
@@ -88,7 +88,7 @@ func TestOopsDuration(t *testing.T) {
 
 	err := new().Duration(time.Since(start)).Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
+	is.Equal(assert.AnError, err.(OopsError).err)
 	is.True(err.(OopsError).duration.Milliseconds() >= 10)
 }
 
@@ -97,8 +97,8 @@ func TestOopsIn(t *testing.T) {
 
 	err := new().In("authz").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).domain, "authz")
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("authz", err.(OopsError).domain)
 }
 
 func TestOopsTags(t *testing.T) {
@@ -106,9 +106,9 @@ func TestOopsTags(t *testing.T) {
 
 	err := new().Tags("iam", "authz", "iam").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).tags, []string{"iam", "authz", "iam"}) // not deduplicated
-	is.Equal(err.(OopsError).Tags(), []string{"iam", "authz"})      // deduplicated
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal([]string{"iam", "authz", "iam"}, err.(OopsError).tags) // not deduplicated
+	is.Equal([]string{"iam", "authz"}, err.(OopsError).Tags())      // deduplicated
 }
 
 func TestOopsTx(t *testing.T) {
@@ -116,8 +116,8 @@ func TestOopsTx(t *testing.T) {
 
 	err := new().Trace("1234").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).trace, "1234")
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("1234", err.(OopsError).trace)
 }
 
 func TestOopsWith(t *testing.T) {
@@ -125,18 +125,18 @@ func TestOopsWith(t *testing.T) {
 
 	err := new().With("user_id", 1234).Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).context, map[string]any{"user_id": 1234})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal(map[string]any{"user_id": 1234}, err.(OopsError).context)
 
 	err = new().With("user_id", 1234, "foo").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).context, map[string]any{"user_id": 1234})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal(map[string]any{"user_id": 1234}, err.(OopsError).context)
 
 	err = new().With("user_id", 1234, "foo", "bar").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).context, map[string]any{"user_id": 1234, "foo": "bar"})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal(map[string]any{"user_id": 1234, "foo": "bar"}, err.(OopsError).context)
 }
 
 func TestOopsWithContext(t *testing.T) {
@@ -151,32 +151,32 @@ func TestOopsWithContext(t *testing.T) {
 	// string
 	err := new().WithContext(ctx, "foo").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).context, map[string]any{"foo": "bar"})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal(map[string]any{"foo": "bar"}, err.(OopsError).context)
 
 	// type alias
 	err = new().WithContext(ctx, fooo).Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).context, map[string]any{"fooo": "baz"})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal(map[string]any{"fooo": "baz"}, err.(OopsError).context)
 
 	// multiple
 	err = new().WithContext(ctx, "foo", fooo).Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).context, map[string]any{"foo": "bar", "fooo": "baz"})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal(map[string]any{"foo": "bar", "fooo": "baz"}, err.(OopsError).context)
 
 	// not found
 	err = new().WithContext(ctx, "bar").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).context, map[string]any{"bar": nil})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal(map[string]any{"bar": nil}, err.(OopsError).context)
 
 	// none
 	err = new().WithContext(ctx).Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).context, map[string]any{})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal(map[string]any{}, err.(OopsError).context)
 }
 
 func TestOopsWithLazyEvaluation(t *testing.T) {
@@ -185,7 +185,7 @@ func TestOopsWithLazyEvaluation(t *testing.T) {
 	// lazy evaluation
 	err := new().With("user_id", func() int { return 1234 }, "foo", map[string]any{"bar": func() string { return "baz" }}).Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).Context(), map[string]any{"user_id": 1234, "foo": map[string]any{"bar": "baz"}})
+	is.Equal(map[string]any{"user_id": 1234, "foo": map[string]any{"bar": "baz"}}, err.(OopsError).Context())
 }
 
 func TestOopsHint(t *testing.T) {
@@ -193,8 +193,8 @@ func TestOopsHint(t *testing.T) {
 
 	err := new().Hint("Runbook: https://doc.acme.org/doc/abcd.md").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).hint, "Runbook: https://doc.acme.org/doc/abcd.md")
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("Runbook: https://doc.acme.org/doc/abcd.md", err.(OopsError).hint)
 }
 
 func TestOopsOwner(t *testing.T) {
@@ -202,8 +202,8 @@ func TestOopsOwner(t *testing.T) {
 
 	err := new().Owner("iam-team@acme.org").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).owner, "iam-team@acme.org")
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("iam-team@acme.org", err.(OopsError).owner)
 }
 
 func TestOopsUser(t *testing.T) {
@@ -211,27 +211,27 @@ func TestOopsUser(t *testing.T) {
 
 	err := new().User("user-123").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).userID, "user-123")
-	is.Equal(err.(OopsError).userData, map[string]any{})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("user-123", err.(OopsError).userID)
+	is.Equal(map[string]any{}, err.(OopsError).userData)
 
 	err = new().User("user-123", "firstname", "john").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).userID, "user-123")
-	is.Equal(err.(OopsError).userData, map[string]any{"firstname": "john"})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("user-123", err.(OopsError).userID)
+	is.Equal(map[string]any{"firstname": "john"}, err.(OopsError).userData)
 
 	err = new().User("user-123", "firstname", "john", "lastname").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).userID, "user-123")
-	is.Equal(err.(OopsError).userData, map[string]any{"firstname": "john"})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("user-123", err.(OopsError).userID)
+	is.Equal(map[string]any{"firstname": "john"}, err.(OopsError).userData)
 
 	err = new().User("user-123", "firstname", "john", "lastname", "doe").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).userID, "user-123")
-	is.Equal(err.(OopsError).userData, map[string]any{"firstname": "john", "lastname": "doe"})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("user-123", err.(OopsError).userID)
+	is.Equal(map[string]any{"firstname": "john", "lastname": "doe"}, err.(OopsError).userData)
 }
 
 func TestOopsTenant(t *testing.T) {
@@ -239,27 +239,27 @@ func TestOopsTenant(t *testing.T) {
 
 	err := new().Tenant("workspace-123").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).tenantID, "workspace-123")
-	is.Equal(err.(OopsError).tenantData, map[string]any{})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("workspace-123", err.(OopsError).tenantID)
+	is.Equal(map[string]any{}, err.(OopsError).tenantData)
 
 	err = new().Tenant("workspace-123", "name", "My 'hello world' project").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).tenantID, "workspace-123")
-	is.Equal(err.(OopsError).tenantData, map[string]any{"name": "My 'hello world' project"})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("workspace-123", err.(OopsError).tenantID)
+	is.Equal(map[string]any{"name": "My 'hello world' project"}, err.(OopsError).tenantData)
 
 	err = new().Tenant("workspace-123", "name", "My 'hello world' project", "date").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).tenantID, "workspace-123")
-	is.Equal(err.(OopsError).tenantData, map[string]any{"name": "My 'hello world' project"})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("workspace-123", err.(OopsError).tenantID)
+	is.Equal(map[string]any{"name": "My 'hello world' project"}, err.(OopsError).tenantData)
 
 	err = new().Tenant("workspace-123", "name", "My 'hello world' project", "date", "2023-01-01").Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(err.(OopsError).err, assert.AnError)
-	is.Equal(err.(OopsError).tenantID, "workspace-123")
-	is.Equal(err.(OopsError).tenantData, map[string]any{"name": "My 'hello world' project", "date": "2023-01-01"})
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("workspace-123", err.(OopsError).tenantID)
+	is.Equal(map[string]any{"name": "My 'hello world' project", "date": "2023-01-01"}, err.(OopsError).tenantData)
 }
 
 func TestOopsRequest(t *testing.T) {
@@ -272,12 +272,12 @@ func TestOopsRequest(t *testing.T) {
 	is.Equal(err.(OopsError).err, assert.AnError)
 	is.NotNil(err.(OopsError).req)
 	if err.(OopsError).req != nil {
-		is.Equal(err.(OopsError).req.A, req)
-		is.Equal(err.(OopsError).req.B, false)
+		is.Equal(req, err.(OopsError).req.A)
+		is.False(err.(OopsError).req.B)
 	}
 	is.NotNil(err.(OopsError).Request())
 	if err.(OopsError).Request() != nil {
-		is.Equal(err.(OopsError).Request(), req)
+		is.Equal(req, err.(OopsError).Request())
 	}
 
 	err = new().Request(req, true).Wrap(assert.AnError)
@@ -285,12 +285,12 @@ func TestOopsRequest(t *testing.T) {
 	is.Equal(err.(OopsError).err, assert.AnError)
 	is.NotNil(err.(OopsError).req)
 	if err.(OopsError).req != nil {
-		is.Equal(err.(OopsError).req.A, req)
-		is.Equal(err.(OopsError).req.B, true)
+		is.Equal(req, err.(OopsError).req.A)
+		is.True(err.(OopsError).req.B)
 	}
 	is.NotNil(err.(OopsError).Request())
 	if err.(OopsError).Request() != nil {
-		is.Equal(err.(OopsError).Request(), req)
+		is.Equal(req, err.(OopsError).Request())
 	}
 }
 
