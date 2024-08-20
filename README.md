@@ -241,6 +241,7 @@ The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)
 | `.With(string, any)`                    | `err.Context() map[string]any`          | Supply a list of attributes key+value. Values of type `func() any {}` are accepted and evaluated lazily.                                                                                   |
 | `.WithContext(context.Context, ...any)` | `err.Context() map[string]any`          | Supply a list of values declared in context. Values of type `func() any {}` are accepted and evaluated lazily.                                                                             |
 | `.Code(string)`                         | `err.Code() string`                     | Set a code or slug that describes the error. Error messages are intented to be read by humans, but such code is expected to be read by machines and be transported over different services |
+| `.Public(string)`                       | `err.Public() string`                   | Set a message that is safe to show to an end user                                                                                                                                          |
 | `.Time(time.Time)`                      | `err.Time() time.Time`                  | Set the error time (default: `time.Now()`)                                                                                                                                                 |
 | `.Since(time.Time)`                     | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
 | `.Duration(time.Duration)`              | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
@@ -249,7 +250,6 @@ The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)
 | `.Trace(string)`                        | `err.Trace() string`                    | Add a transaction id, trace id, correlation id... (default: ULID)                                                                                                                          |
 | `.Span(string)`                         | `err.Span() string`                     | Add a span representing a unit of work or operation... (default: ULID)                                                                                                                     |
 | `.Hint(string)`                         | `err.Hint() string`                     | Set a hint for faster debugging                                                                                                                                                            |
-| `.Public(string)`                       | `err.Public() string`                   | Set a message that is safe to show to an end user                                                                                                                                          |
 | `.Owner(string)`                        | `err.Owner() (string)`                  | Set the name/email of the collegue/team responsible for handling this error. Useful for alerting purpose                                                                                   |
 | `.User(string, any...)`                 | `err.User() (string, map[string]any)`   | Supply user id and a chain of key/value                                                                                                                                                    |
 | `.Tenant(string, any...)`               | `err.Tenant() (string, map[string]any)` | Supply tenant id and a chain of key/value                                                                                                                                                  |
@@ -259,6 +259,11 @@ The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)
 #### Examples
 
 ```go
+// simple error with public facing message
+err0 := oops.
+    Public("Could not fetch user.").
+    Errorf("sql: bad connection")
+
 // simple error with stacktrace
 err1 := oops.Errorf("could not fetch user")
 
@@ -518,6 +523,18 @@ We are looking for contributions and examples for:
 Examples of formatters can be found in `ToMap()`, `Format()`, `Marshal()` and `LogValuer` methods of `oops.OopsError`.
 
 ## 🥷 Tips and best practices
+
+### Public facing error message
+
+Humans do not like technical errors. The `oops` container can bring an additional human-readable message.
+
+```go
+err := oops.
+    Public("Could not fetch user.").
+    Errorf("sql: bad connection")
+
+userMessage := oops.GetPublic(err, "Unexpected error")
+```
 
 ### Wrap/Wrapf shortcut
 
