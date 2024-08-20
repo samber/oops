@@ -116,6 +116,11 @@ func Hint(hint string) OopsErrorBuilder {
 	return new().Hint(hint)
 }
 
+// Public sets a message that is safe to show to an end user.
+func Public(public string) OopsErrorBuilder {
+	return new().Public(public)
+}
+
 // Owner set the name/email of the collegue/team responsible for handling this error.
 // Useful for alerting purpose.
 func Owner(owner string) OopsErrorBuilder {
