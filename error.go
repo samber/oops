@@ -3,20 +3,21 @@ package oops
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"strings"
 	"time"
 
-	"log/slog"
-
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 )
 
-var SourceFragmentsHidden = true
-var DereferencePointers = true
-var Local *time.Location = time.UTC
+var (
+	SourceFragmentsHidden                = true
+	DereferencePointers                  = true
+	Local                 *time.Location = time.UTC
+)
 
 var _ error = (*OopsError)(nil)
 
@@ -35,8 +36,9 @@ type OopsError struct {
 	trace string
 	span  string
 
-	hint  string
-	owner string
+	hint   string
+	public string
+	owner  string
 
 	// user
 	userID     string
@@ -166,6 +168,16 @@ func (o OopsError) Hint() string {
 		o,
 		func(e OopsError) string {
 			return e.hint
+		},
+	)
+}
+
+// Public returns a message that is safe to show to an end user.
+func (o OopsError) Public() string {
+	return getDeepestErrorAttribute(
+		o,
+		func(e OopsError) string {
+			return e.public
 		},
 	)
 }
@@ -355,6 +367,10 @@ func (o OopsError) LogValuer() slog.Value {
 		attrs = append(attrs, slog.String("hint", hint))
 	}
 
+	if public := o.Public(); public != "" {
+		attrs = append(attrs, slog.String("public", public))
+	}
+
 	if owner := o.Owner(); owner != "" {
 		attrs = append(attrs, slog.String("owner", owner))
 	}
@@ -469,6 +485,10 @@ func (o OopsError) ToMap() map[string]any {
 
 	if hint := o.Hint(); hint != "" {
 		payload["hint"] = hint
+	}
+
+	if public := o.Public(); public != "" {
+		payload["public"] = public
 	}
 
 	if owner := o.Owner(); owner != "" {
