@@ -50,8 +50,9 @@ func new() OopsErrorBuilder {
 		trace: "",
 		span:  "",
 
-		hint:  "",
-		owner: "",
+		hint:   "",
+		public: "",
+		owner:  "",
 
 		// user
 		userID:     "",
@@ -83,8 +84,9 @@ func (o OopsErrorBuilder) copy() OopsErrorBuilder {
 		trace: o.trace,
 		span:  o.span,
 
-		hint:  o.hint,
-		owner: o.owner,
+		hint:   o.hint,
+		public: o.public,
+		owner:  o.owner,
 
 		userID:     o.userID,
 		userData:   lo.Assign(map[string]any{}, o.userData),
@@ -284,6 +286,13 @@ func (o OopsErrorBuilder) Span(span string) OopsErrorBuilder {
 func (o OopsErrorBuilder) Hint(hint string) OopsErrorBuilder {
 	o2 := o.copy()
 	o2.hint = hint
+	return o2
+}
+
+// Public represents a message that is safe to be shown to an end-user.
+func (o OopsErrorBuilder) Public(public string) OopsErrorBuilder {
+	o2 := o.copy()
+	o2.public = public
 	return o2
 }
 

@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
-
-	"log/slog"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -197,6 +196,15 @@ func TestOopsHint(t *testing.T) {
 	is.Equal("Runbook: https://doc.acme.org/doc/abcd.md", err.(OopsError).hint)
 }
 
+func TestOopsPublic(t *testing.T) {
+	is := assert.New(t)
+
+	err := new().Public("a public facing message").Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("a public facing message", err.(OopsError).public)
+}
+
 func TestOopsOwner(t *testing.T) {
 	is := assert.New(t)
 
@@ -309,6 +317,7 @@ func TestOopsMixed(t *testing.T) {
 		With("user_id", 1234).
 		WithContext(context.WithValue(context.Background(), "foo", "bar"), "foo"). //nolint:staticcheck
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+		Public("public facing message").
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "john", "lastname", "doe").
 		Tenant("workspace-123", "name", "little project").
@@ -322,6 +331,7 @@ func TestOopsMixed(t *testing.T) {
 	is.Equal(err.(OopsError).trace, "1234")
 	is.Equal(err.(OopsError).context, map[string]any{"user_id": 1234, "foo": "bar"})
 	is.Equal(err.(OopsError).hint, "Runbook: https://doc.acme.org/doc/abcd.md")
+	is.Equal(err.(OopsError).public, "public facing message")
 	is.Equal(err.(OopsError).owner, "authz-team@acme.org")
 	is.Equal(err.(OopsError).userID, "user-123")
 	is.Equal(err.(OopsError).userData, map[string]any{"firstname": "john", "lastname": "doe"})
@@ -347,6 +357,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/1234.md").
+		Public("public facing message").
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "bob", "lastname", "martin").
 		Tenant("workspace-123", "name", "little project").
@@ -361,6 +372,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 		Trace("abcd").
 		With("workspace_id", 5678).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+		Public("public facing message").
 		Owner("iam-team@acme.org").
 		User("user-123", "firstname", "john", "lastname", "doe", "email", "john@doe.org").
 		Tenant("workspace-123", "name", "little project", "deleted", false).
@@ -376,6 +388,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal(err.(OopsError).Trace(), "1234")
 	is.Equal(err.(OopsError).Context(), map[string]any{"user_id": 1234, "workspace_id": 5678})
 	is.Equal(err.(OopsError).Hint(), "Runbook: https://doc.acme.org/doc/1234.md")
+	is.Equal(err.(OopsError).Public(), "public facing message")
 	is.Equal(err.(OopsError).Owner(), "authz-team@acme.org")
 	is.Equal(lo.T2(err.(OopsError).User()), lo.T2("user-123", map[string]any{"firstname": "bob", "lastname": "martin", "email": "john@doe.org"}))
 	is.Equal(lo.T2(err.(OopsError).Tenant()), lo.T2("workspace-123", map[string]any{"name": "little project", "deleted": false}))
@@ -391,6 +404,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal(err.(OopsError).trace, "abcd")
 	is.Equal(err.(OopsError).context, map[string]any{"workspace_id": 5678})
 	is.Equal(err.(OopsError).hint, "Runbook: https://doc.acme.org/doc/abcd.md")
+	is.Equal(err.(OopsError).public, "public facing message")
 	is.Equal(err.(OopsError).owner, "iam-team@acme.org")
 	is.Equal(err.(OopsError).userID, "user-123")
 	is.Equal(err.(OopsError).userData, map[string]any{"email": "john@doe.org", "firstname": "john", "lastname": "doe"})
@@ -408,6 +422,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal(err.(OopsError).Unwrap().(OopsError).trace, "1234")
 	is.Equal(err.(OopsError).Unwrap().(OopsError).context, map[string]any{"user_id": 1234})
 	is.Equal(err.(OopsError).Unwrap().(OopsError).hint, "Runbook: https://doc.acme.org/doc/1234.md")
+	is.Equal(err.(OopsError).Unwrap().(OopsError).public, "public facing message")
 	is.Equal(err.(OopsError).Unwrap().(OopsError).owner, "authz-team@acme.org")
 	is.Equal(err.(OopsError).Unwrap().(OopsError).userID, "user-123")
 	is.Equal(err.(OopsError).Unwrap().(OopsError).userData, map[string]any{"firstname": "bob", "lastname": "martin"})
@@ -433,6 +448,7 @@ func TestOopsLogValuer(t *testing.T) {
 		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+		Public("public facing message").
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "john").
 		Tenant("workspace-123", "name", "little project").
@@ -452,6 +468,7 @@ func TestOopsLogValuer(t *testing.T) {
 		slog.Any("tags", []string{"iam", "authz"}),
 		slog.String("trace", "1234"),
 		slog.String("hint", "Runbook: https://doc.acme.org/doc/abcd.md"),
+		slog.String("public", "public facing message"),
 		slog.String("owner", "authz-team@acme.org"),
 		slog.Group(
 			"context",
@@ -493,6 +510,7 @@ func TestOopsFormatSummary(t *testing.T) {
 		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+		Public("public facing message").
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "john", "lastname", "doe").
 		Tenant("workspace-123", "name", "little project").
@@ -517,6 +535,7 @@ func TestOopsFormatVerbose(t *testing.T) {
 		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+		Public("public facing message").
 		Owner("authz-team@acme.org").
 		User("user-123", "firstname", "john").
 		Tenant("workspace-123", "name", "little project").
@@ -568,14 +587,25 @@ func TestOopsMarshalJSON(t *testing.T) {
 		Trace("1234").
 		With("user_id", 1234).
 		Hint("Runbook: https://doc.acme.org/doc/abcd.md").
+		Public("public facing message").
 		User("user-123", "firstname", "john", "lastname", "doe").
 		Tenant("workspace-123", "name", "little project").
 		Request(req, true).
 		Wrapf(assert.AnError, "a message %d", 42)
 
-	expected := `{"code":"iam_missing_permission","context":{"user_id":1234},"domain":"authz","duration":"1s","error":"a message 42: assert.AnError general error for testing","hint":"Runbook: https://doc.acme.org/doc/abcd.md","request":"POST /foobar HTTP/1.1\r\nHost: localhost:1337\r\nUser-Agent: Go-http-client/1.1\r\nContent-Length: 11\r\nAccept-Encoding: gzip\r\n\r\nhello world","tenant":{"id":"workspace-123","name":"little project"},"time":"2023-05-02T05:26:48.570837Z","trace":"1234","user":{"firstname":"john","id":"user-123","lastname":"doe"}}`
+	expected := `{"code":"iam_missing_permission","context":{"user_id":1234},"domain":"authz","duration":"1s","error":"a message 42: assert.AnError general error for testing","hint":"Runbook: https://doc.acme.org/doc/abcd.md","public":"public facing message","request":"POST /foobar HTTP/1.1\r\nHost: localhost:1337\r\nUser-Agent: Go-http-client/1.1\r\nContent-Length: 11\r\nAccept-Encoding: gzip\r\n\r\nhello world","tenant":{"id":"workspace-123","name":"little project"},"time":"2023-05-02T05:26:48.570837Z","trace":"1234","user":{"firstname":"john","id":"user-123","lastname":"doe"}}`
 
 	got, err := json.Marshal(withoutStacktrace(err.(OopsError)))
 	is.NoError(err)
 	is.Equal(expected, string(got))
+}
+
+func TestOopsGetPublic(t *testing.T) {
+	is := assert.New(t)
+
+	err := new().Public("public facing message").Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("public facing message", GetPublic(err, "default message"))
+	is.Equal("default message", GetPublic(assert.AnError, "default message"))
 }
