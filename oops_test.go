@@ -599,3 +599,13 @@ func TestOopsMarshalJSON(t *testing.T) {
 	is.NoError(err)
 	is.Equal(expected, string(got))
 }
+
+func TestOopsGetPublic(t *testing.T) {
+	is := assert.New(t)
+
+	err := new().Public("public facing message").Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("public facing message", GetPublic(err, "default message"))
+	is.Equal("default message", GetPublic(assert.AnError, "default message"))
+}

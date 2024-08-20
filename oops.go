@@ -2,6 +2,7 @@ package oops
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 )
@@ -139,4 +140,18 @@ func Request(req *http.Request, withBody bool) OopsErrorBuilder {
 // Response supplies a http.Response.
 func Response(res *http.Response, withBody bool) OopsErrorBuilder {
 	return new().Response(res, withBody)
+}
+
+// GetPublic returns a message that is safe to show to an end user, or a default generic message.
+func GetPublic(err error, defaultPublicMessage string) string {
+	var oopsError OopsError
+
+	if errors.As(err, &oopsError) {
+		msg := oopsError.Public()
+		if len(msg) > 0 {
+			return msg
+		}
+	}
+
+	return defaultPublicMessage
 }
