@@ -9,6 +9,7 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/trace"
 )
 
 /**
@@ -263,6 +264,14 @@ func (o OopsErrorBuilder) WithContext(ctx context.Context, keys ...any) OopsErro
 		default:
 			o2.context[fmt.Sprint(k)] = contextValueOrNil(ctx, k)
 		}
+	}
+
+	spanCtx := trace.SpanContextFromContext(ctx)
+	if spanCtx.HasTraceID() {
+		o2.trace = spanCtx.TraceID().String()
+	}
+	if spanCtx.HasSpanID() {
+		o2.span = spanCtx.SpanID().String()
 	}
 
 	return o2
