@@ -1,6 +1,7 @@
 package oops
 
 import (
+	"runtime/debug"
 	"strings"
 	"testing"
 
@@ -39,9 +40,12 @@ func TestStacktrace(t *testing.T) {
 	is.NotNil(st)
 	is.Equal("1234", st.span)
 
+	bi, ok := debug.ReadBuildInfo()
+	is.True(ok)
+
 	if st.frames != nil {
 		for _, f := range st.frames {
-			is.True(strings.Contains(f.file, "github.com/samber/oops/stacktrace_test.go"))
+			is.Truef(strings.Contains(f.file, bi.Path), "frame file %s should contain %s", f.file, bi.Path)
 		}
 
 		is.Len(st.frames, 7, "expected 7 frames")
