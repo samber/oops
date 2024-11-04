@@ -3,18 +3,18 @@ go 1.21
 use (
 	.
 
+	// examples
+	./examples/log
+	./examples/logrus
+	./examples/panic
+	./examples/segfault
+	./examples/slog
+	./examples/sources
+	./examples/zerolog
+
 	// logger formatters
 	./loggers/logrus
 
 	// recovery middlewares
 	./recovery/gin
-
-	// examples
-	./examples/log
-	./examples/slog
-	./examples/logrus
-	./examples/sources
-	./examples/panic
-	./examples/segfault
-	./examples/zerolog
 )

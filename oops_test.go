@@ -12,6 +12,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func TestOopsWrap(t *testing.T) {
@@ -117,6 +118,26 @@ func TestOopsTx(t *testing.T) {
 	is.Error(err)
 	is.Equal(assert.AnError, err.(OopsError).err)
 	is.Equal("1234", err.(OopsError).trace)
+}
+
+func TestOopsTxSpanFromOtel(t *testing.T) {
+	is := assert.New(t)
+
+	traceId, terr := trace.TraceIDFromHex("12345678901234567890123456789012")
+	is.NoError(terr)
+	spanId, serr := trace.SpanIDFromHex("1234567890123456")
+	is.NoError(serr)
+
+	ctx := trace.ContextWithSpanContext(context.Background(), trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID: traceId,
+		SpanID: spanId,
+	}))
+
+	err := new().WithContext(ctx).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("12345678901234567890123456789012", err.(OopsError).trace)
+	is.Equal("1234567890123456", err.(OopsError).span)
 }
 
 func TestOopsWith(t *testing.T) {
