@@ -13,8 +13,6 @@ import (
 /// -> Apache 2.0 LICENSE
 ///
 
-type fake struct{}
-
 var (
 	StackTraceMaxDepth int = 10
 
