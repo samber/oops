@@ -22,6 +22,7 @@ func TestOopsWrap(t *testing.T) {
 	is.Error(err)
 	is.Equal(assert.AnError, err.(OopsError).err)
 	is.Empty(err.(OopsError).msg)
+	is.Equal("assert.AnError general error for testing", err.Error())
 
 	err = new().Wrap(nil)
 	is.Nil(err)
@@ -34,6 +35,7 @@ func TestOopsWrapf(t *testing.T) {
 	is.Error(err)
 	is.Equal(assert.AnError, err.(OopsError).err)
 	is.Equal("a message 42", err.(OopsError).msg)
+	is.Equal("a message 42: assert.AnError general error for testing", err.Error())
 
 	err = new().Wrapf(nil, "a message %d", 42)
 	is.Nil(err)
@@ -46,6 +48,7 @@ func TestOopsErrorf(t *testing.T) {
 	is.Error(err)
 	is.Equal(fmt.Errorf("a message %d", 42), err.(OopsError).err)
 	is.Equal("a message 42", err.(OopsError).msg)
+	is.Equal("a message 42", err.Error())
 }
 
 func TestOopsCode(t *testing.T) {
@@ -130,7 +133,7 @@ func TestOopsTxSpanFromOtel(t *testing.T) {
 
 	ctx := trace.ContextWithSpanContext(context.Background(), trace.NewSpanContext(trace.SpanContextConfig{
 		TraceID: traceId,
-		SpanID: spanId,
+		SpanID:  spanId,
 	}))
 
 	err := new().WithContext(ctx).Wrap(assert.AnError)
