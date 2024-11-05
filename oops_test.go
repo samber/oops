@@ -47,7 +47,7 @@ func TestOopsErrorf(t *testing.T) {
 	err := new().Errorf("a message %d", 42)
 	is.Error(err)
 	is.Equal(fmt.Errorf("a message %d", 42), err.(OopsError).err)
-	is.Equal("a message 42", err.(OopsError).msg)
+	is.Empty(err.(OopsError).msg)
 	is.Equal("a message 42", err.Error())
 }
 

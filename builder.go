@@ -136,7 +136,6 @@ func (o OopsErrorBuilder) Wrapf(err error, format string, args ...any) error {
 func (o OopsErrorBuilder) Errorf(format string, args ...any) error {
 	o2 := o.copy()
 	o2.err = fmt.Errorf(format, args...)
-	o2.msg = fmt.Errorf(format, args...).Error()
 	if o2.span == "" {
 		o2.span = ulid.Make().String()
 	}
