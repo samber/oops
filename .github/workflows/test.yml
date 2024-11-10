@@ -17,7 +17,7 @@ jobs:
           - '1.22'
           - '1.x'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         # we need control over the path, since stacktrace tests rely on it
         path: github.com/samber/oops
