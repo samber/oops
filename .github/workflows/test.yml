@@ -23,7 +23,7 @@ jobs:
         path: github.com/samber/oops
 
     - name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
         stable: false
