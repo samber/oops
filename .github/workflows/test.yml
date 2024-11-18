@@ -41,7 +41,7 @@ jobs:
       run: make coverage
 
     - name: Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         working-directory: ./github.com/samber/oops
         token: ${{ secrets.CODECOV_TOKEN }}
