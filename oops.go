@@ -128,12 +128,12 @@ func Owner(owner string) OopsErrorBuilder {
 }
 
 // User supplies user id and a chain of key/value.
-func User(userID string, data map[string]any) OopsErrorBuilder {
+func User(userID string, data ...any) OopsErrorBuilder {
 	return new().User(userID, data)
 }
 
 // Tenant supplies tenant id and a chain of key/value.
-func Tenant(tenantID string, data map[string]any) OopsErrorBuilder {
+func Tenant(tenantID string, data ...any) OopsErrorBuilder {
 	return new().Tenant(tenantID, data)
 }
 
