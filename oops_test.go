@@ -340,6 +340,32 @@ func TestOopsUser(t *testing.T) {
 	is.Equal(assert.AnError, err.(OopsError).err)
 	is.Equal("user-123", err.(OopsError).userID)
 	is.Equal(map[string]any{"firstname": "john", "lastname": "doe"}, err.(OopsError).userData)
+	err = newBuilder().User(
+		"user-123",
+		slog.String("firstname", "john"),
+		slog.Group("profile", "lastname", "doe", "age", 42),
+	).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("user-123", err.(OopsError).userID)
+	is.Equal(
+		map[string]any{
+			"firstname": "john",
+			"profile":   map[string]any{"lastname": "doe", "age": int64(42)},
+		},
+		err.(OopsError).userData,
+	)
+	err = newBuilder().User(
+		"user-123",
+		map[string]any{"firstname": "john"},
+		"lastname",
+		"doe",
+		map[string]any{"country": "fr"},
+	).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("user-123", err.(OopsError).userID)
+	is.Equal(map[string]any{"firstname": "john", "lastname": "doe", "country": "fr"}, err.(OopsError).userData)
 }
 
 func TestOopsTenant(t *testing.T) {

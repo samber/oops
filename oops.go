@@ -139,14 +139,18 @@ func Owner(owner string) OopsErrorBuilder {
 	return newBuilder().Owner(owner)
 }
 
-// User supplies user id and a chain of key/value.
-func User(userID string, data map[string]any) OopsErrorBuilder {
-	return newBuilder().User(userID, data)
+// User supplies a user id with optional attributes.
+// Attributes can be provided as alternating string key/value pairs,
+// map[string]any values, and slog.Attr values.
+func User(userID string, data ...any) OopsErrorBuilder {
+	return newBuilder().User(userID, data...)
 }
 
-// Tenant supplies tenant id and a chain of key/value.
-func Tenant(tenantID string, data map[string]any) OopsErrorBuilder {
-	return newBuilder().Tenant(tenantID, data)
+// Tenant supplies a tenant id with optional attributes.
+// Attributes can be provided as alternating string key/value pairs,
+// map[string]any values, and slog.Attr values.
+func Tenant(tenantID string, data ...any) OopsErrorBuilder {
+	return newBuilder().Tenant(tenantID, data...)
 }
 
 // Request supplies a http.Request.

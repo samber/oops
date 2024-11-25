@@ -201,9 +201,9 @@ The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)
 | `.Trace(string)`                        | `err.Trace() string`                    | Add a transaction id, trace id, correlation id... (default: ULID)                                                                                                                          |
 | `.Span(string)`                         | `err.Span() string`                     | Add a span representing a unit of work or operation... (default: ULID)                                                                                                                     |
 | `.Hint(string)`                         | `err.Hint() string`                     | Set a hint for faster debugging                                                                                                                                                            |
-| `.Owner(string)`                        | `err.Owner() (string)`                  | Set the name/email of the colleague/team responsible for handling this error. Useful for alerting purpose                                                                                  |
-| `.User(string, any...)`                 | `err.User() (string, map[string]any)`   | Supply user id and a chain of key/value                                                                                                                                                    |
-| `.Tenant(string, any...)`               | `err.Tenant() (string, map[string]any)` | Supply tenant id and a chain of key/value                                                                                                                                                  |
+| `.Owner(string)`                        | `err.Owner() (string)`                  | Set the name/email of the colleague/team responsible for handling this error. Useful for alerting purpose                                                                                   |
+| `.User(string, any...)`                 | `err.User() (string, any...)`   | Supply user id with optional attributes (string key/value pairs, `map[string]any`, and `slog.Attr`)                                                                                      |
+| `.Tenant(string, any...)`               | `err.Tenant() (string, any...)` | Supply tenant id with optional attributes (string key/value pairs, `map[string]any`, and `slog.Attr`)                                                                                    |
 | `.Request(*http.Request, bool)`         | `err.Request() *http.Request`           | Supply http request                                                                                                                                                                        |
 | `.Response(*http.Response, bool)`       | `err.Response() *http.Response`         | Supply http response                                                                                                                                                                       |
 | `.FromContext(context.Context)`         |                                         | Reuse an existing OopsErrorBuilder transported in a Go context                                                                                                                             |
@@ -257,10 +257,19 @@ err7 := oops.
     User(userID, "firstname", "Samuel").
     Errorf("could not fetch user")
 
+// with map and slog.Attr user data
+err7b := oops.
+    User(userID,
+        map[string]any{"plan": "pro"},
+        slog.String("email", "samuel@example.com")).
+    Errorf("could not fetch user")
+
 // with optional user and tenant
 err8 := oops.
     User(userID, "firstname", "Samuel").
-    Tenant(workspaceID, "name", "my little project").
+    Tenant(workspaceID,
+        map[string]any{"name": "my little project"},
+        slog.String("country", "fr")).
     Errorf("could not fetch user")
 
 // with optional http request and response
