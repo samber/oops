@@ -41,6 +41,20 @@ func TestOopsWrapf(t *testing.T) {
 	is.Nil(err)
 }
 
+func TestOopsFromContext(t *testing.T) {
+	is := assert.New(t)
+
+	domain := "domain"
+	key, val := "foo", "bar"
+	builder := new().In(domain).With(key, val).WithContext(context.Background())
+	ctx := WithBuilder(context.Background(), builder)
+
+	err := FromContext(ctx).Errorf("a message %d", 42)
+	is.Error(err)
+	is.Equal(domain, err.(OopsError).domain)
+	is.Equal(val, err.(OopsError).context[key])
+}
+
 func TestOopsErrorf(t *testing.T) {
 	is := assert.New(t)
 
