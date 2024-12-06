@@ -2,8 +2,8 @@ package oops
 
 import (
 	"fmt"
+	"reflect"
 	"runtime"
-	"runtime/debug"
 	"strings"
 )
 
@@ -13,10 +13,12 @@ import (
 /// -> Apache 2.0 LICENSE
 ///
 
+type fake struct{}
+
 var (
 	StackTraceMaxDepth int = 10
 
-	buildInfo, _ = debug.ReadBuildInfo()
+	packageName = reflect.TypeOf(fake{}).PkgPath()
 )
 
 type oopsStacktraceFrame struct {
@@ -99,7 +101,6 @@ func newStacktrace(span string) *oopsStacktrace {
 		}
 		function := shortFuncName(f)
 
-		packageName := buildInfo.Path
 		packageNameExamples := packageName + "/examples/"
 
 		isGoPkg := len(runtime.GOROOT()) > 0 && strings.Contains(file, runtime.GOROOT()) // skip frames in GOROOT if it's set
