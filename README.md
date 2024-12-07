@@ -12,7 +12,8 @@
 
 (Yet another) error handling library: `oops.Errorf` is a dead-simple drop-in replacement for built-in `error`, adding contextual information such as stack trace, extra attributes, error code, and bug-fixing hints...
 
-> ⚠️ This is NOT a logging library. `oops` should be used as a complement to your existing logging toolchain (zap, zerolog, logrus, slog, go-sentry...).
+> [!WARNING]  
+> This is NOT a logging library. `oops` should complement your existing logging toolchain (zap, zerolog, logrus, slog, go-sentry...).
 
 🥷 Start hacking `oops` with this [playground](https://go.dev/play/p/-_7EBnceJ_A).
 
