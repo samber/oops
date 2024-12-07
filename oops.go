@@ -30,6 +30,15 @@ func Errorf(format string, args ...any) error {
 	return new().Errorf(format, args...)
 }
 
+func FromContext(ctx context.Context) OopsErrorBuilder {
+	builder, ok := getBuilderFromContext(ctx)
+	if !ok {
+		new()
+	}
+
+	return builder
+}
+
 func Join(e ...error) error {
 	return new().Join(e...)
 }
