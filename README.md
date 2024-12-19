@@ -48,6 +48,7 @@ Jump:
   - [Panic handling](#panic-handling)
   - [Assertions](#assertions)
   - [Output](#output)
+  - [Go context](#go-context)
 - [📫 Loggers](#-loggers)
 - [🥷 Tips and best practices](#-tips-and-best-practices)
 	
@@ -69,6 +70,7 @@ This is why we need an `error` wrapper!
 - developer-friendly error builder
 - no extra code for [output](#output): can be used with loggers, printf syntax...
 - out-of-the-box stack trace and source fragments
+- transport error builder in a Go context
 - one-line panic handling
 - one-line assertion
 
@@ -235,7 +237,7 @@ err2 := oops.
 
 The library provides an error builder. Each method can be used standalone (eg: `oops.With(...)`) or from a previous builder instance (eg: `oops.In("iam").User("user-42")`).
 
-The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)` or `.Wrapf(...)`.
+The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)`, `.Wrapf(...)`, `.Join(...)`, `.Recover(...)` or `.Recoverf(...)`.
 
 | Builder method                          | Getter                                  | Description                                                                                                                                                                                |
 | --------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -256,6 +258,7 @@ The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)
 | `.Tenant(string, any...)`               | `err.Tenant() (string, map[string]any)` | Supply tenant id and a chain of key/value                                                                                                                                                  |
 | `.Request(*http.Request, bool)`         | `err.Request() *http.Request`           | Supply http request                                                                                                                                                                        |
 | `.Response(*http.Response, bool)`       | `err.Response() *http.Response`         | Supply http response                                                                                                                                                                       |
+| `.FromContext(context.Context)`       |                       | Reuse an existing OopsErrorBuilder transported in a Go context                                                    |
 
 #### Examples
 
@@ -317,6 +320,13 @@ err9 := oops.
     Request(req, false).
     Response(res, true).
     Errorf("could not fetch user")
+
+// reuse an existing OopsErrorBuilder transported in a Go context
+ctx := oops.WithBuilder(context.TODO(), err9)
+// [...]
+err10 := oops.
+    FromContext(ctx).
+    Errorf("could not fetch user")
 ```
 
 ### Other helpers
@@ -351,7 +361,7 @@ Wrapped errors will be reported as an annotated stack trace:
 ```go
 err1 := oops.Errorf("permission denied")
 // ...
-err2 := oops.Wrapf(err, "something failed")
+err2 := oops.Wrapf(err1, "something failed")
 
 fmt.Println(err2.(oops.OopsError).Stacktrace())
 ```
@@ -503,6 +513,28 @@ attr := slog.Error(err.Error(),
 ```go
 loc, _ := time.LoadLocation("Europe/Paris")
 oops.Local = loc
+```
+
+### Go context
+
+An `OopsErrorBuilder` can be transported in a go `context.Context` to reuse later.
+
+```go
+func myFunc(ctx context.Context) {
+    oops.
+        FromContext(ctx).
+        Tag("auth").
+        Errorf("not permitted")
+}
+
+func main() {
+    err := oops.
+        In("my domain").
+        User("user-123")
+    ctx := oops.WithBuilder(context.TODO(), err)
+
+    myFunc(ctx)
+}
 ```
 
 ## 📫 Loggers
