@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -48,8 +49,14 @@ func TestOopsWrap_wrapped(t *testing.T) {
 	req, _ := http.NewRequestWithContext(ctx, "GET", "https://google.com", nil)
 	_, err = Wrap2(http.DefaultClient.Do(req))
 	is.Error(err)
-	is.Equal("Get \"https://google.com\": hello timeout", err.(OopsError).err.Error())
-	is.Equal(map[string]any{"hello": "world"}, err.(OopsError).Context())
+
+	if runtime.Version() >= "go1.23" {
+		is.Equal("Get \"https://google.com\": hello timeout", err.(OopsError).err.Error())
+		is.Equal(map[string]any{"hello": "world"}, err.(OopsError).Context())
+	} else {
+		is.Equal("Get \"https://google.com\": context deadline exceeded", err.(OopsError).err.Error())
+		is.Equal(map[string]any{}, err.(OopsError).Context())
+	}
 }
 
 func TestOopsWrapf(t *testing.T) {
