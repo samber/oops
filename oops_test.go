@@ -43,7 +43,7 @@ func TestOopsWrap_wrapped(t *testing.T) {
 	is.Equal(map[string]any{"user": "foobar"}, err.(OopsError).Context())
 
 	// simulate long http request
-	ctx, _ := context.WithTimeoutCause(context.TODO(), 1*time.Millisecond, With("hello", "world").Errorf("hello timeout")) //nolint:lostcancel
+	ctx, _ := context.WithTimeoutCause(context.TODO(), 1*time.Millisecond, With("hello", "world").Errorf("hello timeout")) //nolint:govet
 	time.Sleep(100 * time.Millisecond)
 
 	req, _ := http.NewRequestWithContext(ctx, "GET", "https://google.com", nil)
