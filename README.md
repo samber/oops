@@ -2,7 +2,7 @@
 # Oops - Error handling with context, assertion, stack trace and source fragments
 
 [![tag](https://img.shields.io/github/tag/samber/oops.svg)](https://github.com/samber/oops/releases)
-![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.20.3-%23007d9c)
+![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.21-%23007d9c)
 [![GoDoc](https://godoc.org/github.com/samber/oops?status.svg)](https://pkg.go.dev/github.com/samber/oops)
 ![Build Status](https://github.com/samber/oops/actions/workflows/test.yml/badge.svg)
 [![Go report](https://goreportcard.com/badge/github.com/samber/oops)](https://goreportcard.com/report/github.com/samber/oops)
@@ -258,7 +258,7 @@ The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)
 | `.Tenant(string, any...)`               | `err.Tenant() (string, map[string]any)` | Supply tenant id and a chain of key/value                                                                                                                                                  |
 | `.Request(*http.Request, bool)`         | `err.Request() *http.Request`           | Supply http request                                                                                                                                                                        |
 | `.Response(*http.Response, bool)`       | `err.Response() *http.Response`         | Supply http response                                                                                                                                                                       |
-| `.FromContext(context.Context)`       |                       | Reuse an existing OopsErrorBuilder transported in a Go context                                                    |
+| `.FromContext(context.Context)`         |                                         | Reuse an existing OopsErrorBuilder transported in a Go context                                                                                                                             |
 
 #### Examples
 

@@ -88,7 +88,7 @@ func newStacktrace(span string) *oopsStacktrace {
 
 	// We loop until we have StackTraceMaxDepth frames or we run out of frames.
 	// Frames from this package are skipped.
-	for i := 0; len(frames) < StackTraceMaxDepth; i++ {
+	for i := 1; len(frames) < StackTraceMaxDepth; i++ {
 		pc, file, line, ok := runtime.Caller(i)
 		if !ok {
 			break
