@@ -3,6 +3,7 @@ package oops
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -84,6 +85,16 @@ func TestOopsFromContext(t *testing.T) {
 	is.Error(err)
 	is.Equal(domain, err.(OopsError).domain)
 	is.Equal(val, err.(OopsError).context[key])
+}
+
+func TestOopsNew(t *testing.T) {
+	is := assert.New(t)
+
+	err := new().New("a message")
+	is.Error(err)
+	is.Equal(errors.New("a message"), err.(OopsError).err)
+	is.Empty(err.(OopsError).msg)
+	is.Equal("a message", err.Error())
 }
 
 func TestOopsErrorf(t *testing.T) {

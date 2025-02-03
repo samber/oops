@@ -132,6 +132,17 @@ func (o OopsErrorBuilder) Wrapf(err error, format string, args ...any) error {
 	return OopsError(o2)
 }
 
+// New returns `oops.OopsError` object that satisfies `error`.
+func (o OopsErrorBuilder) New(message string) error {
+	o2 := o.copy()
+	o2.err = errors.New(message)
+	if o2.span == "" {
+		o2.span = ulid.Make().String()
+	}
+	o2.stacktrace = newStacktrace(o2.span)
+	return OopsError(o2)
+}
+
 // Errorf formats an error and returns `oops.OopsError` object that satisfies `error`.
 func (o OopsErrorBuilder) Errorf(format string, args ...any) error {
 	o2 := o.copy()

@@ -25,6 +25,11 @@ func Wrapf(err error, format string, args ...any) error {
 	return new().Wrapf(err, format, args...)
 }
 
+// New returns `oops.OopsError` object that satisfies `error`.
+func New(message string) error {
+	return new().New(message)
+}
+
 // Errorf formats an error and returns `oops.OopsError` object that satisfies `error`.
 func Errorf(format string, args ...any) error {
 	return new().Errorf(format, args...)

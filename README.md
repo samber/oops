@@ -196,6 +196,7 @@ GoDoc: [https://godoc.org/github.com/samber/oops](https://godoc.org/github.com/s
 
 | Constructor                                                             | Description                                                                                           |
 | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `.New(message string) error`                                            | Formats returns `oops.OopsError` object that satisfies `error`                                        |
 | `.Errorf(format string, args ...any) error`                             | Formats an error and returns `oops.OopsError` object that satisfies `error`                           |
 | `.Wrap(err error) error`                                                | Wraps an error into an `oops.OopsError` object that satisfies `error`                                 |
 | `.Wrapf(err error, format string, args ...any) error`                   | Wraps an error into an `oops.OopsError` object that satisfies `error` and formats an error message    |
@@ -231,6 +232,18 @@ err2 := oops.
         oops.Assertf(time.Now().Weekday() == 1, "This code should run on Monday only.")
         // ...
     })
+
+// oops.New
+err3 := oops.
+    In("repository").
+    Tags("database", "sql").
+    New("an error message")
+
+// oops.Errorf
+err3 := oops.
+    In("repository").
+    Tags("database", "sql").
+    Errorf("an error message: %d", 42)
 ```
 
 ### Context
@@ -269,7 +282,7 @@ err0 := oops.
     Errorf("sql: bad connection")
 
 // simple error with stacktrace
-err1 := oops.Errorf("could not fetch user")
+err1 := oops.New("could not fetch user")
 
 // with optional domain
 err2 := oops.
