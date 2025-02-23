@@ -14,13 +14,21 @@ func dereferencePointers(data map[string]any) map[string]any {
 	for key, value := range data {
 		val := reflect.ValueOf(value)
 		if val.Kind() == reflect.Ptr {
-			// @TODO: might be a pointer to a pointer
-			data[key] = val.Elem().Interface()
+			data[key] = dereferencePointer(val)
 		}
 	}
 
 	return data
+}
 
+func dereferencePointer(val reflect.Value) any {
+	if val.IsNil() {
+		return nil
+	} else if val.Elem().Kind() == reflect.Ptr {
+		return dereferencePointer(val.Elem())
+	}
+
+	return val.Elem().Interface()
 }
 
 func lazyMapEvaluation(data map[string]any) map[string]any {
