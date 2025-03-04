@@ -1,19 +1,21 @@
+MODULES=$(shell go list -m)
+MODULE_DIRS=$(shell go list -m -f '{{.Dir}}')
 
 build:
 	go build -v ./...
 
 test:
-	go test -race -v ./...
+	go test -race -v ${MODULES} ./...
 watch-test:
-	reflex -t 50ms -s -- sh -c 'gotest -race -v ./...'
+	reflex -t 50ms -s -- sh -c 'gotest -race -v ${MODULES} ./...'
 
 bench:
-	go test -benchmem -count 3 -bench ./...
+	go test -benchmem -count 3 -bench ${MODULES} ./...
 watch-bench:
-	reflex -t 50ms -s -- sh -c 'go test -benchmem -count 3 -bench ./...'
+	reflex -t 50ms -s -- sh -c 'go test -benchmem -count 3 -bench ${MODULES} ./...'
 
 coverage:
-	go test -v -coverprofile=cover.out -covermode=atomic ./...
+	go test -v -coverprofile=cover.out -covermode=atomic ${MODULES} ./...
 	go tool cover -html=cover.out -o cover.html
 
 tools:
@@ -27,9 +29,9 @@ tools:
 	go mod tidy
 
 lint:
-	golangci-lint run --timeout 60s --max-same-issues 50 ./...
+	golangci-lint run --timeout 60s --max-same-issues 50 ${MODULE_DIRS}
 lint-fix:
-	golangci-lint run --timeout 60s --max-same-issues 50 --fix ./...
+	golangci-lint run --timeout 60s --max-same-issues 50 --fix ${MODULE_DIRS}
 
 audit:
 	go list -json -m all | nancy sleuth

@@ -6,7 +6,11 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/samber/oops"
+	oopszerolog "github.com/samber/oops/loggers/zerolog"
 )
+
+// go run examples/zerolog/example.go 2>&1 | jq
+// go run examples/zerolog/example.go 2>&1 | jq .stack -r
 
 func d() error {
 	return oops.
@@ -36,22 +40,9 @@ func a() error {
 	return b()
 }
 
-func WithOops(l zerolog.Logger, err error) *zerolog.Logger {
-	if oopsErr, ok := oops.AsOops(err); ok {
-		ctx := l.With()
-		for k, v := range oopsErr.ToMap() {
-			ctx = ctx.Interface(k, v)
-		}
-
-		logger := ctx.Err(oopsErr).Logger()
-		return &logger
-	}
-
-	// Recursively call into ourself so we can at least get a stack trace for any error
-	return WithOops(l, oops.Wrap(err))
-}
-
 func main() {
+	zerolog.ErrorStackMarshaler = oopszerolog.OopsStackMarshaller
+	zerolog.ErrorMarshalFunc = oopszerolog.OopsMarshalFunc
 	logger := zerolog.
 		New(os.Stderr).
 		With().
@@ -60,5 +51,5 @@ func main() {
 
 	err := a()
 
-	WithOops(logger, err).Error().Send()
+	logger.Error().Stack().Err(err).Msg(err.Error())
 }

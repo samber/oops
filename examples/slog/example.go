@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -43,36 +42,6 @@ func b() error {
 
 func a() error {
 	return b()
-}
-
-type myError1 struct {
-	err error
-}
-
-func (e myError1) Error() string {
-	return fmt.Errorf("fuck %w", e.err).Error()
-}
-
-func (c myError1) Unwrap() error {
-	if c.err != nil {
-		return c.err
-	}
-	return nil
-}
-
-type myError2 struct {
-	err error
-}
-
-func (e myError2) Error() string {
-	return fmt.Errorf("fuck %w", e.err).Error()
-}
-
-func (c myError2) Unwrap() error {
-	if c.err != nil {
-		return c.err
-	}
-	return nil
 }
 
 func main() {
