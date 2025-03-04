@@ -11,7 +11,7 @@ func GinOopsRecovery() gin.HandlerFunc {
 			c.Next()
 		}, "gin: panic recovered")
 		if err != nil {
-			c.Error(err)
+			_ = c.Error(err)
 			c.AbortWithStatus(500)
 		}
 	}
