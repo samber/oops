@@ -2,9 +2,15 @@ module github.com/samber/oops/examples/zerolog
 
 go 1.21
 
+replace (
+	github.com/samber/oops => ../..
+	github.com/samber/oops/loggers/zerolog => ../../loggers/zerolog
+)
+
 require (
 	github.com/rs/zerolog v1.31.0
-	github.com/samber/oops v1.16.1
+	github.com/samber/oops v0.0.0
+	github.com/samber/oops/loggers/zerolog v0.0.0
 )
 
 require (

@@ -2,9 +2,11 @@ module github.com/samber/oops/loggers/zerolog
 
 go 1.21
 
+replace github.com/samber/oops => ../..
+
 require (
 	github.com/rs/zerolog v1.31.0
-	github.com/samber/oops v1.16.1
+	github.com/samber/oops v0.0.0
 	github.com/stretchr/testify v1.10.0
 )
 
