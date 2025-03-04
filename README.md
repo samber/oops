@@ -558,10 +558,10 @@ Available loggers:
 - log: [playground](https://go.dev/play/p/uNx3CcT-X40) - [example](https://github.com/samber/oops/tree/master/examples/log)
 - slog: [playground](https://go.dev/play/p/-X2ZnqjyDLu) - [example](https://github.com/samber/oops/tree/master/examples/slog)
 - logrus: [formatter](https://github.com/samber/oops/tree/master/loggers/logrus) - [playground](https://go.dev/play/p/-_7EBnceJ_A) - [example](https://github.com/samber/oops/tree/master/examples/logrus)
+- zerolog: [formatter](https://github.com/samber/oops/tree/master/loggers/zerolog) - [playground](https://go.dev/play/p/aalqQ6wEDyx) - [example](https://github.com/samber/oops/tree/master/examples/zerolog)
 
 We are looking for contributions and examples for:
 - zap
-- zerolog
 - go-sentry
 - otel
 - other?

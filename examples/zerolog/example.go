@@ -9,6 +9,9 @@ import (
 	oopszerolog "github.com/samber/oops/loggers/zerolog"
 )
 
+// go run examples/zerolog/example.go 2>&1 | jq
+// go run examples/zerolog/example.go 2>&1 | jq .stack -r
+
 func d() error {
 	return oops.
 		Code("iam_authz_missing_permission").
