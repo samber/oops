@@ -127,6 +127,23 @@ func (o OopsError) Tags() []string {
 	return lo.Uniq(tags)
 }
 
+// HasTag returns true if the tags of the error contain provided value.
+func (o OopsError) HasTag(tag string) bool {
+	if lo.Contains(o.tags, tag) {
+		return true
+	}
+
+	if o.err == nil {
+		return false
+	}
+
+	if child, ok := AsOops(o.err); ok {
+		return child.HasTag(tag)
+	}
+
+	return false
+}
+
 // Context returns a k/v context of the error.
 func (o OopsError) Context() map[string]any {
 	return dereferencePointers(

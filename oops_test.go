@@ -163,11 +163,33 @@ func TestOopsIn(t *testing.T) {
 func TestOopsTags(t *testing.T) {
 	is := assert.New(t)
 
-	err := new().Tags("iam", "authz", "iam").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
+	err := new().Tags("iam", "authz", "iam").Join(
+		new().Tags("iam", "internal").Wrap(assert.AnError),
+		new().Tags("not-found").Wrap(assert.AnError))
+	join, ok := err.(OopsError).err.(interface{ Unwrap() []error })
+	is.True(ok)
+	is.Len(join.Unwrap(), 2)
+	is.Equal(assert.AnError, join.Unwrap()[0].(OopsError).err)
+	is.Equal(assert.AnError, join.Unwrap()[1].(OopsError).err)
 	is.Equal([]string{"iam", "authz", "iam"}, err.(OopsError).tags) // not deduplicated
-	is.Equal([]string{"iam", "authz"}, err.(OopsError).Tags())      // deduplicated
+	is.Equal([]string{"iam", "internal"}, join.Unwrap()[0].(OopsError).tags)
+	is.Equal([]string{"not-found"}, join.Unwrap()[1].(OopsError).tags)
+	is.Equal([]string{"iam", "authz", "internal"}, err.(OopsError).Tags()) // deduplicated and recursive
+}
+
+func TestOopsHasTag(t *testing.T) {
+	is := assert.New(t)
+
+	err := new().Tags("iam", "authz").Join(
+		new().Tags("internal").Wrap(assert.AnError),
+		new().Tags("not-found").Wrap(assert.AnError))
+	is.Error(err)
+	is.True(err.(OopsError).HasTag("internal"))
+	is.True(err.(OopsError).HasTag("authz"))
+	is.False(err.(OopsError).HasTag("not-found")) // Does not go over all joined errors so far
+	is.False(err.(OopsError).HasTag("1234"))
+
+	is.False(OopsError{}.HasTag("not-found"))
 }
 
 func TestOopsTx(t *testing.T) {
