@@ -186,7 +186,7 @@ func TestOopsHasTag(t *testing.T) {
 	is.Error(err)
 	is.True(err.(OopsError).HasTag("internal"))
 	is.True(err.(OopsError).HasTag("authz"))
-	is.False(err.(OopsError).HasTag("not-found")) // Should we fix that?
+	is.False(err.(OopsError).HasTag("not-found")) // Does not go over all joined errors so far
 	is.False(err.(OopsError).HasTag("1234"))
 }
 
