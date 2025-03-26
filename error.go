@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
+	"runtime"
 	"strings"
 	"time"
 
@@ -309,6 +310,24 @@ func (o OopsError) Stacktrace() string {
 	}
 
 	return "Oops: " + strings.Join(blocks, "\nThrown: ")
+}
+
+func (o OopsError) StackFrames() []runtime.Frame {
+	if len(o.stacktrace.frames) == 0 {
+		return nil
+	}
+
+	frames := make([]runtime.Frame, len(o.stacktrace.frames))
+	for i, frame := range o.stacktrace.frames {
+		frames[i] = runtime.Frame{
+			PC:   frame.pc,
+			File: frame.file,
+			Line: frame.line,
+			Function: frame.function,
+		}
+	}
+
+	return frames
 }
 
 // Sources returns the source fragments of the error.
