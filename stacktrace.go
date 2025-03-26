@@ -83,6 +83,24 @@ func (st *oopsStacktrace) Source() (string, []string) {
 	return header, body
 }
 
+func (st *oopsStacktrace) StackFrames() []runtime.Frame {
+	if len(st.frames) == 0 {
+		return nil
+	}
+
+	frames := make([]runtime.Frame, len(st.frames))
+	for i, frame := range st.frames {
+		frames[i] = runtime.Frame{
+			PC:   frame.pc,
+			File: frame.file,
+			Line: frame.line,
+			Function: frame.function,
+		}
+	}
+
+	return frames
+}
+
 func newStacktrace(span string) *oopsStacktrace {
 	frames := []oopsStacktraceFrame{}
 
