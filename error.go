@@ -322,9 +322,9 @@ func (o OopsError) StackFrames() []runtime.Frame {
 	frames := make([]runtime.Frame, len(o.stacktrace.frames))
 	for i, frame := range o.stacktrace.frames {
 		frames[i] = runtime.Frame{
-			PC:   frame.pc,
-			File: frame.file,
-			Line: frame.line,
+			PC:       frame.pc,
+			File:     frame.file,
+			Line:     frame.line,
 			Function: frame.function,
 		}
 	}
@@ -586,9 +586,9 @@ func (o OopsError) MarshalJSON() ([]byte, error) {
 // Otherwise, using "%v", just the summary is included.
 func (o OopsError) Format(s fmt.State, verb rune) {
 	if verb == 'v' && s.Flag('+') {
-		fmt.Fprint(s, o.formatVerbose())
+		_, _ = fmt.Fprint(s, o.formatVerbose()) //nolint:errcheck
 	} else {
-		fmt.Fprint(s, o.formatSummary())
+		_, _ = fmt.Fprint(s, o.formatSummary()) //nolint:errcheck
 	}
 }
 
