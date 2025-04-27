@@ -288,7 +288,7 @@ func (o OopsError) response() *lo.Tuple2[*http.Response, bool] {
 	)
 }
 
-// Stacktrace returns a pretty printed stacktrace of the error.
+// Stacktrace returns a pretty-printed stacktrace of the error.
 func (o OopsError) Stacktrace() string {
 	blocks := []string{}
 	topFrame := ""
@@ -312,6 +312,8 @@ func (o OopsError) Stacktrace() string {
 	return "Oops: " + strings.Join(blocks, "\nThrown: ")
 }
 
+// Stacktrace returns a slice of runtime.Frame of the error.
+// Compatible with sentry-go: https://github.com/getsentry/sentry-go/blob/master/stacktrace.go#L75
 func (o OopsError) StackFrames() []runtime.Frame {
 	if len(o.stacktrace.frames) == 0 {
 		return nil
