@@ -43,9 +43,11 @@ func TestStacktrace(t *testing.T) {
 	bi, ok := debug.ReadBuildInfo()
 	is.True(ok)
 
+	path := strings.Replace(bi.Path, ".test", "", 1) // starting go1.24, go adds ".test" to the path when running tests
+
 	if st.frames != nil {
 		for _, f := range st.frames {
-			is.Truef(strings.Contains(f.file, bi.Path), "frame file %s should contain %s", f.file, bi.Path)
+			is.Contains(f.file, path, "frame file %s should contain %s", f.file, path)
 		}
 
 		is.Len(st.frames, 7, "expected 7 frames")
