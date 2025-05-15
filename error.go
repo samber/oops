@@ -20,7 +20,10 @@ var (
 	Local                 *time.Location = time.UTC
 )
 
-var _ error = (*OopsError)(nil)
+var (
+	_ error          = (*OopsError)(nil)
+	_ slog.LogValuer = (*OopsError)(nil)
+)
 
 type OopsError struct {
 	err      error
@@ -365,8 +368,8 @@ func (o OopsError) Sources() string {
 	)
 }
 
-// LogValuer returns a slog.Value for logging.
-func (o OopsError) LogValuer() slog.Value {
+// LogValue returns a slog.Value for logging.
+func (o OopsError) LogValue() slog.Value {
 	attrs := []slog.Attr{slog.String("message", o.msg)}
 
 	if err := o.Error(); err != "" {
