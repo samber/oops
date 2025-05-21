@@ -368,6 +368,13 @@ func (o OopsError) Sources() string {
 	)
 }
 
+// LogValuer returns a slog.Value for logging.
+//
+// Deprecated: Use LogValue instead.
+func (o OopsError) LogValuer() slog.Value {
+	return o.LogValue()
+}
+
 // LogValue returns a slog.Value for logging.
 func (o OopsError) LogValue() slog.Value {
 	attrs := []slog.Attr{slog.String("message", o.msg)}
