@@ -535,7 +535,7 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal(err.(OopsError).Unwrap().(OopsError).msg, "a message 42")
 }
 
-func TestOopsLogValuer(t *testing.T) {
+func TestOopsLogValue(t *testing.T) {
 	is := assert.New(t)
 
 	now := time.Now()
@@ -559,7 +559,7 @@ func TestOopsLogValuer(t *testing.T) {
 
 	is.Error(err)
 
-	got := err.(OopsError).LogValuer().Group()
+	got := err.(OopsError).LogValue().Group()
 	expectedAttrs := []slog.Attr{
 		slog.String("message", "a message 42"),
 		slog.String("err", "a message 42: assert.AnError general error for testing"),
