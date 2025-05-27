@@ -38,7 +38,7 @@ func Errorf(format string, args ...any) error {
 func FromContext(ctx context.Context) OopsErrorBuilder {
 	builder, ok := getBuilderFromContext(ctx)
 	if !ok {
-		new()
+		return new()
 	}
 
 	return builder
