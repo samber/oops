@@ -27,7 +27,7 @@ func TestContextValueOrNil(t *testing.T) {
 	is := assert.New(t)
 
 	// Test with context containing value
-	ctx := context.WithValue(context.Background(), "key", "value")
+	ctx := context.WithValue(context.Background(), "key", "value") //nolint:staticcheck
 	result := contextValueOrNil(ctx, "key")
 	is.Equal("value", result)
 
@@ -36,6 +36,6 @@ func TestContextValueOrNil(t *testing.T) {
 	is.Nil(result2)
 
 	// Test with nil context
-	result3 := contextValueOrNil(nil, "key")
+	result3 := contextValueOrNil(nil, "key") //nolint:staticcheck
 	is.Nil(result3)
 }

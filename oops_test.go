@@ -870,7 +870,7 @@ func TestOopsWithContextEdgeCases(t *testing.T) {
 	is := assert.New(t)
 
 	// Test with nil context
-	err := new().WithContext(nil, "key1", "key2").Errorf("test")
+	err := new().WithContext(nil, "key1", "key2").Errorf("test") //nolint:staticcheck
 	is.Error(err)
 
 	// Test with empty keys
@@ -1071,7 +1071,7 @@ func TestOopsMainFunctions(t *testing.T) {
 	is.Equal("test_span", err9.(OopsError).Span())
 
 	// Test WithContext function
-	ctx := context.WithValue(context.Background(), "key", "value")
+	ctx := context.WithValue(context.Background(), "key", "value") //nolint:staticcheck
 	err10 := WithContext(ctx, "key", "value").Wrap(assert.AnError)
 	is.Error(err10)
 	is.Equal("value", err10.(OopsError).Context()["key"])
