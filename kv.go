@@ -22,13 +22,46 @@ func dereferencePointers(data map[string]any) map[string]any {
 }
 
 func dereferencePointer(val reflect.Value) any {
-	if val.IsNil() {
+	if !val.IsValid() {
 		return nil
-	} else if val.Elem().Kind() == reflect.Ptr {
-		return dereferencePointer(val.Elem())
 	}
 
-	return val.Elem().Interface()
+	if val.IsNil() {
+		return nil
+	}
+
+	return dereferencePointerRecursive(val, 0)
+}
+
+func dereferencePointerRecursive(val reflect.Value, depth int) any {
+	if !val.IsValid() {
+		return nil
+	}
+
+	if val.IsNil() {
+		return nil
+	}
+
+	if depth > 10 {
+		return val.Interface()
+	}
+
+	elem := val.Elem()
+	if !elem.IsValid() {
+		return nil
+	}
+
+	if elem.Kind() == reflect.Ptr {
+		return dereferencePointerRecursive(elem, depth+1)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			return
+		}
+	}()
+
+	return elem.Interface()
 }
 
 func lazyMapEvaluation(data map[string]any) map[string]any {

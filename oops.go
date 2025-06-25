@@ -120,7 +120,7 @@ func With(kv ...any) OopsErrorBuilder {
 	return new().With(kv...)
 }
 
-// With supplies a list of attributes declared by pair of key+value.
+// WithContext supplies a list of values declared in context.
 func WithContext(ctx context.Context, keys ...any) OopsErrorBuilder {
 	return new().WithContext(ctx, keys...)
 }
