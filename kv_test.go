@@ -1,6 +1,7 @@
 package oops
 
 import (
+	"reflect"
 	"testing"
 	"unsafe"
 
@@ -226,4 +227,44 @@ func TestDereferencePointerPanicPrevention(t *testing.T) {
 	var nilInterface interface{} = nil
 	err = With("nil_interface", &nilInterface).Errorf(anErrorStr).(OopsError) //nolint:govet
 	is.NotNil(err)
+}
+
+func TestDereferencePointerRecursiveEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with nil pointer
+	var nilPtr *string
+	result := dereferencePointerRecursive(reflect.ValueOf(nilPtr), 0)
+	is.Equal(nil, result)
+
+	// Test with max depth exceeded
+	value := "test"
+	ptr := &value
+	result2 := dereferencePointerRecursive(reflect.ValueOf(ptr), 100)
+	is.Equal(ptr, result2) // Should return the pointer itself
+
+	// Test with invalid reflect value
+	var invalid reflect.Value
+	result3 := dereferencePointerRecursive(invalid, 0)
+	is.Equal(nil, result3)
+}
+
+func TestLazyValueEvaluationEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with nil value
+	result := lazyValueEvaluation(nil)
+	is.Equal(nil, result)
+
+	// Test with non-function value
+	result2 := lazyValueEvaluation("string")
+	is.Equal("string", result2)
+
+	// Test with function that returns error
+	fn := func() (string, error) {
+		return "test", assert.AnError
+	}
+	result3 := lazyValueEvaluation(fn)
+	// Should return function as-is when it returns error
+	is.Equal(reflect.Func, reflect.TypeOf(result3).Kind())
 }

@@ -318,7 +318,7 @@ func (o OopsError) Stacktrace() string {
 // Stacktrace returns a slice of runtime.Frame of the error.
 // Compatible with sentry-go: https://github.com/getsentry/sentry-go/blob/master/stacktrace.go#L75
 func (o OopsError) StackFrames() []runtime.Frame {
-	if len(o.stacktrace.frames) == 0 {
+	if o.stacktrace == nil || len(o.stacktrace.frames) == 0 {
 		return nil
 	}
 

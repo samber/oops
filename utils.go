@@ -13,6 +13,10 @@ func coalesceOrEmpty[T comparable](v ...T) T {
 
 // convert (interface{})(nil) to nil
 func contextValueOrNil(ctx context.Context, k any) any {
+	if ctx == nil {
+		return nil
+	}
+
 	v := ctx.Value(k)
 	if v == nil {
 		return nil

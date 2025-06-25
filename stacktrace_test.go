@@ -1,6 +1,7 @@
 package oops
 
 import (
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"testing"
@@ -62,4 +63,85 @@ func TestStacktrace(t *testing.T) {
 			is.Equal("TestStacktrace", (st.frames)[6].function)
 		}
 	}
+}
+
+func TestShortFuncNameExtended(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with a real function
+	pc, _, _, ok := runtime.Caller(0)
+	is.True(ok)
+	f := runtime.FuncForPC(pc)
+	is.NotNil(f)
+
+	result := shortFuncName(f)
+	is.NotEmpty(result)
+	is.Contains(result, "TestShortFuncNameExtended")
+
+	// Test with nil function
+	result2 := shortFuncName(nil)
+	is.Equal("", result2)
+}
+
+func TestOopsStacktraceError(t *testing.T) {
+	is := assert.New(t)
+
+	// Test stacktrace Error method - returns formatted stacktrace, not span
+	st := &oopsStacktrace{span: "test"}
+	err := st.Error()
+	is.Equal("", err) // Empty because no frames
+
+	// Test with frames
+	frame := oopsStacktraceFrame{
+		file:     "test.go",
+		line:     10,
+		function: "testFunc",
+	}
+	st2 := &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{frame}}
+	err2 := st2.Error()
+	is.Contains(err2, "test.go:10 testFunc()")
+}
+
+func TestOopsStacktraceString(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with empty frames
+	st := &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{}}
+	result := st.String("")
+	is.Empty(result)
+
+	// Test with frames
+	frame := oopsStacktraceFrame{
+		file:     "test.go",
+		line:     10,
+		function: "testFunc",
+	}
+	st2 := &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{frame}}
+	result2 := st2.String("")
+	is.Contains(result2, "test.go:10 testFunc()")
+
+	// Test with deepest frame
+	result3 := st2.String("test.go:10 testFunc()")
+	is.Empty(result3)
+}
+
+func TestOopsStacktraceFrameString(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with function
+	frame := &oopsStacktraceFrame{
+		file:     "test.go",
+		line:     10,
+		function: "testFunc",
+	}
+	result := frame.String()
+	is.Equal("test.go:10 testFunc()", result)
+
+	// Test without function
+	frame2 := &oopsStacktraceFrame{
+		file: "test.go",
+		line: 10,
+	}
+	result2 := frame2.String()
+	is.Equal("test.go:10", result2)
 }

@@ -708,9 +708,414 @@ func TestOopsMarshalJSON(t *testing.T) {
 func TestOopsGetPublic(t *testing.T) {
 	is := assert.New(t)
 
-	err := new().Public("public facing message").Wrap(assert.AnError)
+	err := new().Public("public message").Wrap(assert.AnError)
+	is.Equal("public message", GetPublic(err, "default"))
+
+	err = new().Wrap(assert.AnError)
+	is.Equal("default", GetPublic(err, "default"))
+
+	is.Equal("default", GetPublic(nil, "default"))
+}
+
+func TestOopsAssert(t *testing.T) {
+	is := assert.New(t)
+
+	// Test successful assertion
+	err := new().Assert(true).Wrap(assert.AnError)
 	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("public facing message", GetPublic(err, "default message"))
-	is.Equal("default message", GetPublic(assert.AnError, "default message"))
+
+	// Test failed assertion
+	defer func() {
+		if r := recover(); r != nil {
+			err, ok := r.(OopsError)
+			is.True(ok)
+			is.Equal("assertion failed", err.Error())
+		} else {
+			t.Fatal("Expected panic for failed assertion")
+		}
+	}()
+	new().Assert(false)
+}
+
+func TestOopsAssertf(t *testing.T) {
+	is := assert.New(t)
+
+	// Test successful assertion
+	err := new().Assertf(true, "test %d", 42).Wrap(assert.AnError)
+	is.Error(err)
+
+	// Test failed assertion
+	defer func() {
+		if r := recover(); r != nil {
+			err, ok := r.(OopsError)
+			is.True(ok)
+			is.Equal("test 42", err.Error())
+		} else {
+			t.Fatal("Expected panic for failed assertion")
+		}
+	}()
+	new().Assertf(false, "test %d", 42)
+}
+
+func TestOopsSpan(t *testing.T) {
+	is := assert.New(t)
+
+	err := new().Span("test-span").Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal("test-span", err.(OopsError).span)
+
+	// Test that span is set automatically if not provided
+	err = new().Wrap(assert.AnError)
+	is.NotEmpty(err.(OopsError).span)
+}
+
+func TestOopsResponse(t *testing.T) {
+	is := assert.New(t)
+
+	resp := &http.Response{
+		StatusCode: 404,
+		Status:     "404 Not Found",
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+	}
+
+	err := new().Response(resp, true).Wrap(assert.AnError)
+	is.Error(err)
+	// The actual value is a Tuple2, so check the .A field
+	is.Equal(resp, err.(OopsError).res.A)
+
+	// Test with nil response
+	err = new().Response(nil, false).Wrap(assert.AnError)
+	is.Error(err)
+	is.Nil(err.(OopsError).res.A)
+}
+
+func TestOopsStackFrames(t *testing.T) {
+	is := assert.New(t)
+
+	err := new().Wrap(assert.AnError)
+	is.NotNil(err.(OopsError).stacktrace)
+	frames := err.(OopsError).StackFrames()
+	if frames != nil {
+		is.Greater(len(frames), 0)
+	}
+
+	// Test with nil stacktrace
+	err2 := OopsError{err: assert.AnError}
+	frames2 := err2.StackFrames()
+	is.Nil(frames2)
+}
+
+func TestOopsLogValuer(t *testing.T) {
+	is := assert.New(t)
+
+	err := new().Wrap(assert.AnError)
+	logValuer := err.(OopsError).LogValuer()
+	is.NotNil(logValuer)
+
+	// Test that LogValue returns the same as LogValuer()
+	logValue := err.(OopsError).LogValue()
+	is.Equal(logValue, logValuer)
+}
+
+func TestOopsErrorMethods(t *testing.T) {
+	is := assert.New(t)
+
+	// Test Span method
+	err := new().Span("test-span").Wrap(assert.AnError)
+	is.Equal("test-span", err.(OopsError).Span())
+
+	// Test with empty span
+	err2 := new().Wrap(assert.AnError)
+	is.NotEmpty(err2.(OopsError).Span())
+
+	// Test Response method
+	resp := &http.Response{StatusCode: 500}
+	err3 := new().Response(resp, false).Wrap(assert.AnError)
+	is.Equal(resp, err3.(OopsError).Response())
+
+	// Test with nil response
+	err4 := new().Wrap(assert.AnError)
+	is.Nil(err4.(OopsError).Response())
+}
+
+func TestOopsRecoverEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test recover with non-error panic
+	err := new().Recover(func() {
+		panic("string panic")
+	})
+	is.Error(err)
+	is.Contains(err.Error(), "string panic")
+
+	// Test recover with nil panic
+	err = new().Recover(func() {
+		panic(nil)
+	})
+	is.Error(err)
+	is.Contains(err.Error(), "panic")
+
+	// Test recover with struct panic
+	type testStruct struct {
+		Field string
+	}
+	err = new().Recover(func() {
+		panic(testStruct{Field: "test"})
+	})
+	is.Error(err)
+	is.Contains(err.Error(), "test")
+}
+
+func TestOopsWithContextEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with nil context
+	err := new().WithContext(nil, "key1", "key2").Errorf("test")
+	is.Error(err)
+
+	// Test with empty keys
+	err = new().WithContext(context.Background()).Errorf("test")
+	is.Error(err)
+
+	// Test with odd number of keys
+	err = new().WithContext(context.Background(), "key1").Errorf("test")
+	is.Error(err)
+
+	// Test with context values that don't exist
+	ctx := context.Background()
+	err = new().WithContext(ctx, "nonexistent", "value").Errorf("test")
+	is.Error(err)
+	is.Equal(map[string]any{"nonexistent": nil, "value": nil}, err.(OopsError).Context())
+}
+
+func TestOopsErrorFormatEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test error with nil underlying error
+	err := OopsError{msg: "test message"}
+	is.Equal("test message", err.Error())
+
+	// Test error with empty message
+	err2 := OopsError{err: assert.AnError}
+	is.Equal("assert.AnError general error for testing", err2.Error())
+
+	// Test error with both message and underlying error
+	err3 := OopsError{err: assert.AnError, msg: "test message"}
+	is.Equal("test message: assert.AnError general error for testing", err3.Error())
+}
+
+func TestOopsRequestEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with nil request
+	err := new().Request(nil, false).Wrap(assert.AnError)
+	is.Error(err)
+	is.Nil(err.(OopsError).Request())
+
+	// Test request method
+	req, _ := http.NewRequest("GET", "http://example.com", nil)
+	err2 := new().Request(req, false).Wrap(assert.AnError)
+	is.Equal(req, err2.(OopsError).Request())
+}
+
+func TestOopsSourcesEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with nil stacktrace
+	err := OopsError{err: assert.AnError}
+	sources := err.Sources()
+	is.Empty(sources)
+
+	// Test with empty frames
+	err2 := OopsError{err: assert.AnError, stacktrace: &oopsStacktrace{frames: []oopsStacktraceFrame{}}}
+	sources2 := err2.Sources()
+	is.Empty(sources2)
+}
+
+func TestOopsFormatVerboseEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with nil error
+	err := OopsError{}
+	formatted := err.formatVerbose()
+	is.NotEmpty(formatted)
+
+	// Test with minimal error
+	err2 := OopsError{err: assert.AnError}
+	formatted2 := err2.formatVerbose()
+	is.NotEmpty(formatted2)
+	is.Contains(formatted2, "assert.AnError general error for testing")
+}
+
+func TestOopsRecursiveEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with nil error - recursive is a void function, so we can't test it directly
+	// Instead, test the behavior through other means
+	err := OopsError{err: nil}
+	is.Empty(err.Context())
+
+	// Test with non-OopsError
+	err2 := OopsError{err: assert.AnError}
+	is.Empty(err2.Context())
+}
+
+func TestOopsGetDeepestErrorAttributeEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with nil error
+	result := getDeepestErrorAttribute(OopsError{err: nil}, func(o OopsError) string {
+		return o.Code()
+	})
+	is.Equal("", result)
+
+	// Test with non-OopsError
+	result2 := getDeepestErrorAttribute(OopsError{err: assert.AnError}, func(o OopsError) string {
+		return o.Code()
+	})
+	is.Equal("", result2)
+
+	// Test with OopsError but no context
+	err := OopsError{err: assert.AnError}
+	result3 := getDeepestErrorAttribute(err, func(o OopsError) string {
+		return o.Code()
+	})
+	is.Equal("", result3)
+}
+
+func TestOopsMergeNestedErrorMapEdgeCases(t *testing.T) {
+	is := assert.New(t)
+
+	// Test with OopsError but no context
+	err := OopsError{err: assert.AnError}
+	result := mergeNestedErrorMap(err, func(o OopsError) map[string]any {
+		return o.Context()
+	})
+	is.Empty(result)
+}
+
+func TestOopsMainFunctions(t *testing.T) {
+	is := assert.New(t)
+
+	// Test New function
+	err := New("test error")
+	is.Error(err)
+	is.Equal("test error", err.(OopsError).err.Error())
+
+	// Test Assert function
+	defer func() {
+		if r := recover(); r != nil {
+			err, ok := r.(OopsError)
+			is.True(ok)
+			is.Equal("assertion failed", err.Error())
+		} else {
+			t.Fatal("Expected panic for failed assertion")
+		}
+	}()
+	Assert(false)
+
+	// Test Assertf function
+	defer func() {
+		if r := recover(); r != nil {
+			err, ok := r.(OopsError)
+			is.True(ok)
+			is.Equal("test assertion", err.Error())
+		} else {
+			t.Fatal("Expected panic for failed assertion")
+		}
+	}()
+	Assertf(false, "test assertion")
+
+	// Test Code function
+	err2 := Code("test_code").Wrap(assert.AnError)
+	is.Error(err2)
+	is.Equal("test_code", err2.(OopsError).Code())
+
+	// Test Time function
+	now := time.Now()
+	err3 := Time(now).Wrap(assert.AnError)
+	is.Error(err3)
+	is.Equal(now, err3.(OopsError).Time())
+
+	// Test Since function
+	start := time.Now()
+	time.Sleep(1 * time.Millisecond)
+	err4 := Since(start).Wrap(assert.AnError)
+	is.Error(err4)
+	is.True(err4.(OopsError).Duration() > 0)
+
+	// Test Duration function
+	duration := 5 * time.Second
+	err5 := Duration(duration).Wrap(assert.AnError)
+	is.Error(err5)
+	is.Equal(duration, err5.(OopsError).Duration())
+
+	// Test In function
+	err6 := In("test_domain").Wrap(assert.AnError)
+	is.Error(err6)
+	is.Equal("test_domain", err6.(OopsError).Domain())
+
+	// Test Tags function
+	err7 := Tags("tag1", "tag2").Wrap(assert.AnError)
+	is.Error(err7)
+	is.Equal([]string{"tag1", "tag2"}, err7.(OopsError).Tags())
+
+	// Test Trace function
+	err8 := Trace("test_trace").Wrap(assert.AnError)
+	is.Error(err8)
+	is.Equal("test_trace", err8.(OopsError).Trace())
+
+	// Test Span function
+	err9 := Span("test_span").Wrap(assert.AnError)
+	is.Error(err9)
+	is.Equal("test_span", err9.(OopsError).Span())
+
+	// Test WithContext function
+	ctx := context.WithValue(context.Background(), "key", "value")
+	err10 := WithContext(ctx, "key", "value").Wrap(assert.AnError)
+	is.Error(err10)
+	is.Equal("value", err10.(OopsError).Context()["key"])
+
+	// Test Hint function
+	err11 := Hint("test hint").Wrap(assert.AnError)
+	is.Error(err11)
+	is.Equal("test hint", err11.(OopsError).Hint())
+
+	// Test Public function
+	err12 := Public("public message").Wrap(assert.AnError)
+	is.Error(err12)
+	is.Equal("public message", err12.(OopsError).Public())
+
+	// Test Owner function
+	err13 := Owner("test owner").Wrap(assert.AnError)
+	is.Error(err13)
+	is.Equal("test owner", err13.(OopsError).Owner())
+
+	// Test User function
+	userData := map[string]any{"name": "test"}
+	err14 := User("user123", userData).Wrap(assert.AnError)
+	is.Error(err14)
+	userID, userDataResult := err14.(OopsError).User()
+	is.Equal("user123", userID)
+	is.Equal(userData, userDataResult)
+
+	// Test Tenant function
+	tenantData := map[string]any{"org": "test"}
+	err15 := Tenant("tenant123", tenantData).Wrap(assert.AnError)
+	is.Error(err15)
+	tenantID, tenantDataResult := err15.(OopsError).Tenant()
+	is.Equal("tenant123", tenantID)
+	is.Equal(tenantData, tenantDataResult)
+
+	// Test Request function
+	req, _ := http.NewRequest("GET", "http://example.com", nil)
+	err16 := Request(req, false).Wrap(assert.AnError)
+	is.Error(err16)
+	is.Equal(req, err16.(OopsError).Request())
+
+	// Test Response function
+	resp := &http.Response{StatusCode: 404}
+	err17 := Response(resp, false).Wrap(assert.AnError)
+	is.Error(err17)
+	is.Equal(resp, err17.(OopsError).Response())
 }

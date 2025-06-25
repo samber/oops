@@ -14,28 +14,19 @@ func dereferencePointers(data map[string]any) map[string]any {
 	for key, value := range data {
 		val := reflect.ValueOf(value)
 		if val.Kind() == reflect.Ptr {
-			data[key] = dereferencePointer(val)
+			data[key] = dereferencePointerRecursive(val, 0)
 		}
 	}
 
 	return data
 }
 
-func dereferencePointer(val reflect.Value) any {
-	if !val.IsValid() {
-		return nil
-	}
-
-	if val.IsNil() {
-		return nil
-	}
-
-	return dereferencePointerRecursive(val, 0)
-}
-
 func dereferencePointerRecursive(val reflect.Value, depth int) any {
 	if !val.IsValid() {
 		return nil
+	}
+	if val.Kind() != reflect.Ptr {
+		return val.Interface()
 	}
 
 	if val.IsNil() {

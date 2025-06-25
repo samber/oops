@@ -61,15 +61,13 @@ func Recoverf(cb func(), msg string, args ...any) (err error) {
 // Assert panics if condition is false. Panic payload will be of type oops.OopsError.
 // Assertions can be chained.
 func Assert(condition bool) OopsErrorBuilder {
-	o := new()
-	return o.Assert(condition)
+	return new().Assert(condition)
 }
 
 // Assertf panics if condition is false. Panic payload will be of type oops.OopsError.
 // Assertions can be chained.
 func Assertf(condition bool, msg string, args ...any) OopsErrorBuilder {
-	o := new()
-	return o.Assertf(condition, msg, args...)
+	return new().Assertf(condition, msg, args...)
 }
 
 // Code set a code or slug that describes the error.
