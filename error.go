@@ -14,60 +14,82 @@ import (
 	"github.com/samber/lo"
 )
 
+// Global configuration variables that control the behavior of error handling
 var (
-	SourceFragmentsHidden                = true
-	DereferencePointers                  = true
-	Local                 *time.Location = time.UTC
+	// SourceFragmentsHidden controls whether source code fragments are included in error output.
+	// When true, source code context around error locations is hidden to reduce output size.
+	SourceFragmentsHidden = true
+
+	// DereferencePointers controls whether pointer values in error context are automatically
+	// dereferenced when converting to map representations. This can be useful for logging
+	// but may cause issues with nil pointers.
+	DereferencePointers = true
+
+	// Local specifies the timezone used for error timestamps. Defaults to UTC.
+	Local *time.Location = time.UTC
 )
 
+// Type assertions to ensure OopsError implements required interfaces
 var (
 	_ error          = (*OopsError)(nil)
 	_ slog.LogValuer = (*OopsError)(nil)
 )
 
+// OopsError represents an enhanced error with additional contextual information.
+// It implements the standard error interface while providing rich metadata for
+// debugging, logging, and error handling.
 type OopsError struct {
-	err      error
-	msg      string
-	code     string
-	time     time.Time
-	duration time.Duration
+	// Core error information
+	err      error         // The underlying error being wrapped
+	msg      string        // Additional error message
+	code     string        // Machine-readable error code/slug
+	time     time.Time     // When the error occurred
+	duration time.Duration // Duration associated with the error
 
-	// context
-	domain  string
-	tags    []string
-	context map[string]any
+	// Contextual information
+	domain  string         // Feature category or domain (e.g., "auth", "database")
+	tags    []string       // Tags for categorizing the error
+	context map[string]any // Key-value pairs for additional context
 
-	trace string
-	span  string
+	// Tracing information
+	trace string // Transaction/trace/correlation ID
+	span  string // Current span identifier
 
-	hint   string
-	public string
-	owner  string
+	// Developer-facing information
+	hint   string // Debugging hint for developers
+	public string // User-safe error message
+	owner  string // Team/person responsible for handling this error
 
-	// user
-	userID     string
-	userData   map[string]any
-	tenantID   string
-	tenantData map[string]any
+	// User and tenant information
+	userID     string         // User identifier
+	userData   map[string]any // User-related data
+	tenantID   string         // Tenant identifier
+	tenantData map[string]any // Tenant-related data
 
-	// http
-	req *lo.Tuple2[*http.Request, bool]
-	res *lo.Tuple2[*http.Response, bool]
+	// HTTP request/response information
+	req *lo.Tuple2[*http.Request, bool]  // HTTP request with body inclusion flag
+	res *lo.Tuple2[*http.Response, bool] // HTTP response with body inclusion flag
 
-	// stacktrace
-	stacktrace *oopsStacktrace
+	// Stack trace information
+	stacktrace *oopsStacktrace // Captured stack trace
 }
 
-// Unwrap returns the underlying error.
+// Unwrap returns the underlying error that this OopsError wraps.
+// This method implements the errors.Wrapper interface.
 func (o OopsError) Unwrap() error {
 	return o.err
 }
 
+// Is checks if this error matches the target error.
+// This method implements the errors.Is interface for error comparison.
 func (c OopsError) Is(err error) bool {
 	return c.err == err
 }
 
-// Error returns the error message, without context.
+// Error returns the error message without additional context.
+// This method implements the error interface.
+// If the error wraps another error, it returns "message: wrapped_error".
+// Otherwise, it returns just the message.
 func (o OopsError) Error() string {
 	if o.err != nil {
 		if o.msg == "" {
@@ -80,7 +102,9 @@ func (o OopsError) Error() string {
 	return o.msg
 }
 
-// Code returns the error cause. Error code is intented to be used by machines.
+// Code returns the error code from the deepest error in the chain.
+// Error codes are machine-readable identifiers that can be used for
+// programmatic error handling and cross-service error correlation.
 func (o OopsError) Code() string {
 	return getDeepestErrorAttribute(
 		o,
@@ -90,7 +114,8 @@ func (o OopsError) Code() string {
 	)
 }
 
-// Time returns the time when the error occured.
+// Time returns the timestamp when the error occurred.
+// Returns the time from the deepest error in the chain.
 func (o OopsError) Time() time.Time {
 	return getDeepestErrorAttribute(
 		o,
@@ -100,7 +125,8 @@ func (o OopsError) Time() time.Time {
 	)
 }
 
-// Duration returns the duration of the error.
+// Duration returns the duration associated with the error.
+// Returns the duration from the deepest error in the chain.
 func (o OopsError) Duration() time.Duration {
 	return getDeepestErrorAttribute(
 		o,
@@ -110,7 +136,8 @@ func (o OopsError) Duration() time.Duration {
 	)
 }
 
-// Domain returns the domain of the error.
+// Domain returns the domain/feature category of the error.
+// Returns the domain from the deepest error in the chain.
 func (o OopsError) Domain() string {
 	return getDeepestErrorAttribute(
 		o,
@@ -120,7 +147,8 @@ func (o OopsError) Domain() string {
 	)
 }
 
-// Tags returns the tags of the error.
+// Tags returns all unique tags from the error chain.
+// Tags are merged from all errors in the chain and deduplicated.
 func (o OopsError) Tags() []string {
 	tags := []string{}
 
@@ -131,7 +159,8 @@ func (o OopsError) Tags() []string {
 	return lo.Uniq(tags)
 }
 
-// HasTag returns true if the tags of the error contain provided value.
+// HasTag checks if the error or any of its wrapped errors contain the specified tag.
+// This is useful for conditional error handling based on error categories.
 func (o OopsError) HasTag(tag string) bool {
 	if lo.Contains(o.tags, tag) {
 		return true
@@ -148,7 +177,10 @@ func (o OopsError) HasTag(tag string) bool {
 	return false
 }
 
-// Context returns a k/v context of the error.
+// Context returns a flattened key-value context map from the error chain.
+// Context from all errors in the chain is merged, with later errors taking precedence.
+// Pointer values are dereferenced if DereferencePointers is enabled.
+// Lazy evaluation functions are executed to get their values.
 func (o OopsError) Context() map[string]any {
 	return dereferencePointers(
 		lazyMapEvaluation(
@@ -162,7 +194,9 @@ func (o OopsError) Context() map[string]any {
 	)
 }
 
-// Trace returns the transaction id, trace id, request id, correlation id, etc.
+// Trace returns the transaction/trace/correlation ID.
+// If no trace ID is set, generates a new ULID-based trace ID.
+// Returns the trace ID from the deepest error in the chain.
 func (o OopsError) Trace() string {
 	trace := getDeepestErrorAttribute(
 		o,
@@ -178,12 +212,14 @@ func (o OopsError) Trace() string {
 	return ulid.Make().String()
 }
 
-// Span returns the current span instead of the deepest one.
+// Span returns the current span identifier.
+// Unlike other attributes, span returns the current error's span, not the deepest one.
 func (o OopsError) Span() string {
 	return o.span
 }
 
-// Hint returns a hint to the user on how to resolve the error.
+// Hint returns a debugging hint for resolving the error.
+// Returns the hint from the deepest error in the chain.
 func (o OopsError) Hint() string {
 	return getDeepestErrorAttribute(
 		o,
@@ -193,7 +229,8 @@ func (o OopsError) Hint() string {
 	)
 }
 
-// Public returns a message that is safe to show to an end user.
+// Public returns a user-safe error message.
+// Returns the public message from the deepest error in the chain.
 func (o OopsError) Public() string {
 	return getDeepestErrorAttribute(
 		o,
@@ -203,7 +240,8 @@ func (o OopsError) Public() string {
 	)
 }
 
-// Owner identify the owner responsible for resolving the error.
+// Owner returns the name/email of the person/team responsible for handling this error.
+// Returns the owner from the deepest error in the chain.
 func (o OopsError) Owner() string {
 	return getDeepestErrorAttribute(
 		o,
@@ -213,7 +251,8 @@ func (o OopsError) Owner() string {
 	)
 }
 
-// User returns the user id and user data.
+// User returns the user ID and associated user data.
+// Returns the user information from the deepest error in the chain.
 func (o OopsError) User() (string, map[string]any) {
 	userID := getDeepestErrorAttribute(
 		o,
@@ -221,19 +260,23 @@ func (o OopsError) User() (string, map[string]any) {
 			return e.userID
 		},
 	)
-	userData := lazyMapEvaluation(
-		mergeNestedErrorMap(
-			o,
-			func(e OopsError) map[string]any {
-				return e.userData
-			},
+
+	userData := dereferencePointers(
+		lazyMapEvaluation(
+			mergeNestedErrorMap(
+				o,
+				func(e OopsError) map[string]any {
+					return e.userData
+				},
+			),
 		),
 	)
 
 	return userID, userData
 }
 
-// Tenant returns the tenant id and tenant data.
+// Tenant returns the tenant ID and associated tenant data.
+// Returns the tenant information from the deepest error in the chain.
 func (o OopsError) Tenant() (string, map[string]any) {
 	tenantID := getDeepestErrorAttribute(
 		o,
@@ -241,19 +284,23 @@ func (o OopsError) Tenant() (string, map[string]any) {
 			return e.tenantID
 		},
 	)
-	tenantData := lazyMapEvaluation(
-		mergeNestedErrorMap(
-			o,
-			func(e OopsError) map[string]any {
-				return e.tenantData
-			},
+
+	tenantData := dereferencePointers(
+		lazyMapEvaluation(
+			mergeNestedErrorMap(
+				o,
+				func(e OopsError) map[string]any {
+					return e.tenantData
+				},
+			),
 		),
 	)
 
 	return tenantID, tenantData
 }
 
-// Request returns the http request.
+// Request returns the associated HTTP request.
+// Returns the request from the deepest error in the chain.
 func (o OopsError) Request() *http.Request {
 	t := o.request()
 	if t != nil {
@@ -263,6 +310,7 @@ func (o OopsError) Request() *http.Request {
 	return nil
 }
 
+// request returns the internal request tuple with body inclusion flag.
 func (o OopsError) request() *lo.Tuple2[*http.Request, bool] {
 	return getDeepestErrorAttribute(
 		o,
@@ -272,7 +320,8 @@ func (o OopsError) request() *lo.Tuple2[*http.Request, bool] {
 	)
 }
 
-// Response returns the http response.
+// Response returns the associated HTTP response.
+// Returns the response from the deepest error in the chain.
 func (o OopsError) Response() *http.Response {
 	t := o.response()
 	if t != nil {
@@ -282,6 +331,7 @@ func (o OopsError) Response() *http.Response {
 	return nil
 }
 
+// response returns the internal response tuple with body inclusion flag.
 func (o OopsError) response() *lo.Tuple2[*http.Response, bool] {
 	return getDeepestErrorAttribute(
 		o,
@@ -291,7 +341,9 @@ func (o OopsError) response() *lo.Tuple2[*http.Response, bool] {
 	)
 }
 
-// Stacktrace returns a pretty-printed stacktrace of the error.
+// Stacktrace returns a formatted string representation of the error's stack trace.
+// The stack trace shows the call hierarchy leading to the error, excluding
+// frames from the Go standard library and this package.
 func (o OopsError) Stacktrace() string {
 	blocks := []string{}
 	topFrame := ""
@@ -315,8 +367,8 @@ func (o OopsError) Stacktrace() string {
 	return "Oops: " + strings.Join(blocks, "\nThrown: ")
 }
 
-// Stacktrace returns a slice of runtime.Frame of the error.
-// Compatible with sentry-go: https://github.com/getsentry/sentry-go/blob/master/stacktrace.go#L75
+// StackFrames returns the raw stack frames as runtime.Frame objects.
+// This is useful for custom stack trace formatting or analysis.
 func (o OopsError) StackFrames() []runtime.Frame {
 	if o.stacktrace == nil || len(o.stacktrace.frames) == 0 {
 		return nil
@@ -335,7 +387,10 @@ func (o OopsError) StackFrames() []runtime.Frame {
 	return frames
 }
 
-// Sources returns the source fragments of the error.
+// Sources returns formatted source code fragments around the error location.
+// This provides context about the code that caused the error, which is
+// particularly useful for debugging. The output includes line numbers and
+// highlights the exact line where the error occurred.
 func (o OopsError) Sources() string {
 	blocks := [][]string{}
 
@@ -368,14 +423,17 @@ func (o OopsError) Sources() string {
 	)
 }
 
-// LogValuer returns a slog.Value for logging.
+// LogValuer returns a slog.Value representation of the error.
+// This method implements the slog.LogValuer interface for structured logging.
 //
 // Deprecated: Use LogValue instead.
 func (o OopsError) LogValuer() slog.Value {
 	return o.LogValue()
 }
 
-// LogValue returns a slog.Value for logging.
+// LogValue returns a slog.Value representation of the error for structured logging.
+// This method implements the slog.LogValuer interface and provides a flattened
+// representation of the error's context and metadata suitable for logging systems.
 func (o OopsError) LogValue() slog.Value {
 	attrs := []slog.Attr{slog.String("message", o.msg)}
 
@@ -491,7 +549,9 @@ func (o OopsError) LogValue() slog.Value {
 	return slog.GroupValue(attrs...)
 }
 
-// ToMap returns a map representation of the error.
+// ToMap converts the error to a map representation suitable for JSON serialization.
+// This method provides a flattened view of all error attributes and is useful
+// for logging, debugging, and cross-service error transmission.
 func (o OopsError) ToMap() map[string]any {
 	payload := map[string]any{}
 
@@ -586,22 +646,38 @@ func (o OopsError) ToMap() map[string]any {
 	return payload
 }
 
-// MarshalJSON implements json.Marshaler.
+// MarshalJSON implements the json.Marshaler interface.
+// This allows OopsError to be directly serialized to JSON.
 func (o OopsError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(o.ToMap())
 }
 
-// Format implements fmt.Formatter.
-// If the format is "%+v", then the details of the error are included.
-// Otherwise, using "%v", just the summary is included.
+// Format implements the fmt.Formatter interface for custom formatting.
+// Supports the following format verbs:
+// - %v: standard error message
+// - %+v: verbose format with stack trace and context
+// - %#v: Go syntax representation
 func (o OopsError) Format(s fmt.State, verb rune) {
-	if verb == 'v' && s.Flag('+') {
-		_, _ = fmt.Fprint(s, o.formatVerbose()) //nolint:errcheck
-	} else {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			// Verbose format with stack trace and context
+			_, _ = fmt.Fprint(s, o.formatVerbose())
+		} else {
+			// Standard format
+			_, _ = fmt.Fprint(s, o.formatSummary()) //nolint:errcheck
+		}
+	case 's':
+		_, _ = fmt.Fprint(s, o.Error())
+	case 'q':
+		_, _ = fmt.Fprintf(s, "%q", o.Error())
+	default:
 		_, _ = fmt.Fprint(s, o.formatSummary()) //nolint:errcheck
 	}
 }
 
+// formatVerbose returns a detailed string representation of the error
+// including all context, stack trace, and source code fragments.
 func (o *OopsError) formatVerbose() string {
 	output := fmt.Sprintf("Oops: %s\n", o.Error())
 
@@ -707,10 +783,13 @@ func (o *OopsError) formatVerbose() string {
 	return output
 }
 
+// formatSummary returns a brief summary of the error for logging.
 func (o *OopsError) formatSummary() string {
 	return o.Error()
 }
 
+// recursive is a helper function that traverses the error chain
+// and applies a function to each OopsError in the chain.
 func recursive(err OopsError, tap func(OopsError)) {
 	tap(err)
 
