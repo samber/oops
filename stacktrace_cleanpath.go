@@ -1,9 +1,9 @@
 package oops
 
 ///
-/// GOPATH path cleaning functionality for stack traces.
+/// GOPATH path cleaning functionality for stacktraces.
 ///
-/// This module provides utilities to clean up file paths in stack traces
+/// This module provides utilities to clean up file paths in stacktraces
 /// by removing GOPATH prefixes to make paths more readable and portable.
 /// It includes logic to handle multiple GOPATH entries and ensures that
 /// the longest matching prefix is removed for consistency.
@@ -21,14 +21,14 @@ import (
 )
 
 // removeGoPath makes a file path relative to one of the src directories
-// in the $GOPATH environment variable, making stack traces more readable
+// in the $GOPATH environment variable, making stacktraces more readable
 // and portable across different development environments.
 //
-// This function processes file paths from stack traces and attempts to
+// This function processes file paths from stacktraces and attempts to
 // remove GOPATH prefixes to show paths relative to the Go workspace
 // structure. This is particularly useful for:
-// - Making stack traces more readable by removing long absolute paths
-// - Ensuring stack traces are portable across different machines
+// - Making stacktraces more readable by removing long absolute paths
+// - Ensuring stacktraces are portable across different machines
 // - Providing consistent path formatting regardless of GOPATH configuration
 //
 // The function handles several edge cases:

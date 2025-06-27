@@ -1,4 +1,3 @@
-
 # Oops - Error handling with context, assertion, stack trace and source fragments
 
 [![tag](https://img.shields.io/github/tag/samber/oops.svg)](https://github.com/samber/oops/releases)
@@ -10,27 +9,22 @@
 [![Contributors](https://img.shields.io/github/contributors/samber/oops)](https://github.com/samber/oops/graphs/contributors)
 [![License](https://img.shields.io/github/license/samber/oops)](./LICENSE)
 
-(Yet another) error handling library: `oops.Errorf` is a dead-simple drop-in replacement for built-in `error`, adding contextual information such as stack trace, extra attributes, error code, and bug-fixing hints...
+**Oops** is a comprehensive Go error handling library that provides structured error management with rich contextual information. It's designed as a drop-in replacement for Go's built-in `error`, adding powerful features like stacktraces, source code fragments, structured attributes, and developer-friendly debugging hints.
+
+**🎯 Key Features:**
+- **🔧 Drop-in Replacement**: Seamlessly replaces standard Go error handling
+- **📊 Rich Structured Context**: Add structured attributes, user info, request/response data
+- **🐛 Debug-Friendly**: Automatic stacktraces and source code fragments
+- **🔗 Error Chaining**: Wrap and compose errors with additional context
+- **🛡️ Panic Recovery**: Built-in panic handling with error conversion
+- **✅ Assertions**: One-line assertion helpers for validation
+- **⚡ Performance**: Zero dependencies, lightweight and fast
+- **📝 Logger Integration**: Works with all major Go logging libraries
 
 > [!WARNING]  
 > This is NOT a logging library. `oops` should complement your existing logging toolchain (zap, zerolog, logrus, slog, go-sentry...).
 
 🥷 Start hacking `oops` with this [playground](https://go.dev/play/p/-_7EBnceJ_A).
-
-<div align="center">
-  <hr>
-  <sup><b>Sponsored by:</b></sup>
-  <br>
-  <a href="https://quickwit.io?utm_campaign=github_sponsorship&utm_medium=referral&utm_content=samber-oops&utm_source=github">
-    <div>
-      <img src="https://github.com/samber/oops/assets/2951285/49aaaa2b-b8c6-4f21-909f-c12577bb6a2e" width="240" alt="Quickwit">
-    </div>
-    <div>
-      Cloud-native search engine for observability - An OSS alternative to Splunk, Elasticsearch, Loki, and Tempo.
-    </div>
-  </a>
-  <hr>
-</div>
 
 <img align="right" title="Oops gopher logo" alt="logo: thanks Gimp" width="280" src="assets/logo.png">
 
@@ -253,7 +247,7 @@ The library provides an error builder. Each method can be used standalone (eg: `
 The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)`, `.Wrapf(...)`, `.Join(...)`, `.Recover(...)` or `.Recoverf(...)`.
 
 | Builder method                          | Getter                                  | Description                                                                                                                                                                                |
-|-----------------------------------------|-----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `.With(string, any)`                    | `err.Context() map[string]any`          | Supply a list of attributes key+value. Values of type `func() any {}` are accepted and evaluated lazily.                                                                                   |
 | `.WithContext(context.Context, ...any)` | `err.Context() map[string]any`          | Supply a list of values declared in context. Values of type `func() any {}` are accepted and evaluated lazily.                                                                             |
 | `.Code(string)`                         | `err.Code() string`                     | Set a code or slug that describes the error. Error messages are intended to be read by humans, but such code is expected to be read by machines and be transported over different services |

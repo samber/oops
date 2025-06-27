@@ -8,7 +8,7 @@ import "errors"
 //
 // This function is useful when you need to access the rich metadata and
 // context information stored in oops.OopsError instances, such as error
-// codes, stack traces, user information, or custom context data.
+// codes, stacktraces, user information, or custom context data.
 //
 // Example usage:
 //
@@ -17,7 +17,7 @@ import "errors"
 //	  // Access oops-specific information
 //	  fmt.Printf("Error code: %s\n", oopsErr.Code())
 //	  fmt.Printf("Domain: %s\n", oopsErr.Domain())
-//	  fmt.Printf("Stack trace: %s\n", oopsErr.Stacktrace())
+//	  fmt.Printf("Stacktrace: %s\n", oopsErr.Stacktrace())
 //
 //	  // Check for specific tags
 //	  if oopsErr.HasTag("critical") {
