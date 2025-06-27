@@ -30,9 +30,8 @@
 
 <img align="right" title="Oops gopher logo" alt="logo: thanks Gimp" width="280" src="assets/logo.png">
 
-Jump:
+**Table of content**
 
-- [🤔 Motivations](#-motivations)
 - [🚀 Install](#-install)
 - [💡 Quick start](#-quick-start)
 - [🧠 Spec](#-spec)
@@ -48,11 +47,15 @@ Jump:
 - [📫 Loggers](#-loggers)
 - [🥷 Tips and best practices](#-tips-and-best-practices)
 
+### Context rich error handling
+
+In a few minutes, your logs will look like this:
+
 <div style="text-align:center;">
     <img alt="Why 'oops'?" src="./assets/motivation.png" style="max-width: 650px;">
 </div>
 
-### Why "oops"?
+### Why naming this library "oops"?
 
 Have you already heard a developer yelling at unclear error messages in Sentry, with no context, just before figuring out he wrote this piece of shit by himself?
 
