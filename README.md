@@ -1,4 +1,4 @@
-# Oops - Error handling with context, assertion, stack trace and source fragments
+# Oops - Structured Error Handling for Go
 
 [![tag](https://img.shields.io/github/tag/samber/oops.svg)](https://github.com/samber/oops/releases)
 ![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.21-%23007d9c)
@@ -35,7 +35,7 @@
 - [🚀 Install](#-install)
 - [💡 Quick start](#-quick-start)
 - [🧠 Spec](#-spec)
-  - [Error constructors](#error-constructors)
+  - [Error builder](#error-builder)
   - [Context](#context)
   - [Other helpers](#other-helpers)
   - [Stack trace](#stack-trace)
@@ -53,16 +53,6 @@ In a few minutes, your logs will look like this:
 
 <div style="text-align:center;">
     <img alt="Why 'oops'?" src="./assets/motivation.png" style="max-width: 650px;">
-</div>
-
-### Why naming this library "oops"?
-
-Have you already heard a developer yelling at unclear error messages in Sentry, with no context, just before figuring out he wrote this piece of shit by himself?
-
-Yes. Me too.
-
-<div style="text-align:center;">
-    <img alt="oops!" src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDU2MjE1ZTk1ZjFmMWNkOGZlY2YyZGYzNjA4ZWIyZWU4NTI3MmE1OCZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/mvyvXwL26FfAtRCLPk/giphy.gif">
 </div>
 
 ## 🚀 Install
@@ -89,9 +79,9 @@ Since `oops.OopsError` implements the `error` interface, you will be able to com
 
 GoDoc: [https://godoc.org/github.com/samber/oops](https://godoc.org/github.com/samber/oops)
 
-### Error constructors
+### Error builder
 
-| Constructor                                                             | Description                                                                                           |
+| Method                                                                  | Description                                                                                           |
 | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `.New(message string) error`                                            | Formats returns `oops.OopsError` object that satisfies `error`                                        |
 | `.Errorf(format string, args ...any) error`                             | Formats an error and returns `oops.OopsError` object that satisfies `error`                           |
@@ -619,6 +609,16 @@ func d() error {
         Errorf("permission denied")
 }
 ```
+
+## Why naming this library "oops"?
+
+Have you already heard a developer yelling at unclear error messages in Sentry, with no context, just before figuring out he wrote this piece of shit by himself?
+
+Yes. Me too.
+
+<div style="text-align:center;">
+    <img alt="oops!" src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDU2MjE1ZTk1ZjFmMWNkOGZlY2YyZGYzNjA4ZWIyZWU4NTI3MmE1OCZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/mvyvXwL26FfAtRCLPk/giphy.gif">
+</div>
 
 ## 🤝 Contributing
 
