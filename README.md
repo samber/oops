@@ -1,5 +1,7 @@
 # Oops - Structured Error Handling for Go
 
+> **Transform your Go error handling from "oops!" to "aha!" moments**
+
 [![tag](https://img.shields.io/github/tag/samber/oops.svg)](https://github.com/samber/oops/releases)
 ![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.21-%23007d9c)
 [![GoDoc](https://godoc.org/github.com/samber/oops?status.svg)](https://pkg.go.dev/github.com/samber/oops)
@@ -9,22 +11,22 @@
 [![Contributors](https://img.shields.io/github/contributors/samber/oops)](https://github.com/samber/oops/graphs/contributors)
 [![License](https://img.shields.io/github/license/samber/oops)](./LICENSE)
 
-**Oops** is a comprehensive Go error handling library that provides structured error management with rich contextual information. It's designed as a drop-in replacement for Go's built-in `error`, adding powerful features like stacktraces, source code fragments, structured attributes, and developer-friendly debugging hints.
+**Oops** is a comprehensive Go error handling library that provides structured error management with rich contextual information. It's designed as a drop-in replacement for Go's built-in `error`, adding powerful features like stack traces, source code fragments, structured attributes, and developer-friendly debugging hints.
 
 **🎯 Key Features:**
 - **🔧 Drop-in Replacement**: Seamlessly replaces standard Go error handling
-- **📊 Rich Structured Context**: Add structured attributes, user info, request/response data
+- **📊 Rich Context**: Add structured attributes, user info
 - **🐛 Debug-Friendly**: Out-of-the-box stacktraces and source code fragments
 - **🔗 Error Chaining**: Wrap and compose errors with additional context
 - **🛡️ Panic Recovery**: Built-in panic handling with error conversion
 - **✅ Assertions**: One-line assertion helpers for validation
 - **⚡ Performance**: Zero dependencies, lightweight and fast
 - **📝 Logger Integration**: Works with all major Go logging libraries
-- **✂️ Separation of concern**: logging and handling error are 2 different jobs
-- **🍳 Easy to integrate**: without large refactoring
+- **✂️ Separation of Concerns**: Error handling and logging are separate jobs
+- **🍳 Easy Integration**: No large refactoring required
 
 > [!WARNING]  
-> This is NOT a logging library. `oops` should complement your existing logging toolchain (zap, zerolog, logrus, slog, go-sentry...).
+> **Important**: This is NOT a logging library. `oops` should complements your existing logging toolchain (zap, zerolog, logrus, slog, go-sentry...).
 
 🥷 Start hacking `oops` with this [playground](https://go.dev/play/p/-_7EBnceJ_A).
 
@@ -612,7 +614,7 @@ func d() error {
 
 ## Why naming this library "oops"?
 
-Have you already heard a developer yelling at unclear error messages in Sentry, with no context, just before figuring out he wrote this piece of shit by himself?
+Have you already heard a developer yelling at unclear error messages in Sentry, with zero context, only to realize he wrote that piece of shit himself?
 
 Yes. Me too.
 
