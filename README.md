@@ -28,7 +28,7 @@
 > [!WARNING]  
 > **Important**: This is NOT a logging library. `oops` should complements your existing logging toolchain (zap, zerolog, logrus, slog, go-sentry...).
 
-🥷 Start hacking `oops` with this [playground](https://go.dev/play/p/-_7EBnceJ_A).
+🥷 Start hacking `oops` with this [playground](https://go.dev/play/p/ETUqN96Cj1G).
 
 <img align="right" title="Oops gopher logo" alt="logo: thanks Gimp" width="280" src="assets/logo.png">
 
