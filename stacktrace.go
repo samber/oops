@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 ///
@@ -265,4 +267,33 @@ func shortFuncName(f *runtime.Func) string {
 	shortName = strings.Replace(shortName, ")", "", 1) // Remove closing parenthesis
 
 	return shortName
+}
+
+func framesToStacktraceBlocks(blocks []lo.Tuple3[error, string, []oopsStacktraceFrame]) []string {
+	output := []string{}
+	shownFrames := make(map[string]bool)
+
+	for _, e := range blocks {
+		err := lo.TernaryF(e.A != nil, func() string { return e.A.Error() }, func() string { return "" })
+		msg := coalesceOrEmpty(e.B, err, "Error")
+
+		// Build stacktrace for this error, avoiding already shown frames
+		var frameLines []string
+		var firstFrame bool = true // we always show the first frame, because the PC of a recursive function might appear multiple time.
+		for _, frame := range e.C {
+			frameStr := frame.String()
+			if !shownFrames[frameStr] || firstFrame {
+				frameLines = append(frameLines, "  --- at "+frame.String())
+				shownFrames[frameStr] = true
+			}
+			firstFrame = false
+		}
+
+		stacktraceStr := strings.Join(frameLines, "\n")
+		block := fmt.Sprintf("%s\n%s", msg, stacktraceStr)
+
+		output = append([]string{block}, output...)
+	}
+
+	return output
 }
