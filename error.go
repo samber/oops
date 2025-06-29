@@ -344,19 +344,17 @@ func (o OopsError) response() *lo.Tuple2[*http.Response, bool] {
 // Stacktrace returns a formatted string representation of the error's stack trace.
 // The stack trace shows the call hierarchy leading to the error, excluding
 // frames from the Go standard library and this package.
+// The stacktrace is basically written from the bottom to the top, in order to dedup frames.
+// It support recursive code.
 func (o OopsError) Stacktrace() string {
-	blocks := []string{}
-	topFrame := ""
-
+	blocks := []lo.Tuple3[error, string, []oopsStacktraceFrame]{}
 	recursive(o, func(e OopsError) {
 		if e.stacktrace != nil && len(e.stacktrace.frames) > 0 {
-			err := lo.TernaryF(e.err != nil, func() string { return e.err.Error() }, func() string { return "" })
-			msg := coalesceOrEmpty(e.msg, err, "Error")
-			block := fmt.Sprintf("%s\n%s", msg, e.stacktrace.String(topFrame))
-
-			blocks = append([]string{block}, blocks...)
-
-			topFrame = e.stacktrace.frames[0].String()
+			blocks = append(blocks, lo.T3(
+				e.err,
+				e.msg,
+				e.stacktrace.frames,
+			))
 		}
 	})
 
@@ -364,7 +362,7 @@ func (o OopsError) Stacktrace() string {
 		return ""
 	}
 
-	return "Oops: " + strings.Join(blocks, "\nThrown: ")
+	return "Oops: " + strings.Join(framesToStacktraceBlocks(blocks), "\nThrown: ")
 }
 
 // StackFrames returns the raw stack frames as runtime.Frame objects.
@@ -801,3 +799,18 @@ func recursive(err OopsError, tap func(OopsError)) {
 		recursive(child, tap)
 	}
 }
+
+// // recursive is a helper function that traverses the error chain
+// // and applies a function to each OopsError in the chain.
+// func recursiveBackward(err OopsError, tap func(OopsError)) {
+// 	if err.err == nil {
+// 		tap(err)
+// 		return
+// 	}
+
+// 	if child, ok := AsOops(err.err); ok {
+// 		recursiveBackward(child, tap)
+// 	}
+
+// 	tap(err)
+// }
