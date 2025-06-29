@@ -279,7 +279,7 @@ func framesToStacktraceBlocks(blocks []lo.Tuple3[error, string, []oopsStacktrace
 
 		// Build stacktrace for this error, avoiding already shown frames
 		var frameLines []string
-		var firstFrame bool = true // we always show the first frame, because the PC of a recursive function might appear multiple time.
+		firstFrame := true // we always show the first frame, because the PC of a recursive function might appear multiple time.
 		for _, frame := range e.C {
 			frameStr := frame.String()
 			if !shownFrames[frameStr] || firstFrame {
