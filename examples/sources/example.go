@@ -2,10 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
-
-	"log/slog"
 
 	"github.com/samber/oops"
 )
@@ -51,13 +48,6 @@ func a() error {
 func main() {
 	oops.SourceFragmentsHidden = false
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-
 	err := a()
-	if err != nil {
-		logger.Error(
-			err.Error(),
-			slog.Any("error", err),
-		)
-	}
+	fmt.Println(err.(oops.OopsError).Sources())
 }

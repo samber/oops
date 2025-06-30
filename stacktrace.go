@@ -297,3 +297,26 @@ func framesToStacktraceBlocks(blocks []lo.Tuple3[error, string, []oopsStacktrace
 
 	return output
 }
+
+func framesToSourceBlocks(blocks []lo.Tuple2[string, *oopsStacktrace]) []string {
+	output := [][]string{}
+
+	for _, e := range blocks {
+		header, body := e.B.Source()
+
+		if e.A != "" {
+			header = fmt.Sprintf("%s\n%s", e.A, header)
+		}
+
+		if header != "" && len(body) > 0 {
+			output = append(
+				[][]string{append([]string{header}, body...)},
+				output...,
+			)
+		}
+	}
+
+	return lo.Map(output, func(items []string, _ int) string {
+		return strings.Join(items, "\n")
+	})
+}
