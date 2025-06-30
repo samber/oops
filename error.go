@@ -390,22 +390,14 @@ func (o OopsError) StackFrames() []runtime.Frame {
 // particularly useful for debugging. The output includes line numbers and
 // highlights the exact line where the error occurred.
 func (o OopsError) Sources() string {
-	blocks := [][]string{}
+	blocks := []lo.Tuple2[string, *oopsStacktrace]{}
 
 	recursive(o, func(e OopsError) {
 		if e.stacktrace != nil && len(e.stacktrace.frames) > 0 {
-			header, body := e.stacktrace.Source()
-
-			if e.msg != "" {
-				header = fmt.Sprintf("%s\n%s", e.msg, header)
-			}
-
-			if header != "" && len(body) > 0 {
-				blocks = append(
-					[][]string{append([]string{header}, body...)},
-					blocks...,
-				)
-			}
+			blocks = append(blocks, lo.T2(
+				e.msg,
+				e.stacktrace,
+			))
 		}
 	})
 
@@ -414,9 +406,7 @@ func (o OopsError) Sources() string {
 	}
 
 	return "Oops: " + strings.Join(
-		lo.Map(blocks, func(items []string, _ int) string {
-			return strings.Join(items, "\n")
-		}),
+		framesToSourceBlocks(blocks),
 		"\n\nThrown: ",
 	)
 }

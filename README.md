@@ -150,7 +150,7 @@ err3 := oops.
     New("an error message")
 
 // oops.Errorf
-err3 := oops.
+err4 := oops.
     In("repository").
     Tags("database", "sql").
     Errorf("an error message: %d", 42)
