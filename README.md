@@ -30,7 +30,7 @@
 
 🥷 Start hacking `oops` with this [playground](https://go.dev/play/p/ETUqN96Cj1G).
 
-<img align="right" title="Oops gopher logo" alt="logo: thanks Gimp" width="280" src="assets/logo.png">
+<img align="right" title="Oops gopher logo" alt="logo: thanks Gimp" width="350" src="https://github.com/user-attachments/assets/7e02dcc5-5c07-43de-a7e0-a16d2dd0a73d">
 
 **Table of content**
 
