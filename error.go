@@ -152,8 +152,9 @@ func (o OopsError) Domain() string {
 func (o OopsError) Tags() []string {
 	tags := []string{}
 
-	recursive(o, func(e OopsError) {
+	recursive(o, func(e OopsError) bool {
 		tags = append(tags, e.tags...)
+		return true
 	})
 
 	return lo.Uniq(tags)
@@ -162,19 +163,15 @@ func (o OopsError) Tags() []string {
 // HasTag checks if the error or any of its wrapped errors contain the specified tag.
 // This is useful for conditional error handling based on error categories.
 func (o OopsError) HasTag(tag string) bool {
-	if lo.Contains(o.tags, tag) {
-		return true
-	}
+	found := false
+	recursive(o, func(e OopsError) bool {
+		if lo.Contains(e.tags, tag) {
+			found = true
+		}
+		return !found
+	})
 
-	if o.err == nil {
-		return false
-	}
-
-	if child, ok := AsOops(o.err); ok {
-		return child.HasTag(tag)
-	}
-
-	return false
+	return found
 }
 
 // Context returns a flattened key-value context map from the error chain.
@@ -348,7 +345,7 @@ func (o OopsError) response() *lo.Tuple2[*http.Response, bool] {
 // It support recursive code.
 func (o OopsError) Stacktrace() string {
 	blocks := []lo.Tuple3[error, string, []oopsStacktraceFrame]{}
-	recursive(o, func(e OopsError) {
+	recursive(o, func(e OopsError) bool {
 		if e.stacktrace != nil && len(e.stacktrace.frames) > 0 {
 			blocks = append(blocks, lo.T3(
 				e.err,
@@ -356,6 +353,7 @@ func (o OopsError) Stacktrace() string {
 				e.stacktrace.frames,
 			))
 		}
+		return true
 	})
 
 	if len(blocks) == 0 {
@@ -392,13 +390,14 @@ func (o OopsError) StackFrames() []runtime.Frame {
 func (o OopsError) Sources() string {
 	blocks := []lo.Tuple2[string, *oopsStacktrace]{}
 
-	recursive(o, func(e OopsError) {
+	recursive(o, func(e OopsError) bool {
 		if e.stacktrace != nil && len(e.stacktrace.frames) > 0 {
 			blocks = append(blocks, lo.T2(
 				e.msg,
 				e.stacktrace,
 			))
 		}
+		return true
 	})
 
 	if len(blocks) == 0 {
@@ -778,8 +777,10 @@ func (o *OopsError) formatSummary() string {
 
 // recursive is a helper function that traverses the error chain
 // and applies a function to each OopsError in the chain.
-func recursive(err OopsError, tap func(OopsError)) {
-	tap(err)
+func recursive(err OopsError, tap func(OopsError) bool) {
+	if !tap(err) {
+		return
+	}
 
 	if err.err == nil {
 		return
