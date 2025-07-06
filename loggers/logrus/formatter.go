@@ -109,10 +109,20 @@ func oopsErrorToEntryData(err *oops.OopsError, entry *logrus.Entry) {
 		delete(payload, "sources")
 	}
 
+	// Create a new map for the entry's data
+	newData := make(logrus.Fields, len(entry.Data)+len(payload))
+
+	// Copy the original data
+	for k, v := range entry.Data {
+		newData[k] = v
+	}
+
 	// Add all error data to the log entry
 	// This includes context, metadata, user information, timing, and other
 	// error attributes that were captured when the error was created
 	for k, v := range payload {
-		entry.Data[k] = v
+		newData[k] = v
 	}
+
+	entry.Data = newData
 }

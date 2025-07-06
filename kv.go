@@ -62,7 +62,13 @@ func dereferencePointers(data map[string]any) map[string]any {
 //	val := reflect.ValueOf(ptr3)
 //	result := dereferencePointerRecursive(val, 0)
 //	// result will be 42 (int), not ***int
-func dereferencePointerRecursive(val reflect.Value, depth int) any {
+func dereferencePointerRecursive(val reflect.Value, depth int) (ret any) {
+	defer func() {
+		if r := recover(); r != nil {
+			ret = nil
+		}
+	}()
+
 	if !val.IsValid() {
 		return nil
 	}
@@ -88,13 +94,6 @@ func dereferencePointerRecursive(val reflect.Value, depth int) any {
 	if elem.Kind() == reflect.Ptr {
 		return dereferencePointerRecursive(elem, depth+1)
 	}
-
-	// Use defer to catch any panics during interface conversion
-	defer func() {
-		if r := recover(); r != nil {
-			return
-		}
-	}()
 
 	return elem.Interface()
 }
