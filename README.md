@@ -34,7 +34,7 @@
   <hr>
   <sup><b>Sponsored by:</b></sup>
   <br>
-  <a href="https://www.dash0.com">
+  <a href="https://www.dash0.com?utm_campaign=148395251-samber%20github%20sponsorship&utm_source=github&utm_medium=sponsorship&utm_content=samber">
     <div>
       <img src="https://github.com/user-attachments/assets/b1f2e876-0954-4dc3-824d-935d29ba8f3f" width="200" alt="Dash0">
     </div>
