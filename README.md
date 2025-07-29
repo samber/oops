@@ -30,6 +30,21 @@
 
 🥷 Start hacking `oops` with this [playground](https://go.dev/play/p/ETUqN96Cj1G).
 
+<div align="center">
+  <hr>
+  <sup><b>Sponsored by:</b></sup>
+  <br>
+  <a href="https://www.dash0.com">
+    <div>
+      <img src="https://github.com/user-attachments/assets/b1f2e876-0954-4dc3-824d-935d29ba8f3f" width="200" alt="Dash0">
+    </div>
+    <div>
+      100% OpenTelemetry-native observability platform—simple to use, built on open standards, and designed for full cost control.
+    </div>
+  </a>
+  <hr>
+</div>
+
 <img align="right" title="Oops gopher logo" alt="logo: thanks Gimp" width="350" src="https://github.com/user-attachments/assets/7e02dcc5-5c07-43de-a7e0-a16d2dd0a73d">
 
 **Table of content**
