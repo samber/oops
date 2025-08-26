@@ -7,7 +7,7 @@ go 1.21
 require (
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/samber/lo v1.51.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	go.opentelemetry.io/otel/trace v1.29.0
 	go.uber.org/goleak v1.3.0
 )
