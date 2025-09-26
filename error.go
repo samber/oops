@@ -1,3 +1,4 @@
+//nolint:bodyclose
 package oops
 
 import (
@@ -14,7 +15,7 @@ import (
 	"github.com/samber/lo"
 )
 
-// Global configuration variables that control the behavior of error handling
+// Global configuration variables that control the behavior of error handling.
 var (
 	// SourceFragmentsHidden controls whether source code fragments are included in error output.
 	// When true, source code context around error locations is hidden to reduce output size.
@@ -29,7 +30,7 @@ var (
 	Local *time.Location = time.UTC
 )
 
-// Type assertions to ensure OopsError implements required interfaces
+// Type assertions to ensure OopsError implements required interfaces.
 var (
 	_ error          = (*OopsError)(nil)
 	_ slog.LogValuer = (*OopsError)(nil)
@@ -421,7 +422,7 @@ func (o OopsError) LogValuer() slog.Value {
 // LogValue returns a slog.Value representation of the error for structured logging.
 // This method implements the slog.LogValuer interface and provides a flattened
 // representation of the error's context and metadata suitable for logging systems.
-func (o OopsError) LogValue() slog.Value {
+func (o OopsError) LogValue() slog.Value { //nolint:gocyclo
 	attrs := []slog.Attr{slog.String("message", o.msg)}
 
 	if err := o.Error(); err != "" {
@@ -473,9 +474,7 @@ func (o OopsError) LogValue() slog.Value {
 			slog.Group(
 				"context",
 				lo.ToAnySlice(
-					lo.MapToSlice(context, func(k string, v any) slog.Attr {
-						return slog.Any(k, v)
-					}),
+					lo.MapToSlice(context, slog.Any),
 				)...,
 			),
 		)
@@ -487,9 +486,7 @@ func (o OopsError) LogValue() slog.Value {
 			userPayload = append(userPayload, slog.String("id", userID))
 			userPayload = append(
 				userPayload,
-				lo.MapToSlice(userData, func(k string, v any) slog.Attr {
-					return slog.Any(k, v)
-				})...,
+				lo.MapToSlice(userData, slog.Any)...,
 			)
 		}
 
@@ -502,9 +499,7 @@ func (o OopsError) LogValue() slog.Value {
 			tenantPayload = append(tenantPayload, slog.String("id", tenantID))
 			tenantPayload = append(
 				tenantPayload,
-				lo.MapToSlice(tenantData, func(k string, v any) slog.Attr {
-					return slog.Any(k, v)
-				})...,
+				lo.MapToSlice(tenantData, slog.Any)...,
 			)
 		}
 
@@ -539,7 +534,7 @@ func (o OopsError) LogValue() slog.Value {
 // ToMap converts the error to a map representation suitable for JSON serialization.
 // This method provides a flattened view of all error attributes and is useful
 // for logging, debugging, and cross-service error transmission.
-func (o OopsError) ToMap() map[string]any {
+func (o OopsError) ToMap() map[string]any { //nolint:gocyclo
 	payload := map[string]any{}
 
 	if err := o.Error(); err != "" {
@@ -643,7 +638,7 @@ func (o OopsError) MarshalJSON() ([]byte, error) {
 // Supports the following format verbs:
 // - %v: standard error message
 // - %+v: verbose format with stack trace and context
-// - %#v: Go syntax representation
+// - %#v: Go syntax representation.
 func (o OopsError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
@@ -652,20 +647,20 @@ func (o OopsError) Format(s fmt.State, verb rune) {
 			_, _ = fmt.Fprint(s, o.formatVerbose())
 		} else {
 			// Standard format
-			_, _ = fmt.Fprint(s, o.formatSummary()) //nolint:errcheck
+			_, _ = fmt.Fprint(s, o.formatSummary())
 		}
 	case 's':
 		_, _ = fmt.Fprint(s, o.Error())
 	case 'q':
 		_, _ = fmt.Fprintf(s, "%q", o.Error())
 	default:
-		_, _ = fmt.Fprint(s, o.formatSummary()) //nolint:errcheck
+		_, _ = fmt.Fprint(s, o.formatSummary())
 	}
 }
 
 // formatVerbose returns a detailed string representation of the error
 // including all context, stack trace, and source code fragments.
-func (o *OopsError) formatVerbose() string {
+func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 	output := fmt.Sprintf("Oops: %s\n", o.Error())
 
 	if code := o.Code(); code != "" {

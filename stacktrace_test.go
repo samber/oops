@@ -35,6 +35,7 @@ func f() *oopsStacktrace {
 
 func TestStacktrace(t *testing.T) {
 	is := assert.New(t)
+	t.Parallel()
 
 	st := a()
 
@@ -67,6 +68,7 @@ func TestStacktrace(t *testing.T) {
 
 func TestShortFuncNameExtended(t *testing.T) {
 	is := assert.New(t)
+	t.Parallel()
 
 	// Test with a real function
 	pc, _, _, ok := runtime.Caller(0)
@@ -80,16 +82,17 @@ func TestShortFuncNameExtended(t *testing.T) {
 
 	// Test with nil function
 	result2 := shortFuncName(nil)
-	is.Equal("", result2)
+	is.Empty(result2)
 }
 
 func TestOopsStacktraceError(t *testing.T) {
 	is := assert.New(t)
+	t.Parallel()
 
 	// Test stacktrace Error method - returns formatted stacktrace, not span
 	st := &oopsStacktrace{span: "test"}
 	err := st.Error()
-	is.Equal("", err) // Empty because no frames
+	is.Empty(err) // Empty because no frames
 
 	// Test with frames
 	frame := oopsStacktraceFrame{
@@ -104,6 +107,7 @@ func TestOopsStacktraceError(t *testing.T) {
 
 func TestOopsStacktraceString(t *testing.T) {
 	is := assert.New(t)
+	t.Parallel()
 
 	// Test with empty frames
 	st := &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{}}
@@ -127,6 +131,7 @@ func TestOopsStacktraceString(t *testing.T) {
 
 func TestOopsStacktraceFrameString(t *testing.T) {
 	is := assert.New(t)
+	t.Parallel()
 
 	// Test with function
 	frame := &oopsStacktraceFrame{

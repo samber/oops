@@ -16,6 +16,9 @@ import (
 )
 
 func TestRemoveGoPath(t *testing.T) {
+	is := assert.New(t)
+	t.Parallel()
+
 	for _, testcase := range []struct {
 		gopath   []string
 		path     string
@@ -54,9 +57,9 @@ func TestRemoveGoPath(t *testing.T) {
 	} {
 		gopath := strings.Join(testcase.gopath, string(filepath.ListSeparator))
 		err := os.Setenv("GOPATH", gopath)
-		assert.NoError(t, err, "error setting gopath")
+		is.NoError(err, "error setting gopath")
 
 		cleaned := removeGoPath(testcase.path)
-		assert.Equal(t, testcase.expected, cleaned, "testcase: %+v", testcase)
+		is.Equal(testcase.expected, cleaned, "testcase: %+v", testcase)
 	}
 }

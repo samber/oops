@@ -3,11 +3,12 @@ package oopszerolog
 import (
 	"bytes"
 	"encoding/json"
+	"testing"
+
 	"github.com/rs/zerolog"
 	"github.com/samber/oops"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 type jsonLogEntryError struct {
@@ -26,6 +27,9 @@ type jsonLogEntry struct {
 }
 
 func TestZerologFormatter(t *testing.T) {
+	is := assert.New(t)
+	t.Parallel()
+
 	zerolog.ErrorStackMarshaler = OopsStackMarshaller
 	zerolog.ErrorMarshalFunc = OopsMarshalFunc
 
@@ -41,13 +45,13 @@ func TestZerologFormatter(t *testing.T) {
 	err = json.Unmarshal(buffer.Bytes(), &loggedError)
 	require.NoError(t, err)
 
-	assert.Contains(t, loggedError.Stack, "Oops: could not fetch user\n  --- at ")
-	assert.NotEmpty(t, loggedError.Error.Time)
-	assert.NotEmpty(t, loggedError.Error.Trace)
+	is.Contains(loggedError.Stack, "Oops: could not fetch user\n  --- at ")
+	is.NotEmpty(loggedError.Error.Time)
+	is.NotEmpty(loggedError.Error.Trace)
 	loggedError.Stack = ""
 	loggedError.Error.Time = ""
 	loggedError.Error.Trace = ""
-	assert.EqualValues(t, jsonLogEntry{
+	is.Equal(jsonLogEntry{
 		Level:   "error",
 		Message: "something went wrong",
 		Error: jsonLogEntryError{
