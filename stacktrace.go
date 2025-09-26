@@ -28,7 +28,7 @@ import (
 // from user code and examples.
 type fake struct{}
 
-// Global configuration for stack trace generation
+// Global configuration for stack trace generation.
 var (
 	// StackTraceMaxDepth controls the maximum number of stack frames
 	// to capture in a stack trace. This prevents stack traces from
@@ -39,7 +39,7 @@ var (
 	// detail and readability. For deep call stacks, this will
 	// capture the most recent 10 frames, which typically include
 	// the most relevant debugging information.
-	StackTraceMaxDepth int = 10
+	StackTraceMaxDepth = 10
 
 	// packageName stores the current package name for frame filtering.
 	// This is determined at package initialization time and used

@@ -9,6 +9,7 @@ import (
 
 func TestCoalesceOrEmpty(t *testing.T) {
 	is := assert.New(t)
+	t.Parallel()
 
 	// Test with non-empty values
 	result := coalesceOrEmpty("", "test", "another")
@@ -16,15 +17,16 @@ func TestCoalesceOrEmpty(t *testing.T) {
 
 	// Test with all empty values
 	result2 := coalesceOrEmpty("", "", "")
-	is.Equal("", result2)
+	is.Empty(result2)
 
 	// Test with no values
 	result3 := coalesceOrEmpty[string]()
-	is.Equal("", result3)
+	is.Empty(result3)
 }
 
 func TestContextValueOrNil(t *testing.T) {
 	is := assert.New(t)
+	t.Parallel()
 
 	// Test with context containing value
 	ctx := context.WithValue(context.Background(), "key", "value") //nolint:staticcheck

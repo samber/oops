@@ -53,10 +53,10 @@ import (
 // The builder is designed to be chainable, allowing multiple method calls in sequence.
 type OopsErrorBuilder OopsError
 
-// new creates a new OopsErrorBuilder with default values.
+// newBuilder creates a newBuilder OopsErrorBuilder with default values.
 // This function initializes all fields to their zero values except for time,
 // which is set to the current time.
-func new() OopsErrorBuilder {
+func newBuilder() OopsErrorBuilder {
 	return OopsErrorBuilder{
 		err:      nil,
 		msg:      "",
@@ -252,7 +252,7 @@ func (o OopsErrorBuilder) Recover(cb func()) (err error) {
 	}()
 
 	cb()
-	return
+	return err
 }
 
 // Recoverf handles panics with additional context message.
@@ -571,6 +571,8 @@ func (o OopsErrorBuilder) Request(req *http.Request, withBody bool) OopsErrorBui
 // Example:
 //
 //	oops.Response(res, false).Errorf("response processing failed")
+//
+//nolint:bodyclose
 func (o OopsErrorBuilder) Response(res *http.Response, withBody bool) OopsErrorBuilder {
 	o2 := o.copy()
 	o2.res = lo.ToPtr(lo.T2(res, withBody))

@@ -1,3 +1,4 @@
+//nolint:errcheck,forcetypeassert
 package oops
 
 import (
@@ -8,6 +9,7 @@ import (
 
 func TestWrapFunctions(t *testing.T) {
 	is := assert.New(t)
+	t.Parallel()
 
 	// Test Wrap2
 	result, err := Wrap2("test", assert.AnError)
@@ -102,6 +104,7 @@ func TestWrapFunctions(t *testing.T) {
 
 func TestWrapfFunctions(t *testing.T) {
 	is := assert.New(t)
+	t.Parallel()
 
 	// Test Wrapf2
 	result, err := Wrapf2("test", assert.AnError, "test %d", 42)

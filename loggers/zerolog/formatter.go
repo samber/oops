@@ -68,7 +68,7 @@ type zerologErrorMarshaller struct {
 // - Context maps are converted to nested dictionaries
 // - Error values are converted to strings
 // - Stack traces are excluded from the main object (handled separately)
-// - All other values are serialized as-is
+// - All other values are serialized as-is.
 func (m zerologErrorMarshaller) MarshalZerologObject(e *zerolog.Event) {
 	// Convert the error to a map representation for processing
 	payload := m.err.ToMap()

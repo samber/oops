@@ -50,7 +50,6 @@ func GinOopsRecovery() gin.HandlerFunc {
 		err := oops.Recoverf(func() {
 			c.Next() // Continue processing the request
 		}, "gin: panic recovered")
-
 		// If a panic was recovered, handle the resulting error
 		if err != nil {
 			// Add the error to the Gin context for logging or response handling

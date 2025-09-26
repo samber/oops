@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 // go run examples/sources/example.go | jq .error.sources -r
 
 func f() error {
-	return fmt.Errorf("permission denied")
+	return errors.New("permission denied")
 }
 
 func e() error {
@@ -49,5 +50,5 @@ func main() {
 	oops.SourceFragmentsHidden = false
 
 	err := a()
-	fmt.Println(err.(oops.OopsError).Sources())
+	fmt.Println(err.(oops.OopsError).Sources()) //nolint:errcheck,forcetypeassert
 }

@@ -30,13 +30,13 @@ import (
 // may grow large for projects with many source files. The cache is
 // currently unbounded, so memory usage should be monitored in production.
 //
-// @TODO: Implement LRU cache with size limits to prevent unbounded memory growth
+// @TODO: Implement LRU cache with size limits to prevent unbounded memory growth.
 var (
 	mutex sync.RWMutex
 	cache = map[string][]string{}
 )
 
-// Configuration constants for source code fragment extraction
+// Configuration constants for source code fragment extraction.
 const (
 	// nbrLinesBefore specifies the number of source code lines to include
 	// before the error location. This provides context about what led
