@@ -8,3 +8,11 @@ updates:
     directory: /
     schedule:
       interval: monthly
+  - package-ecosystem: gomod
+    directory: /recovery/**
+    schedule:
+      interval: monthly
+  - package-ecosystem: gomod
+    directory: /loggers/**
+    schedule:
+      interval: monthly
