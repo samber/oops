@@ -3,6 +3,7 @@ package oops
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -84,7 +85,7 @@ func (o OopsError) Unwrap() error {
 // Is checks if this error matches the target error.
 // This method implements the errors.Is interface for error comparison.
 func (c OopsError) Is(err error) bool {
-	return c.err == err
+	return errors.Is(c.err, err)
 }
 
 // Error returns the error message without additional context.
