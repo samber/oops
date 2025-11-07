@@ -44,6 +44,9 @@ func TestStacktrace(t *testing.T) {
 
 	bi, ok := debug.ReadBuildInfo()
 	is.True(ok)
+	if strings.Contains(bi.Path, "github.com/samber/oops") {
+		t.Skip("This test is meant to run on oops main repo")
+	}
 
 	path := strings.Replace(bi.Path, ".test", "", 1) // starting go1.24, go adds ".test" to the path when running tests
 
