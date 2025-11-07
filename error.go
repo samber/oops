@@ -84,8 +84,8 @@ func (o OopsError) Unwrap() error {
 
 // Is checks if this error matches the target error.
 // This method implements the errors.Is interface for error comparison.
-func (c OopsError) Is(err error) bool {
-	return errors.Is(c.err, err)
+func (o OopsError) Is(err error) bool {
+	return errors.Is(o.err, err)
 }
 
 // Error returns the error message without additional context.
@@ -662,72 +662,73 @@ func (o OopsError) Format(s fmt.State, verb rune) {
 // formatVerbose returns a detailed string representation of the error
 // including all context, stack trace, and source code fragments.
 func (o *OopsError) formatVerbose() string { //nolint:gocyclo
-	output := fmt.Sprintf("Oops: %s\n", o.Error())
+	var output strings.Builder
+	_, _ = fmt.Fprintf(&output, "Oops: %s\n", o.Error())
 
 	if code := o.Code(); code != "" {
-		output += fmt.Sprintf("Code: %s\n", code)
+		_, _ = fmt.Fprintf(&output, "Code: %s\n", code)
 	}
 
 	if t := o.Time(); t != (time.Time{}) {
-		output += fmt.Sprintf("Time: %s\n", t.In(Local))
+		_, _ = fmt.Fprintf(&output, "Time: %s\n", t.In(Local))
 	}
 
 	if duration := o.Duration(); duration != 0 {
-		output += fmt.Sprintf("Duration: %s\n", duration.String())
+		_, _ = fmt.Fprintf(&output, "Duration: %s\n", duration.String())
 	}
 
 	if domain := o.Domain(); domain != "" {
-		output += fmt.Sprintf("Domain: %s\n", domain)
+		_, _ = fmt.Fprintf(&output, "Domain: %s\n", domain)
 	}
 
 	if tags := o.Tags(); len(tags) > 0 {
-		output += fmt.Sprintf("Tags: %s\n", strings.Join(tags, ", "))
+		_, _ = fmt.Fprintf(&output, "Tags: %s\n", strings.Join(tags, ", "))
 	}
 
 	if trace := o.Trace(); trace != "" {
-		output += fmt.Sprintf("Trace: %s\n", trace)
+		_, _ = fmt.Fprintf(&output, "Trace: %s\n", trace)
 	}
 
 	// if span := o.Span(); span != "" {
-	// 	output += fmt.Sprintf("Span: %s\n", span)
+	// 	_, _ = fmt.Fprintf(&output,"Span: %s\n", span)
 	// }
 
 	if hint := o.Hint(); hint != "" {
-		output += fmt.Sprintf("Hint: %s\n", hint)
+		_, _ = fmt.Fprintf(&output, "Hint: %s\n", hint)
 	}
 
 	if owner := o.Owner(); owner != "" {
-		output += fmt.Sprintf("Owner: %s\n", owner)
+		_, _ = fmt.Fprintf(&output, "Owner: %s\n", owner)
 	}
 
 	if context := o.Context(); len(context) > 0 {
-		output += "Context:\n"
+		output.WriteString("Context:\n")
 		for k, v := range context {
-			output += fmt.Sprintf("  * %s: %v\n", k, v)
+			_, _ = fmt.Fprintf(&output, "  * %s: %v\n", k, v)
 		}
 	}
 
 	if userID, userData := o.User(); userID != "" || len(userData) > 0 {
-		output += "User:\n"
+		output.WriteString("User:\n")
 
 		if userID != "" {
-			output += fmt.Sprintf("  * id: %s\n", userID)
+			_, _ = fmt.Fprintf(&output, "  * id: %s\n", userID)
 		}
 
 		for k, v := range userData {
-			output += fmt.Sprintf("  * %s: %v\n", k, v)
+			_, _ = fmt.Fprintf(&output, "  * %s: %v\n", k, v)
 		}
 	}
 
 	if tenantID, tenantData := o.Tenant(); tenantID != "" || len(tenantData) > 0 {
-		output += "Tenant:\n"
+		output.WriteString("Tenant:\n")
 
 		if tenantID != "" {
-			output += fmt.Sprintf("  * id: %s\n", tenantID)
+			_, _ = fmt.Fprintf(&output, "  * id: %s\n", tenantID)
 		}
 
 		for k, v := range tenantData {
-			output += fmt.Sprintf("  * %s: %v\n", k, v)
+			_, _ = fmt.Fprintf(&output, "  * %s: %v\n", k, v)
 		}
 	}
 
@@ -738,7 +739,7 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 			lines = lo.Map(lines, func(line string, _ int) string {
 				return "  * " + line
 			})
-			output += fmt.Sprintf("Request:\n%s\n", strings.Join(lines, "\n"))
+			_, _ = fmt.Fprintf(&output, "Request:\n%s\n", strings.Join(lines, "\n"))
 		}
 	}
 
@@ -749,21 +750,21 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 			lines = lo.Map(lines, func(line string, _ int) string {
 				return "  * " + line
 			})
-			output += fmt.Sprintf("Response:\n%s\n", strings.Join(lines, "\n"))
+			_, _ = fmt.Fprintf(&output, "Response:\n%s\n", strings.Join(lines, "\n"))
 		}
 	}
 
 	if stacktrace := o.Stacktrace(); stacktrace != "" {
 		lines := strings.Split(stacktrace, "\n")
 		stacktrace = "  " + strings.Join(lines, "\n  ")
-		output += fmt.Sprintf("Stacktrace:\n%s\n", stacktrace)
+		_, _ = fmt.Fprintf(&output, "Stacktrace:\n%s\n", stacktrace)
 	}
 
 	if sources := o.Sources(); sources != "" && !SourceFragmentsHidden {
-		output += fmt.Sprintf("Sources:\n%s\n", sources)
+		_, _ = fmt.Fprintf(&output, "Sources:\n%s\n", sources)
 	}
 
-	return output
+	return output.String()
 }
 
 // formatSummary returns a brief summary of the error for logging.

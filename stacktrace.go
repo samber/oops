@@ -106,12 +106,15 @@ func (st *oopsStacktrace) Error() string {
 //	   --- at handler.go:15 processRequest()
 //	   --- at server.go:123 handleHTTP()"
 func (st *oopsStacktrace) String(deepestFrame string) string {
-	var str string
+	var str strings.Builder
 
 	// Helper function to add newlines between frames
 	newline := func() {
-		if str != "" && !strings.HasSuffix(str, "\n") {
-			str += "\n"
+		if str.Len() != 0 {
+			tmpStr := str.String()
+			if tmpStr[len(tmpStr)-1] != '\n' {
+				str.WriteRune('\n')
+			}
 		}
 	}
 
@@ -126,11 +129,12 @@ func (st *oopsStacktrace) String(deepestFrame string) string {
 			}
 
 			newline()
-			str += "  --- at " + currentFrame
+			str.WriteString("  --- at ")
+			str.WriteString(currentFrame)
 		}
 	}
 
-	return str
+	return str.String()
 }
 
 // Source returns the source code context for the first frame in the stack trace.
