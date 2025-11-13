@@ -85,6 +85,10 @@ func (o OopsError) Unwrap() error {
 // Is checks if this error matches the target error.
 // This method implements the errors.Is interface for error comparison.
 func (o OopsError) Is(err error) bool {
+	if _, ok := err.(OopsError); ok {
+		return true
+	}
+
 	return errors.Is(o.err, err)
 }
 
