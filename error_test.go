@@ -18,7 +18,7 @@ func TestErrorsIs(t *testing.T) {
 	is.ErrorIs(err, fs.ErrExist)
 
 	err = Wrap(fs.ErrExist)
-	is.ErrorIs(err, err)
+	is.ErrorIs(err, err) //nolint:testifylint
 
 	err = Wrapf(fs.ErrExist, "Error: %w", assert.AnError)
 	is.ErrorIs(err, fs.ErrExist)
