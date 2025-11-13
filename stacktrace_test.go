@@ -44,7 +44,8 @@ func TestStacktrace(t *testing.T) {
 
 	bi, ok := debug.ReadBuildInfo()
 	is.True(ok)
-	if strings.Contains(bi.Path, "github.com/samber/oops") {
+
+	if !strings.Contains(bi.Path, "github.com/samber/oops") {
 		t.Skip("This test is meant to run on oops main repo")
 	}
 
