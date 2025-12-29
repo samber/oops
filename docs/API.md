@@ -51,7 +51,7 @@ The Oops library uses a fluent builder pattern. All methods return an `*oops.Oop
 
 ### Context Methods
 
-#### `.Code(code string) OopsErrorBuilder`
+#### `.Code(code any) OopsErrorBuilder`
 Sets an error code for machine-readable identification.
 
 ```go
@@ -251,7 +251,7 @@ The `OopsError` type implements the standard `error` interface and provides addi
 ```go
 type OopsError interface {
     error
-    Code() string
+    Code() any
     Time() time.Time
     Duration() time.Duration
     Domain() string

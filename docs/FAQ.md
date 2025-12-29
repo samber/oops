@@ -304,12 +304,12 @@ func TestUserProcessing(t *testing.T) {
 ```go
 type MockOopsError struct {
     message string
-    code    string
+    code    any
     domain  string
 }
 
 func (m *MockOopsError) Error() string { return m.message }
-func (m *MockOopsError) Code() string  { return m.code }
+func (m *MockOopsError) Code() any    { return m.code }
 func (m *MockOopsError) Domain() string { return m.domain }
 // ... implement other methods as needed
 ```
@@ -347,7 +347,7 @@ if errors.As(err, &oopsErr) {
 var oopsErr oops.OopsError
 if errors.As(err, &oopsErr) {
     code := oopsErr.Code()
-    fmt.Printf("Error code: %s\n", code)
+    fmt.Printf("Error code: %v\n", code)
 }
 ```
 
@@ -357,7 +357,7 @@ if errors.As(err, &oopsErr) {
 var oopsErr oops.OopsError
 if errors.As(err, &oopsErr) {
     // This is an Oops error
-    fmt.Printf("Code: %s\n", oopsErr.Code())
+    fmt.Printf("Code: %v\n", oopsErr.Code())
 } else {
     // This is not an Oops error
     fmt.Printf("Standard error: %s\n", err.Error())
