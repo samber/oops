@@ -112,18 +112,22 @@ func (o OopsError) Error() string {
 // Error codes are machine-readable identifiers that can be used for
 // programmatic error handling and cross-service error correlation.
 func (o OopsError) Code() any {
-	if o.err == nil {
-		return o.code
+	return getDeepestErrorCode(o)
+}
+
+func getDeepestErrorCode(err OopsError) any {
+	if err.err == nil {
+		return err.code
 	}
 
-	if child, ok := AsOops(o.err); ok {
-		deepest := child.Code()
+	if child, ok := AsOops(err.err); ok {
+		deepest := getDeepestErrorCode(child)
 		if deepest != nil {
 			return deepest
 		}
 	}
 
-	return o.code
+	return err.code
 }
 
 // Time returns the timestamp when the error occurred.
