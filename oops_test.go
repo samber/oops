@@ -938,20 +938,55 @@ func TestOopsGetDeepestErrorAttributeEdgeCases(t *testing.T) {
 
 	// Test with nil error
 	result := getDeepestErrorAttribute(OopsError{err: nil}, func(o OopsError) string {
-		return o.Code()
+		return o.domain
 	})
 	is.Empty(result)
 	// Test with non-OopsError
 	result2 := getDeepestErrorAttribute(OopsError{err: assert.AnError}, func(o OopsError) string {
-		return o.Code()
+		return o.domain
 	})
 	is.Empty(result2)
 	// Test with OopsError but no context
 	err := OopsError{err: assert.AnError}
 	result3 := getDeepestErrorAttribute(err, func(o OopsError) string {
-		return o.Code()
+		return o.domain
 	})
 	is.Empty(result3)
+}
+
+func TestOopsCodeSupportsAny(t *testing.T) {
+	is := assert.New(t)
+	t.Parallel()
+
+	err := Code(404).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(404, err.(OopsError).Code())
+	is.Equal(404, err.(OopsError).ToMap()["code"])
+
+	inner := Code(1).Wrap(assert.AnError)
+	outer := Code(2).Wrap(inner)
+	is.Equal(1, outer.(OopsError).Code())
+	is.Equal(2, outer.(OopsError).code)
+
+	inner2 := Wrap(assert.AnError)
+	outer2 := Code(2).Wrap(inner2)
+	is.Equal(2, outer2.(OopsError).Code())
+
+	errCleared := Code(nil).Wrap(assert.AnError)
+	is.Empty(errCleared.(OopsError).Code())
+	_, hasCode := errCleared.(OopsError).ToMap()["code"]
+	is.False(hasCode)
+}
+
+func TestOopsCodeNestedLayers(t *testing.T) {
+	is := assert.New(t)
+	t.Parallel()
+
+	layer1 := newBuilder().Wrap(assert.AnError)
+	layer2 := newBuilder().Code("layer2_code").Wrap(layer1)
+	layer3 := newBuilder().Code("layer3_code").Wrap(layer2)
+
+	is.Equal("layer2_code", layer3.(OopsError).Code())
 }
 
 func TestOopsMergeNestedErrorMapEdgeCases(t *testing.T) {

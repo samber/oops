@@ -29,7 +29,7 @@ err := oops.
 ```go
 type OopsErrorBuilder interface {
     // Context methods
-    Code(code string) OopsErrorBuilder
+    Code(code any) OopsErrorBuilder
     In(domain string) OopsErrorBuilder
     Tags(tags ...string) OopsErrorBuilder
     Trace(trace string) OopsErrorBuilder
