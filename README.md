@@ -39,7 +39,7 @@
       <img src="https://github.com/user-attachments/assets/502f8fa8-e7e8-4754-a51f-036d0443e694" width="200" alt="Cast AI">
     </div>
     <div>
-      Run Kubernetes on autopilot – faster, smarter, cost-optimized.
+      Cut Kubernetes & AI costs, boost application stability
     </div>
   </a>
   <br>
