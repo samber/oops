@@ -44,7 +44,7 @@ type OopsError struct {
 	// Core error information
 	err      error         // The underlying error being wrapped
 	msg      string        // Additional error message
-	code     string        // Machine-readable error code/slug
+	code     any           // Machine-readable error code/slug (any JSON/log-friendly type)
 	time     time.Time     // When the error occurred
 	duration time.Duration // Duration associated with the error
 
@@ -111,13 +111,23 @@ func (o OopsError) Error() string {
 // Code returns the error code from the deepest error in the chain.
 // Error codes are machine-readable identifiers that can be used for
 // programmatic error handling and cross-service error correlation.
-func (o OopsError) Code() string {
-	return getDeepestErrorAttribute(
-		o,
-		func(e OopsError) string {
-			return e.code
-		},
-	)
+func (o OopsError) Code() any {
+	return getDeepestErrorCode(o)
+}
+
+func getDeepestErrorCode(err OopsError) any {
+	if err.err == nil {
+		return err.code
+	}
+
+	if child, ok := AsOops(err.err); ok {
+		deepest := getDeepestErrorCode(child)
+		if deepest != nil {
+			return deepest
+		}
+	}
+
+	return err.code
 }
 
 // Time returns the timestamp when the error occurred.
@@ -434,8 +444,8 @@ func (o OopsError) LogValue() slog.Value { //nolint:gocyclo
 		attrs = append(attrs, slog.String("err", err))
 	}
 
-	if code := o.Code(); code != "" {
-		attrs = append(attrs, slog.String("code", code))
+	if code := o.Code(); code != nil {
+		attrs = append(attrs, slog.Any("code", code))
 	}
 
 	if t := o.Time(); t != (time.Time{}) {
@@ -546,7 +556,7 @@ func (o OopsError) ToMap() map[string]any { //nolint:gocyclo
 		payload["error"] = err
 	}
 
-	if code := o.Code(); code != "" {
+	if code := o.Code(); code != nil {
 		payload["code"] = code
 	}
 
@@ -669,8 +679,8 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 	var output strings.Builder
 	_, _ = fmt.Fprintf(&output, "Oops: %s\n", o.Error())
 
-	if code := o.Code(); code != "" {
-		_, _ = fmt.Fprintf(&output, "Code: %s\n", code)
+	if code := o.Code(); code != nil {
+		_, _ = fmt.Fprintf(&output, "Code: %v\n", code)
 	}
 
 	if t := o.Time(); t != (time.Time{}) {

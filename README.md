@@ -34,6 +34,15 @@
   <hr>
   <sup><b>Sponsored by:</b></sup>
   <br>
+  <a href="https://cast.ai/samuel">
+    <div>
+      <img src="https://github.com/user-attachments/assets/502f8fa8-e7e8-4754-a51f-036d0443e694" width="200" alt="Cast AI">
+    </div>
+    <div>
+      Cut Kubernetes & AI costs, boost application stability
+    </div>
+  </a>
+  <br>
   <a href="https://www.dash0.com?utm_campaign=148395251-samber%20github%20sponsorship&utm_source=github&utm_medium=sponsorship&utm_content=samber">
     <div>
       <img src="https://github.com/user-attachments/assets/b1f2e876-0954-4dc3-824d-935d29ba8f3f" width="200" alt="Dash0">
@@ -181,7 +190,7 @@ The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)
 | --------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `.With(string, any)`                    | `err.Context() map[string]any`          | Supply a list of attributes key+value. Values of type `func() any {}` are accepted and evaluated lazily.                                                                                   |
 | `.WithContext(context.Context, ...any)` | `err.Context() map[string]any`          | Supply a list of values declared in context. Values of type `func() any {}` are accepted and evaluated lazily.                                                                             |
-| `.Code(string)`                         | `err.Code() string`                     | Set a code or slug that describes the error. Error messages are intended to be read by humans, but such code is expected to be read by machines and be transported over different services |
+| `.Code(any)`                            | `err.Code() any`                        | Set a code or slug that describes the error. Error messages are intended to be read by humans, but such code is expected to be read by machines and be transported over different services |
 | `.Public(string)`                       | `err.Public() string`                   | Set a message that is safe to show to an end user                                                                                                                                          |
 | `.Time(time.Time)`                      | `err.Time() time.Time`                  | Set the error time (default: `time.Now()`)                                                                                                                                                 |
 | `.Since(time.Time)`                     | `err.Duration() time.Duration`          | Set the error duration                                                                                                                                                                     |
@@ -483,11 +492,11 @@ Some loggers may need a custom formatter to extract attributes from `oops.OopsEr
 Available loggers:
 - log: [playground](https://go.dev/play/p/uNx3CcT-X40) - [example](https://github.com/samber/oops/tree/master/examples/log)
 - slog: [playground](https://go.dev/play/p/-X2ZnqjyDLu) - [example](https://github.com/samber/oops/tree/master/examples/slog)
+- zap: [formatter](https://github.com/samber/oops/tree/master/loggers/zap) - [example](https://github.com/samber/oops/tree/master/examples/zap)
 - logrus: [formatter](https://github.com/samber/oops/tree/master/loggers/logrus) - [playground](https://go.dev/play/p/-_7EBnceJ_A) - [example](https://github.com/samber/oops/tree/master/examples/logrus)
 - zerolog: [formatter](https://github.com/samber/oops/tree/master/loggers/zerolog) - [playground](https://go.dev/play/p/aalqQ6wEDyx) - [example](https://github.com/samber/oops/tree/master/examples/zerolog)
 
 We are looking for contributions and examples for:
-- zap
 - go-sentry
 - otel
 - other?

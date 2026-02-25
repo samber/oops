@@ -15,7 +15,7 @@ import "errors"
 //	err := someFunction()
 //	if oopsErr, ok := oops.AsOops(err); ok {
 //	  // Access oops-specific information
-//	  fmt.Printf("Error code: %s\n", oopsErr.Code())
+//	  fmt.Printf("Error code: %v\n", oopsErr.Code())
 //	  fmt.Printf("Domain: %s\n", oopsErr.Domain())
 //	  fmt.Printf("Stacktrace: %s\n", oopsErr.Stacktrace())
 //

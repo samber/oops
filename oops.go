@@ -73,7 +73,7 @@ func Assertf(condition bool, msg string, args ...any) OopsErrorBuilder {
 // Code set a code or slug that describes the error.
 // Error messages are intended to be read by humans, but such code is expected to
 // be read by machines and even transported over different services.
-func Code(code string) OopsErrorBuilder {
+func Code(code any) OopsErrorBuilder {
 	return newBuilder().Code(code)
 }
 

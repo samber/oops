@@ -10,10 +10,12 @@ use (
 	./examples/segfault
 	./examples/slog
 	./examples/sources
+	./examples/zap
 	./examples/zerolog
 
 	// logger formatters
 	./loggers/logrus
+	./loggers/zap
 	./loggers/zerolog
 
 	// recovery middlewares

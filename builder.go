@@ -60,7 +60,7 @@ func newBuilder() OopsErrorBuilder {
 	return OopsErrorBuilder{
 		err:      nil,
 		msg:      "",
-		code:     "",
+		code:     nil,
 		time:     time.Now(),
 		duration: 0,
 
@@ -316,7 +316,7 @@ func (o OopsErrorBuilder) Assertf(condition bool, msg string, args ...any) OopsE
 // Example:
 //
 //	oops.Code("database_connection_failed").Errorf("connection timeout")
-func (o OopsErrorBuilder) Code(code string) OopsErrorBuilder {
+func (o OopsErrorBuilder) Code(code any) OopsErrorBuilder {
 	o2 := o.copy()
 	o2.code = code
 	return o2
