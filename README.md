@@ -85,6 +85,9 @@ In a few minutes, your logs will look like this:
 
 ```sh
 go get github.com/samber/oops
+
+# AI Agent Skill:
+npx skills add https://github.com/samber/cc-skills-golang --skill golang-samber-oops
 ```
 
 This library is v1 and follows SemVer strictly.
