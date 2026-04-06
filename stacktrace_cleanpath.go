@@ -18,7 +18,22 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 )
+
+var (
+	goPathDirsOnce sync.Once
+	goPathDirs     []string
+)
+
+func cachedGoPathDirs() []string {
+	goPathDirsOnce.Do(func() {
+		dirs := filepath.SplitList(os.Getenv("GOPATH"))
+		sort.Stable(longestFirst(dirs))
+		goPathDirs = dirs
+	})
+	return goPathDirs
+}
 
 // removeGoPath makes a file path relative to one of the src directories
 // in the $GOPATH environment variable, making stacktraces more readable
@@ -53,17 +68,8 @@ import (
 //	clean := removeGoPath(path)
 //	// Result: "/usr/local/bin/program" (unchanged)
 func removeGoPath(path string) string {
-	// Get all GOPATH entries and split them into individual directories
-	dirs := filepath.SplitList(os.Getenv("GOPATH"))
-
-	// Sort directories in decreasing order by length so the longest
-	// matching prefix is removed first. This ensures that if a path
-	// matches multiple GOPATH entries, it's made relative to the
-	// most specific (longest) one.
-	sort.Stable(longestFirst(dirs))
-
-	// Check each GOPATH directory for a match
-	for _, dir := range dirs {
+	// Check each GOPATH directory for a match, using cached sorted dirs.
+	for _, dir := range cachedGoPathDirs() {
 		// Construct the src directory path for this GOPATH entry
 		srcdir := filepath.Join(dir, "src")
 
