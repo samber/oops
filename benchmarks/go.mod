@@ -2,7 +2,7 @@ module github.com/samber/oops/benchmarks
 
 go 1.21
 
-replace github.com/samber/oops => ..
+replace github.com/samber/oops => ../
 
 require github.com/samber/oops v0.0.0
 
