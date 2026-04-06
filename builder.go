@@ -99,7 +99,7 @@ func newBuilder() OopsErrorBuilder {
 // It performs deep copying of maps to ensure that modifications to the new
 // builder don't affect the original.
 func (o OopsErrorBuilder) copy() OopsErrorBuilder {
-	return OopsErrorBuilder{
+	o2 := OopsErrorBuilder{
 		// err:      err,  // Not copied as it's set by error creation methods
 		// msg:      o.msg, // Not copied as it's set by error creation methods
 		code:     o.code,
@@ -128,6 +128,18 @@ func (o OopsErrorBuilder) copy() OopsErrorBuilder {
 
 		// stacktrace: o.stacktrace, // Not copied as it's generated per error
 	}
+	// maps.Clone(nil) returns nil; ensure maps are never nil so callers can
+	// assign into them without panicking (e.g. With, WithContext, User, Tenant).
+	if o2.context == nil {
+		o2.context = map[string]any{}
+	}
+	if o2.userData == nil {
+		o2.userData = map[string]any{}
+	}
+	if o2.tenantData == nil {
+		o2.tenantData = map[string]any{}
+	}
+	return o2
 }
 
 // Wrap wraps an existing error into an OopsError with the current builder's context.
