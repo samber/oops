@@ -121,7 +121,7 @@ func (o OopsError) Error() string {
 			return o.err.Error()
 		}
 
-		return fmt.Sprintf("%s: %s", o.msg, o.err.Error())
+		return o.msg + ": " + o.err.Error()
 	}
 
 	return o.msg
