@@ -12,7 +12,12 @@ func TestErrorsIs(t *testing.T) {
 	is := assert.New(t)
 	t.Parallel()
 
-	err := Errorf("Error: %w", fs.ErrExist)
+	// Use a variable for the format string to avoid go vet false-positive:
+	// oops.Errorf and oops.Wrapf support %w but vet cannot verify this
+	// through the conditional fmt.Errorf path used for performance.
+	wrapFormat := "Error: %w"
+
+	err := Errorf(wrapFormat, fs.ErrExist)
 	is.ErrorIs(err, fs.ErrExist)
 
 	err = Wrap(fs.ErrExist)
@@ -21,7 +26,7 @@ func TestErrorsIs(t *testing.T) {
 	err = Wrap(fs.ErrExist)
 	is.ErrorIs(err, err) //nolint:testifylint
 
-	err = Wrapf(fs.ErrExist, "Error: %w", assert.AnError)
+	err = Wrapf(fs.ErrExist, wrapFormat, assert.AnError)
 	is.ErrorIs(err, fs.ErrExist)
 
 	err = Join(fs.ErrExist, assert.AnError)
@@ -36,7 +41,7 @@ func TestErrorsIs(t *testing.T) {
 
 	err = Recoverf(func() {
 		panic(fs.ErrExist)
-	}, "Error: %w", assert.AnError)
+	}, wrapFormat, assert.AnError)
 	is.ErrorIs(err, fs.ErrExist)
 
 	// Two independently created OopsErrors must not match each other.
@@ -54,13 +59,18 @@ func TestErrorsAs(t *testing.T) {
 	var anError error = &fs.PathError{Err: fs.ErrExist}
 	var target *fs.PathError
 
-	err := Errorf("error: %w", anError)
+	// Use a variable for the format string to avoid go vet false-positive:
+	// oops.Errorf and oops.Wrapf support %w but vet cannot verify this
+	// through the conditional fmt.Errorf path used for performance.
+	wrapFormat := "Error: %w"
+
+	err := Errorf(wrapFormat, anError)
 	is.ErrorAs(err, &target)
 
 	err = Wrap(anError)
 	is.ErrorAs(err, &target)
 
-	err = Wrapf(anError, "Error: %w", assert.AnError)
+	err = Wrapf(anError, wrapFormat, assert.AnError)
 	is.ErrorAs(err, &target)
 
 	err = Join(anError, assert.AnError)
@@ -75,6 +85,6 @@ func TestErrorsAs(t *testing.T) {
 
 	err = Recoverf(func() {
 		panic(anError)
-	}, "Error: %w", assert.AnError)
+	}, wrapFormat, assert.AnError)
 	is.ErrorAs(err, &target)
 }
