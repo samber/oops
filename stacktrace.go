@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/samber/lo"
@@ -185,7 +186,7 @@ func (st *oopsStacktrace) Source() (string, []string) {
 //	stack := newStacktrace("span-123")
 //	fmt.Println(stack.String(""))
 func newStacktrace(span string) *oopsStacktrace {
-	frames := []oopsStacktraceFrame{}
+	frames := make([]oopsStacktraceFrame, 0, StackTraceMaxDepth)
 
 	// Walk up the call stack starting from the caller of this function
 	// Continue until we have enough frames or run out of stack frames
@@ -296,9 +297,10 @@ func framesToStacktraceBlocks(blocks []lo.Tuple3[error, string, []oopsStacktrace
 		stacktraceStr := strings.Join(frameLines, "\n")
 		block := fmt.Sprintf("%s\n%s", msg, stacktraceStr)
 
-		output = append([]string{block}, output...)
+		output = append(output, block)
 	}
 
+	slices.Reverse(output)
 	return output
 }
 
@@ -313,13 +315,11 @@ func framesToSourceBlocks(blocks []lo.Tuple2[string, *oopsStacktrace]) []string 
 		}
 
 		if header != "" && len(body) > 0 {
-			output = append(
-				[][]string{append([]string{header}, body...)},
-				output...,
-			)
+			output = append(output, append([]string{header}, body...))
 		}
 	}
 
+	slices.Reverse(output)
 	return lo.Map(output, func(items []string, _ int) string {
 		return strings.Join(items, "\n")
 	})
