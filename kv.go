@@ -3,8 +3,7 @@ package oops
 import (
 	"fmt"
 	"reflect"
-
-	"github.com/samber/lo"
+	"time"
 )
 
 // dereferencePointers recursively dereferences pointer values in a map
@@ -34,6 +33,14 @@ func dereferencePointers(data map[string]any) map[string]any {
 	}
 
 	for key, value := range data {
+		// Fast path: only use reflect for types that could be pointers
+		switch value.(type) {
+		case nil, string, int, int8, int16, int32, int64,
+			uint, uint8, uint16, uint32, uint64,
+			float32, float64, bool, []byte,
+			map[string]any, []any:
+			continue // not a pointer, skip
+		}
 		val := reflect.ValueOf(value)
 		if val.Kind() == reflect.Ptr {
 			data[key] = dereferencePointerRecursive(val, 0)
@@ -159,6 +166,15 @@ func lazyMapEvaluation(data map[string]any) map[string]any {
 //	result := lazyValueEvaluation(value)
 //	// result will be "static string" (unchanged)
 func lazyValueEvaluation(value any) (ret any) {
+	// Fast path: common types are never lazy evaluation functions
+	switch value.(type) {
+	case nil, string, int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64,
+		float32, float64, bool, []byte,
+		time.Time, time.Duration:
+		return value
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			ret = fmt.Sprintf("panic in lazy evaluation: %v", r)
@@ -210,18 +226,13 @@ func getDeepestErrorAttribute[T comparable](err OopsError, getter func(OopsError
 	return getter(err)
 }
 
-// mergeNestedErrorMap merges maps from an error chain, with later
-// errors taking precedence over earlier ones in the chain.
+// mergeNestedErrorMap merges maps from an error chain, with deeper errors
+// taking precedence over shallower ones (matching the original lo.Assign
+// left-to-right semantics where the child/deeper map was the last argument).
 //
-// This function traverses the error chain recursively and merges
-// maps (like context, user data, or tenant data) from all errors
-// in the chain. Later errors in the chain can override values
-// from earlier errors, allowing for progressive enhancement of
-// error context as the error propagates through the system.
-//
-// The function uses the provided getter function to extract the
-// map from each error in the chain. The merging is done using
-// lo.Assign, which creates a new map with all values merged.
+// This function traverses the error chain and collects all maps via
+// collectMaps, then merges them in a single pass — avoiding the O(n)
+// intermediate map allocations that the recursive lo.Assign approach incurred.
 //
 // Example usage:
 //
@@ -229,15 +240,30 @@ func getDeepestErrorAttribute[T comparable](err OopsError, getter func(OopsError
 //	  return e.context
 //	})
 //	// Returns a merged map with context from all errors in the chain,
-//	// with later errors overriding earlier ones
+//	// with deeper errors overriding shallower ones.
 func mergeNestedErrorMap(err OopsError, getter func(OopsError) map[string]any) map[string]any {
-	if err.err == nil {
-		return getter(err)
-	}
+	// Collect all maps from the chain (shallower first, deeper last).
+	var maps []map[string]any
+	collectMaps(err, getter, &maps)
 
+	// Merge into a single result: deeper maps (appended last) overwrite
+	// shallower ones, preserving the original semantics.
+	result := map[string]any{}
+	for _, m := range maps {
+		for k, v := range m {
+			result[k] = v
+		}
+	}
+	return result
+}
+
+// collectMaps appends maps from the error chain to result in shallow-to-deep
+// order so that the final merge loop gives deeper errors higher precedence.
+func collectMaps(err OopsError, getter func(OopsError) map[string]any, result *[]map[string]any) {
+	if m := getter(err); len(m) > 0 {
+		*result = append(*result, m)
+	}
 	if child, ok := AsOops(err.err); ok {
-		return lo.Assign(map[string]any{}, getter(err), mergeNestedErrorMap(child, getter))
+		collectMaps(child, getter, result)
 	}
-
-	return getter(err)
 }
