@@ -169,7 +169,7 @@ func (o OopsErrorBuilder) Wrapf(err error, format string, args ...any) error {
 
 	o2 := o.copy()
 	o2.err = err
-	o2.msg = fmt.Errorf(format, args...).Error() // Format the additional message
+	o2.msg = fmt.Errorf(format, args...).Error() // fmt.Errorf is used (not fmt.Sprintf) to support %w in the format string
 	if o2.span == "" {
 		o2.span = ulid.Make().String()
 	}
