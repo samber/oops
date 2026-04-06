@@ -600,7 +600,7 @@ func identityArgsToMap(args []any) map[string]any {
 	for len(args) > 0 {
 		switch value := args[0].(type) {
 		case slog.Attr:
-			payload[value.Key] = slogValueToAny(value.Value)
+			payload[value.Key] = slogValueToAny(value.Value, 0)
 			args = args[1:]
 		case map[string]any:
 			for key, mapValue := range value {
@@ -628,7 +628,11 @@ func identityArgsToMap(args []any) map[string]any {
 //
 // Group values are converted recursively into map[string]any so they can be
 // stored in user/tenant payload maps.
-func slogValueToAny(value slog.Value) any {
+//
+// The depth parameter guards against circular slog.LogValuer chains. Although
+// slog.Value.Resolve() already has its own depth limit, we add an explicit
+// guard here for defense-in-depth. Returns nil when depth exceeds 10.
+func slogValueToAny(value slog.Value, depth int) any {
 	value = value.Resolve()
 
 	switch value.Kind() {
@@ -649,11 +653,14 @@ func slogValueToAny(value slog.Value) any {
 	case slog.KindGroup:
 		group := map[string]any{}
 		for _, attr := range value.Group() {
-			group[attr.Key] = slogValueToAny(attr.Value)
+			group[attr.Key] = slogValueToAny(attr.Value, depth+1)
 		}
 		return group
 	case slog.KindLogValuer:
-		return slogValueToAny(value.LogValuer().LogValue())
+		if depth > 10 {
+			return nil
+		}
+		return slogValueToAny(value.LogValuer().LogValue(), depth+1)
 	case slog.KindAny:
 		return value.Any()
 	default:

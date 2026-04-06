@@ -505,10 +505,6 @@ func (o OopsError) LogValue() slog.Value { //nolint:gocyclo
 		attrs = append(attrs, slog.String("trace", trace))
 	}
 
-	// if span := o.Span(); span != "" {
-	// 	attrs = append(attrs, slog.String("span", span))
-	// }
-
 	if hint := o.Hint(); hint != "" {
 		attrs = append(attrs, slog.String("hint", hint))
 	}
@@ -620,10 +616,6 @@ func (o OopsError) ToMap() map[string]any { //nolint:gocyclo
 	if trace := o.Trace(); trace != "" {
 		payload["trace"] = trace
 	}
-
-	// if span := o.Span(); span != "" {
-	// 	payload["span"] = span
-	// }
 
 	if hint := o.Hint(); hint != "" {
 		payload["hint"] = hint
@@ -739,10 +731,6 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 	if trace := o.Trace(); trace != "" {
 		_, _ = fmt.Fprintf(&output, "Trace: %s\n", trace)
 	}
-
-	// if span := o.Span(); span != "" {
-	// 	_, _ = fmt.Fprintf(&output,"Span: %s\n", span)
-	// }
 
 	if hint := o.Hint(); hint != "" {
 		_, _ = fmt.Fprintf(&output, "Hint: %s\n", hint)
