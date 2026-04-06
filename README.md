@@ -295,7 +295,8 @@ err10 := oops.
 
 ### Other helpers
 
-- `oops.AsError[MyError](error) (MyError, bool)` as an alias to `errors.As(...)`
+- `oops.AsOops(error) (OopsError, bool)` — extracts an `oops.OopsError` from an error chain (alias to `errors.As`)
+- `oops.AsError[MyError](error) (MyError, bool)` — generic form of `errors.As`, without requiring a typed variable declaration
 
 ### Stack trace
 

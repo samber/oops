@@ -82,10 +82,17 @@ func (o OopsError) Unwrap() error {
 	return o.err
 }
 
-// Is checks if this error matches the target error.
-// This method implements the errors.Is interface for error comparison.
+// Is implements the errors.Is interface.
+//
+// OopsError contains non-comparable fields (maps, slices), so the default
+// equality check performed by errors.Is would panic at runtime. Identity is
+// therefore established via the span ID, which is unique per error instance.
+//
+// Note: errors.Is is designed for sentinel value matching (e.g. io.EOF).
+// To check whether an error in the chain is an OopsError, prefer errors.As
+// or oops.AsOops instead.
 func (o OopsError) Is(err error) bool {
-	if _, ok := err.(OopsError); ok {
+	if other, ok := err.(OopsError); ok && o.span == other.span {
 		return true
 	}
 
