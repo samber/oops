@@ -672,6 +672,12 @@ func TestOopsFormatSummary(t *testing.T) {
 		Wrapf(assert.AnError, "a message %d", 42)
 	expected := "a message 42: assert.AnError general error for testing"
 	is.Equal(expected, fmt.Sprintf("%v", err.(OopsError)))
+
+	// %s format
+	is.Equal(expected, fmt.Sprintf("%s", err.(OopsError)))
+
+	// %q format
+	is.Equal(fmt.Sprintf("%q", expected), fmt.Sprintf("%q", err.(OopsError)))
 }
 
 func TestOopsFormatVerbose(t *testing.T) {

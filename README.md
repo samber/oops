@@ -348,7 +348,7 @@ oops.SourceFragmentsHidden = false
 
 err1 := oops.Errorf("permission denied")
 // ...
-err2 := oops.Wrapf(err, "something failed")
+err2 := oops.Wrapf(err1, "something failed")
 
 fmt.Println(err2.(oops.OopsError).Sources())
 ```
@@ -473,12 +473,15 @@ attr := slog.Error(err.Error(),
 // slog.Group("error", ...)
 ```
 
-#### Custom timezone
+#### Global configuration
 
-```go
-loc, _ := time.LoadLocation("Europe/Paris")
-oops.Local = loc
-```
+| Variable | Default | Description |
+|---|---|---|
+| `oops.StackTraceMaxDepth` | `10` | Max stack trace depth |
+| `oops.SourceFragmentsHidden` | `true` | Hide source code fragments |
+| `oops.Local` | `time.UTC` | Timezone for error timestamps |
+| `oops.AutoTraceID` | `true` | Auto-generate ULID trace IDs |
+| `oops.DereferencePointers` | `true` | Auto-dereference pointers in context |
 
 ### Go context
 
@@ -488,7 +491,7 @@ An `OopsErrorBuilder` can be transported in a go `context.Context` to reuse late
 func myFunc(ctx context.Context) {
     oops.
         FromContext(ctx).
-        Tag("auth").
+        Tags("auth").
         Errorf("not permitted")
 }
 
@@ -535,6 +538,8 @@ userMessage := oops.GetPublic(err, "Unexpected error")
 ```
 
 ### Wrap/Wrapf shortcut
+
+> **Note:** `oops.Wrapf(err, "msg: %w", otherErr)` does **not** chain `otherErr` — the `%w` verb is only used for string formatting. The error chain is always `result → err`. Use `oops.Errorf("msg: %w", otherErr)` if you need `%w` chaining.
 
 `oops.Wrap(...)` and `oops.Wrapf(...)` returns nil if the provided `error` is nil.
 
