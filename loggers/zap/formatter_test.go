@@ -27,7 +27,7 @@ type jsonLogEntry struct {
 	Error      jsonLogEntryError `json:"error"`
 }
 
-func TestZapFormatter(t *testing.T) {
+func TestZapFormatter(t *testing.T) { //nolint:paralleltest
 	is := assert.New(t)
 
 	// Setup Zap logger buffer

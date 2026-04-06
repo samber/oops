@@ -80,7 +80,8 @@ func TestLogrusFormatter_StacktraceStrippedForPanicFatal(t *testing.T) {
 
 	entry.Data["error"] = err
 
-	oopsErr := err.(oops.OopsError)
+	oopsErr, ok := oops.AsOops(err)
+	is.True(ok)
 	oopsErrorToEntryData(&oopsErr, entry)
 
 	is.Equal("test", entry.Data["domain"])

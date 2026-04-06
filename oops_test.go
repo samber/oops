@@ -722,11 +722,12 @@ Request:
   * User-Agent: Go-http-client/1.1
   * Content-Length: 11
   * Accept-Encoding: gzip
-  * 
+  *
   * hello world
 `
 	got := fmt.Sprintf("%+v", withoutStacktrace(err.(OopsError)))
-	got = strings.ReplaceAll(got, "\r", "") // remove \r from request
+	got = strings.ReplaceAll(got, "\r", "")          // remove \r from request
+	got = strings.ReplaceAll(got, "  * \n", "  *\n") // normalize trailing space on blank request lines
 	is.Equal(expected, got)
 }
 
@@ -1136,7 +1137,7 @@ func TestOopsMainFunctions(t *testing.T) { //nolint:paralleltest
 	// trace must return the same auto-generated value every time.
 	errNoTrace := Wrap(assert.AnError)
 	is.NotEmpty(errNoTrace.(OopsError).Trace())
-	is.Equal(errNoTrace.(OopsError).Trace(), errNoTrace.(OopsError).Trace())
+	is.Equal(errNoTrace.(OopsError).Trace(), errNoTrace.(OopsError).Trace()) //nolint:testifylint
 	// Test Span function
 	err9 := Span("test_span").Wrap(assert.AnError)
 	is.Error(err9)
@@ -1313,7 +1314,7 @@ func TestOopsTrace(t *testing.T) {
 	is.NotEmpty(recoveredfAuto.(OopsError).Trace())
 }
 
-func TestOopsAutoTraceID(t *testing.T) {
+func TestOopsAutoTraceID(t *testing.T) { //nolint:paralleltest
 	// NOTE: do NOT call t.Parallel() — this test mutates the global AutoTraceID.
 	is := assert.New(t)
 
@@ -1330,7 +1331,7 @@ func TestOopsAutoTraceID(t *testing.T) {
 	// Trace() must be stable (idempotent) even when empty.
 	errNoTrace := Errorf("msg")
 	is.Empty(errNoTrace.(OopsError).Trace())
-	is.Equal(errNoTrace.(OopsError).Trace(), errNoTrace.(OopsError).Trace())
+	is.Equal(errNoTrace.(OopsError).Trace(), errNoTrace.(OopsError).Trace()) //nolint:testifylint
 
 	// --- AutoTraceID=false: explicit trace still honoured ---
 

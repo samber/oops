@@ -627,6 +627,8 @@ func slogValueToAny(value slog.Value) any {
 		return group
 	case slog.KindLogValuer:
 		return slogValueToAny(value.LogValuer().LogValue())
+	case slog.KindAny:
+		return value.Any()
 	default:
 		return value.Any()
 	}
