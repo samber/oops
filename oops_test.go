@@ -334,12 +334,17 @@ func TestOopsUser(t *testing.T) {
 	is.Error(err)
 	is.Equal(assert.AnError, err.(OopsError).err)
 	is.Equal("user-123", err.(OopsError).userID)
-	is.Equal(map[string]any{"firstname": "john"}, err.(OopsError).userData)
+	is.Equal(map[string]any{"firstname": "john", badKey: "lastname"}, err.(OopsError).userData)
 	err = newBuilder().User("user-123", "firstname", "john", "lastname", "doe").Wrap(assert.AnError)
 	is.Error(err)
 	is.Equal(assert.AnError, err.(OopsError).err)
 	is.Equal("user-123", err.(OopsError).userID)
 	is.Equal(map[string]any{"firstname": "john", "lastname": "doe"}, err.(OopsError).userData)
+	err = newBuilder().User("user-123", 42).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("user-123", err.(OopsError).userID)
+	is.Equal(map[string]any{badKey: 42}, err.(OopsError).userData)
 	err = newBuilder().User(
 		"user-123",
 		slog.String("firstname", "john"),
@@ -386,12 +391,45 @@ func TestOopsTenant(t *testing.T) {
 	is.Error(err)
 	is.Equal(assert.AnError, err.(OopsError).err)
 	is.Equal("workspace-123", err.(OopsError).tenantID)
-	is.Equal(map[string]any{"name": "My 'hello world' project"}, err.(OopsError).tenantData)
+	is.Equal(map[string]any{"name": "My 'hello world' project", badKey: "date"}, err.(OopsError).tenantData)
 	err = newBuilder().Tenant("workspace-123", "name", "My 'hello world' project", "date", "2023-01-01").Wrap(assert.AnError)
 	is.Error(err)
 	is.Equal(assert.AnError, err.(OopsError).err)
 	is.Equal("workspace-123", err.(OopsError).tenantID)
 	is.Equal(map[string]any{"name": "My 'hello world' project", "date": "2023-01-01"}, err.(OopsError).tenantData)
+	err = newBuilder().Tenant(
+		"workspace-123",
+		slog.String("country", "fr"),
+		slog.Group("billing", "plan", "pro", "seats", 42),
+	).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("workspace-123", err.(OopsError).tenantID)
+	is.Equal(
+		map[string]any{
+			"country": "fr",
+			"billing": map[string]any{"plan": "pro", "seats": int64(42)},
+		},
+		err.(OopsError).tenantData,
+	)
+	err = newBuilder().Tenant(
+		"workspace-123",
+		map[string]any{"name": "My 'hello world' project"},
+		"date",
+		"2023-01-01",
+		map[string]any{"country": "fr"},
+	).Wrap(assert.AnError)
+	is.Error(err)
+	is.Equal(assert.AnError, err.(OopsError).err)
+	is.Equal("workspace-123", err.(OopsError).tenantID)
+	is.Equal(
+		map[string]any{
+			"name":    "My 'hello world' project",
+			"date":    "2023-01-01",
+			"country": "fr",
+		},
+		err.(OopsError).tenantData,
+	)
 }
 
 func TestOopsRequest(t *testing.T) {

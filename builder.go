@@ -515,7 +515,7 @@ func (o OopsErrorBuilder) Owner(owner string) OopsErrorBuilder {
 func (o OopsErrorBuilder) User(userID string, userData ...any) OopsErrorBuilder {
 	o2 := o.copy()
 	o2.userID = userID
-	for key, value := range userArgsToMap(userData) {
+	for key, value := range identityArgsToMap(userData) {
 		o2.userData[key] = value
 	}
 
@@ -531,23 +531,24 @@ func (o OopsErrorBuilder) User(userID string, userData ...any) OopsErrorBuilder 
 func (o OopsErrorBuilder) Tenant(tenantID string, tenantData ...any) OopsErrorBuilder {
 	o2 := o.copy()
 	o2.tenantID = tenantID
-	for key, value := range userArgsToMap(tenantData) {
+	for key, value := range identityArgsToMap(tenantData) {
 		o2.tenantData[key] = value
 	}
 
 	return o2
 }
 
-// userArgsToMap converts variadic user/tenant arguments into a flat map.
+const badKey = "!BADKEY"
+
+// identityArgsToMap converts variadic user/tenant arguments into a flat map.
 //
 // Supported inputs:
 //   - slog.Attr values
 //   - map[string]any values
 //   - alternating string key/value pairs
 //
-// Unsupported values are ignored. If a trailing string key has no value,
-// it is ignored.
-func userArgsToMap(args []any) map[string]any {
+// Malformed values are stored under "!BADKEY", mirroring log/slog argsToAttr.
+func identityArgsToMap(args []any) map[string]any {
 	payload := map[string]any{}
 
 	for len(args) > 0 {
@@ -562,12 +563,14 @@ func userArgsToMap(args []any) map[string]any {
 			args = args[1:]
 		case string:
 			if len(args) == 1 {
+				payload[badKey] = value
 				return payload
 			}
 
 			payload[value] = args[1]
 			args = args[2:]
 		default:
+			payload[badKey] = value
 			args = args[1:]
 		}
 	}
