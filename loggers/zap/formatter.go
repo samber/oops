@@ -6,7 +6,7 @@ import (
 )
 
 // OopsStackMarshaller returns the stack trace string for use in zap.
-// Usage: zap.String("stacktrace", oopszap.OopsStackMarshaller(err))
+// Usage: zap.String("stacktrace", oopszap.OopsStackMarshaller(err)).
 func OopsStackMarshaller(err error) string {
 	if typedErr, ok := oops.AsOops(err); ok {
 		return typedErr.Stacktrace()
@@ -18,7 +18,7 @@ func OopsStackMarshaller(err error) string {
 }
 
 // OopsMarshalFunc returns a zapcore.ObjectMarshaler that logs the error details.
-// Usage: zap.Object("error", oopszap.OopsMarshalFunc(err))
+// Usage: zap.Object("error", oopszap.OopsMarshalFunc(err)).
 func OopsMarshalFunc(err error) zapcore.ObjectMarshaler {
 	if typedErr, ok := oops.AsOops(err); ok {
 		return &zapErrorMarshaller{err: typedErr}
@@ -50,19 +50,19 @@ func (m *zapErrorMarshaller) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 			// Skip stacktrace in the main object - handled separately if desired
 		case "context":
 			if contextMap, ok := v.(map[string]any); ok && len(contextMap) > 0 {
-				enc.AddObject(k, zapcore.ObjectMarshalerFunc(func(innerEnc zapcore.ObjectEncoder) error {
+				_ = enc.AddObject(k, zapcore.ObjectMarshalerFunc(func(innerEnc zapcore.ObjectEncoder) error {
 					for ctxK, ctxV := range contextMap {
 						if errVal, ok := ctxV.(error); ok {
 							innerEnc.AddString(ctxK, errVal.Error())
 						} else {
-							innerEnc.AddReflected(ctxK, ctxV)
+							_ = innerEnc.AddReflected(ctxK, ctxV)
 						}
 					}
 					return nil
 				}))
 			}
 		default:
-			enc.AddReflected(k, v)
+			_ = enc.AddReflected(k, v)
 		}
 	}
 	return nil

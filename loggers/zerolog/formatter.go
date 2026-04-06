@@ -20,7 +20,7 @@ import (
 //	  Err(err).
 //	  Str("stacktrace", oopszerolog.OopsStackMarshaller(err).(string)).
 //	  Msg("operation failed")
-func OopsStackMarshaller(err error) interface{} {
+func OopsStackMarshaller(err error) any {
 	if typedErr, ok := oops.AsOops(err); ok {
 		return typedErr.Stacktrace()
 	}
@@ -43,7 +43,7 @@ func OopsStackMarshaller(err error) interface{} {
 //	logger.Error().
 //	  Interface("error", oopszerolog.OopsMarshalFunc(err)).
 //	  Msg("operation failed")
-func OopsMarshalFunc(err error) interface{} {
+func OopsMarshalFunc(err error) any {
 	if typedErr, ok := oops.AsOops(err); ok {
 		return zerologErrorMarshaller{err: typedErr}
 	}

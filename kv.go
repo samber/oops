@@ -1,6 +1,7 @@
 package oops
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/samber/lo"
@@ -157,7 +158,13 @@ func lazyMapEvaluation(data map[string]any) map[string]any {
 //	value := "static string"
 //	result := lazyValueEvaluation(value)
 //	// result will be "static string" (unchanged)
-func lazyValueEvaluation(value any) any {
+func lazyValueEvaluation(value any) (ret any) {
+	defer func() {
+		if r := recover(); r != nil {
+			ret = fmt.Sprintf("panic in lazy evaluation: %v", r)
+		}
+	}()
+
 	v := reflect.ValueOf(value)
 	if !v.IsValid() || v.Kind() != reflect.Func {
 		return value

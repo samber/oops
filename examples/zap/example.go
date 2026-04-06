@@ -49,7 +49,7 @@ func main() {
 	config.EncoderConfig.TimeKey = "timestamp"
 	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
 	logger, _ := config.Build()
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	err := a()
 

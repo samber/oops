@@ -20,4 +20,7 @@ use (
 
 	// recovery middlewares
 	./recovery/gin
+
+	// benchmarks
+	./benchmarks
 )

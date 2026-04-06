@@ -122,7 +122,7 @@ func TestDereferencePointerComplexTypes(t *testing.T) {
 	t.Parallel()
 
 	// Test with interface pointers
-	var iface interface{} = "interface_value"
+	var iface any = "interface_value"
 	ifacePtr := &iface
 	err := With("interface", ifacePtr).Errorf(anErrorStr).(OopsError)
 	is.Equal(map[string]any{"interface": "interface_value"}, err.Context())
@@ -218,7 +218,7 @@ func TestDereferencePointerPanicPrevention(t *testing.T) {
 	is.Contains(context, "very_deep")
 
 	// Test with invalid reflect values that could cause panics
-	var invalidValue interface{} = func() {} // Function type
+	var invalidValue any = func() {} // Function type
 	err = With("invalid", &invalidValue).Errorf(anErrorStr).(OopsError)
 	is.NotNil(err)
 
