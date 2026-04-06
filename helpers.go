@@ -36,3 +36,17 @@ func AsOops(err error) (OopsError, bool) {
 	ok := errors.As(err, &e)
 	return e, ok
 }
+
+// AsError is a generic helper equivalent to errors.As, without requiring
+// the caller to declare a typed variable first.
+//
+// Example usage:
+//
+//	if myErr, ok := oops.AsError[*MyError](err); ok {
+//	  // use myErr directly
+//	}
+func AsError[T error](err error) (T, bool) {
+	var e T
+	ok := errors.As(err, &e)
+	return e, ok
+}
