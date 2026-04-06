@@ -28,6 +28,18 @@ var (
 
 	// Local specifies the timezone used for error timestamps. Defaults to UTC.
 	Local *time.Location = time.UTC
+
+	// AutoTraceID controls whether a ULID-based trace ID is automatically generated
+	// when an error is created without an explicit trace.
+	//
+	// Note: this flag does not integrate with or take precedence over external tracing
+	// systems (OpenTelemetry, HTTP middleware, etc.). Trace IDs from those systems must
+	// still be injected explicitly via .Trace("id").
+	//
+	// Generating a trace ID on every error creation has a non-negligible cost (ULID
+	// generation + allocation). Consider setting this to false at program start when
+	// trace IDs are always provided by an external system.
+	AutoTraceID = true
 )
 
 // Type assertions to ensure OopsError implements required interfaces.
