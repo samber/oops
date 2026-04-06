@@ -10,29 +10,21 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-// resetGoPathDirsCache resets the sync.Once cache so tests can set GOPATH
-// to different values between calls to removeGoPath.
-func resetGoPathDirsCache() {
-	goPathDirsOnce = sync.Once{}
-	goPathDirs = nil
-}
-
 func TestRemoveGoPath(t *testing.T) { //nolint:paralleltest
 	is := assert.New(t)
 
-	// This test mutates os.Setenv("GOPATH") and the package-level cache, so it
-	// must NOT run in parallel with other tests that use removeGoPath indirectly
-	// (e.g. any test that creates an oops error with a stacktrace).
+	// This test mutates os.Setenv("GOPATH") so it must NOT run in parallel with
+	// other tests that create oops errors (which call removeGoPath indirectly).
+	// The GOPATH-keyed cache in cachedGoPathDirs invalidates automatically, so
+	// no explicit cache reset is required between sub-cases.
 	originalGoPath := os.Getenv("GOPATH")
 	t.Cleanup(func() {
 		_ = os.Setenv("GOPATH", originalGoPath)
-		resetGoPathDirsCache()
 	})
 
 	for _, testcase := range []struct {
@@ -74,9 +66,6 @@ func TestRemoveGoPath(t *testing.T) { //nolint:paralleltest
 		gopath := strings.Join(testcase.gopath, string(filepath.ListSeparator))
 		err := os.Setenv("GOPATH", gopath)
 		is.NoError(err, "error setting gopath")
-
-		// Reset the cache so each test case reads the updated GOPATH.
-		resetGoPathDirsCache()
 
 		cleaned := removeGoPath(testcase.path)
 		is.Equal(testcase.expected, cleaned, "testcase: %+v", testcase)

@@ -22,16 +22,33 @@ import (
 )
 
 var (
-	goPathDirsOnce sync.Once
-	goPathDirs     []string
+	goPathDirsMu     sync.RWMutex
+	goPathDirsCached string
+	goPathDirs       []string
 )
 
+// cachedGoPathDirs returns a sorted (longest-first) slice of GOPATH entries.
+// The result is cached and invalidated automatically when GOPATH changes,
+// so tests that mutate GOPATH via os.Setenv do not need to reset any state.
 func cachedGoPathDirs() []string {
-	goPathDirsOnce.Do(func() {
-		dirs := filepath.SplitList(os.Getenv("GOPATH"))
+	current := os.Getenv("GOPATH")
+
+	goPathDirsMu.RLock()
+	if goPathDirsCached == current {
+		dirs := goPathDirs
+		goPathDirsMu.RUnlock()
+		return dirs
+	}
+	goPathDirsMu.RUnlock()
+
+	goPathDirsMu.Lock()
+	defer goPathDirsMu.Unlock()
+	if goPathDirsCached != current {
+		dirs := filepath.SplitList(current)
 		sort.Stable(longestFirst(dirs))
+		goPathDirsCached = current
 		goPathDirs = dirs
-	})
+	}
 	return goPathDirs
 }
 

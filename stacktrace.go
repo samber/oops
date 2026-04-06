@@ -191,9 +191,10 @@ func newStacktrace(span string) *oopsStacktrace {
 	// Capture all program counters in a single batch call.
 	// The buffer must be large enough to hold the desired user frames PLUS the
 	// oops-internal and runtime frames that will be filtered out during iteration.
-	// Using StackTraceMaxDepth*3+20 gives plenty of headroom even when
-	// StackTraceMaxDepth is set to a large value by the caller.
-	pcs := make([]uintptr, StackTraceMaxDepth*3+20)
+	// Cap at 512 to avoid huge allocations when StackTraceMaxDepth is set to a
+	// very large value.
+	bufSize := min(StackTraceMaxDepth*3+20, 512)
+	pcs := make([]uintptr, bufSize)
 	n := runtime.Callers(1, pcs)
 	pcs = pcs[:n]
 

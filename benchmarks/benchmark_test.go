@@ -26,7 +26,7 @@ func BenchmarkErrorfWrap(b *testing.B) {
 	inner := errors.New("inner")
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = oops.Wrapf(inner, "wrapped")
+		_ = oops.Errorf("wrapped: %w", inner)
 	}
 }
 
