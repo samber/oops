@@ -3,6 +3,7 @@ package oops
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/samber/lo"
 )
@@ -34,6 +35,14 @@ func dereferencePointers(data map[string]any) map[string]any {
 	}
 
 	for key, value := range data {
+		// Fast path: only use reflect for types that could be pointers
+		switch value.(type) {
+		case nil, string, int, int8, int16, int32, int64,
+			uint, uint8, uint16, uint32, uint64,
+			float32, float64, bool, []byte,
+			map[string]any, []any:
+			continue // not a pointer, skip
+		}
 		val := reflect.ValueOf(value)
 		if val.Kind() == reflect.Ptr {
 			data[key] = dereferencePointerRecursive(val, 0)
@@ -159,6 +168,15 @@ func lazyMapEvaluation(data map[string]any) map[string]any {
 //	result := lazyValueEvaluation(value)
 //	// result will be "static string" (unchanged)
 func lazyValueEvaluation(value any) (ret any) {
+	// Fast path: common types are never lazy evaluation functions
+	switch value.(type) {
+	case nil, string, int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64,
+		float32, float64, bool, []byte,
+		time.Time, time.Duration:
+		return value
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			ret = fmt.Sprintf("panic in lazy evaluation: %v", r)
