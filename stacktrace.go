@@ -188,44 +188,45 @@ func (st *oopsStacktrace) Source() (string, []string) {
 func newStacktrace(span string) *oopsStacktrace {
 	frames := make([]oopsStacktraceFrame, 0, StackTraceMaxDepth)
 
-	// Walk up the call stack starting from the caller of this function
-	// Continue until we have enough frames or run out of stack frames
-	for i := 1; len(frames) < StackTraceMaxDepth; i++ {
-		// Get frame information from the runtime
-		pc, file, line, ok := runtime.Caller(i)
-		if !ok {
-			break // No more frames available
-		}
+	// Capture all program counters in a single batch call.
+	// Extra capacity accounts for oops-internal frames that will be filtered out.
+	pcs := make([]uintptr, StackTraceMaxDepth+10)
+	n := runtime.Callers(1, pcs)
+	pcs = pcs[:n]
+
+	// Define package name patterns for filtering (computed once, outside the loop)
+	packageNameExamples := packageName + "/examples/"
+	goroot := runtime.GOROOT()
+
+	// Iterate over the captured frames
+	iter := runtime.CallersFrames(pcs)
+	for len(frames) < StackTraceMaxDepth {
+		frame, more := iter.Next()
 
 		// Clean up the file path by removing Go path prefixes
-		file = removeGoPath(file)
-
-		// Get function information for the program counter
-		f := runtime.FuncForPC(pc)
-		if f == nil {
-			break // Invalid program counter
-		}
+		file := removeGoPath(frame.File)
 
 		// Extract a short, readable function name
-		function := shortFuncName(f)
-
-		// Define package name patterns for filtering
-		packageNameExamples := packageName + "/examples/"
+		function := shortFuncName(frame.Function)
 
 		// Apply frame filtering logic
-		isGoPkg := len(runtime.GOROOT()) > 0 && strings.Contains(file, runtime.GOROOT()) // skip frames in GOROOT if it's set
-		isOopsPkg := strings.Contains(file, packageName)                                 // skip frames in this package
-		isExamplePkg := strings.Contains(file, packageNameExamples)                      // do not skip frames in this package examples
-		isTestPkg := strings.Contains(file, "_test.go")                                  // do not skip frames in tests
+		isGoPkg := len(goroot) > 0 && strings.Contains(file, goroot) // skip frames in GOROOT if it's set
+		isOopsPkg := strings.Contains(file, packageName)              // skip frames in this package
+		isExamplePkg := strings.Contains(file, packageNameExamples)   // do not skip frames in this package examples
+		isTestPkg := strings.Contains(file, "_test.go")               // do not skip frames in tests
 
 		// Include frame if it passes all filtering criteria
 		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) {
 			frames = append(frames, oopsStacktraceFrame{
-				pc:       pc,
+				pc:       frame.PC,
 				file:     file,
 				function: function,
-				line:     line,
+				line:     frame.Line,
 			})
+		}
+
+		if !more {
+			break
 		}
 	}
 
@@ -235,10 +236,10 @@ func newStacktrace(span string) *oopsStacktrace {
 	}
 }
 
-// shortFuncName extracts a short, readable function name from a runtime.Func.
-// This function processes the full function name (which includes package path
-// and receiver information) and returns a simplified version suitable for
-// display in stack traces.
+// shortFuncName extracts a short, readable function name from a full function
+// name string (as returned by runtime.Frame.Function). This function processes
+// the full function name (which includes package path and receiver information)
+// and returns a simplified version suitable for display in stack traces.
 //
 // The function handles various function name formats:
 // - Package functions: "github.com/user/pkg.FuncName" -> "FuncName"
@@ -250,13 +251,12 @@ func newStacktrace(span string) *oopsStacktrace {
 //	"github.com/user/app.(*Handler).ProcessRequest" -> "ProcessRequest"
 //	"main.main" -> "main"
 //	"github.com/user/pkg.helper" -> "helper"
-func shortFuncName(f *runtime.Func) string {
-	// f.Name() returns the full function name including package path
+func shortFuncName(longName string) string {
+	// longName is the full function name including package path
 	// Examples of possible formats:
 	// - "github.com/palantir/shield/package.FuncName"
 	// - "github.com/palantir/shield/package.Receiver.MethodName"
 	// - "github.com/palantir/shield/package.(*PtrReceiver).MethodName"
-	longName := f.Name()
 
 	// Remove the package path by finding the last "/" and taking everything after it
 	withoutPath := longName[strings.LastIndex(longName, "/")+1:]
