@@ -15,6 +15,8 @@ func init() {
 }
 
 func TestGinOopsRecovery_NoPanic(t *testing.T) {
+	t.Parallel()
+
 	router := gin.New()
 	router.Use(GinOopsRecovery())
 	router.GET("/ok", func(c *gin.Context) {
@@ -34,6 +36,8 @@ func TestGinOopsRecovery_NoPanic(t *testing.T) {
 }
 
 func TestGinOopsRecovery_PanicWithString(t *testing.T) {
+	t.Parallel()
+
 	router := gin.New()
 	router.Use(GinOopsRecovery())
 	router.GET("/panic-string", func(c *gin.Context) {
@@ -50,6 +54,8 @@ func TestGinOopsRecovery_PanicWithString(t *testing.T) {
 }
 
 func TestGinOopsRecovery_PanicWithError(t *testing.T) {
+	t.Parallel()
+
 	router := gin.New()
 	router.Use(GinOopsRecovery())
 	router.GET("/panic-error", func(c *gin.Context) {
@@ -66,6 +72,8 @@ func TestGinOopsRecovery_PanicWithError(t *testing.T) {
 }
 
 func TestGinOopsRecovery_PanicWithInt(t *testing.T) {
+	t.Parallel()
+
 	router := gin.New()
 	router.Use(GinOopsRecovery())
 	router.GET("/panic-int", func(c *gin.Context) {
@@ -82,6 +90,8 @@ func TestGinOopsRecovery_PanicWithInt(t *testing.T) {
 }
 
 func TestGinOopsRecovery_ErrorAddedToContext(t *testing.T) {
+	t.Parallel()
+
 	// The error-capturing middleware must be registered BEFORE GinOopsRecovery()
 	// so that when it resumes after c.Next() returns, GinOopsRecovery has already
 	// added the error to c.Errors.
@@ -112,6 +122,8 @@ func TestGinOopsRecovery_ErrorAddedToContext(t *testing.T) {
 }
 
 func TestGinOopsRecovery_NoPanicDoesNotAbort(t *testing.T) {
+	t.Parallel()
+
 	router := gin.New()
 	router.Use(GinOopsRecovery())
 
