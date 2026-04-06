@@ -23,7 +23,7 @@ func resetGoPathDirsCache() {
 	goPathDirs = nil
 }
 
-func TestRemoveGoPath(t *testing.T) {
+func TestRemoveGoPath(t *testing.T) { //nolint:paralleltest
 	is := assert.New(t)
 
 	// This test mutates os.Setenv("GOPATH") and the package-level cache, so it

@@ -214,9 +214,9 @@ func newStacktrace(span string) *oopsStacktrace {
 
 		// Apply frame filtering logic
 		isGoPkg := len(goroot) > 0 && strings.Contains(file, goroot) // skip frames in GOROOT if it's set
-		isOopsPkg := strings.Contains(file, packageName)              // skip frames in this package
-		isExamplePkg := strings.Contains(file, packageNameExamples)   // do not skip frames in this package examples
-		isTestPkg := strings.Contains(file, "_test.go")               // do not skip frames in tests
+		isOopsPkg := strings.Contains(file, packageName)             // skip frames in this package
+		isExamplePkg := strings.Contains(file, packageNameExamples)  // do not skip frames in this package examples
+		isTestPkg := strings.Contains(file, "_test.go")              // do not skip frames in tests
 
 		// Include frame if it passes all filtering criteria
 		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) {
@@ -278,7 +278,7 @@ func shortFuncName(longName string) string {
 }
 
 func framesToStacktraceBlocks(blocks []lo.Tuple3[error, string, []oopsStacktraceFrame]) []string {
-	output := []string{}
+	output := make([]string, 0, len(blocks))
 	shownFrames := make(map[string]bool)
 
 	for _, e := range blocks {

@@ -9,9 +9,11 @@ import (
 )
 
 func TestReadFileWithCache(t *testing.T) {
+	t.Parallel()
+
 	_, currentFile, _, _ := runtime.Caller(0)
 
-	t.Run("CacheMiss", func(t *testing.T) {
+	t.Run("CacheMiss", func(t *testing.T) { //nolint:paralleltest
 		// Ensure a clean cache before the test
 		mutex.Lock()
 		delete(cache, currentFile)
@@ -26,10 +28,10 @@ func TestReadFileWithCache(t *testing.T) {
 		lines, ok := readFileWithCache(currentFile)
 		assert.True(t, ok)
 		assert.NotNil(t, lines)
-		assert.Greater(t, len(lines), 0)
+		assert.NotEmpty(t, lines)
 	})
 
-	t.Run("CacheHit", func(t *testing.T) {
+	t.Run("CacheHit", func(t *testing.T) { //nolint:paralleltest
 		// Pre-populate cache
 		mutex.Lock()
 		cache[currentFile] = []string{"line1", "line2"}
@@ -62,7 +64,7 @@ func TestReadFileWithCache(t *testing.T) {
 		assert.Nil(t, lines)
 	})
 
-	t.Run("ContentCorrectness", func(t *testing.T) {
+	t.Run("ContentCorrectness", func(t *testing.T) { //nolint:paralleltest
 		// Ensure a clean cache for this file path
 		mutex.Lock()
 		delete(cache, currentFile)
@@ -94,9 +96,11 @@ func TestReadFileWithCache(t *testing.T) {
 }
 
 func TestGetSourceFromFrame(t *testing.T) {
+	t.Parallel()
+
 	_, currentFile, currentLine, _ := runtime.Caller(0)
 
-	t.Run("ValidFrame", func(t *testing.T) {
+	t.Run("ValidFrame", func(t *testing.T) { //nolint:paralleltest
 		t.Cleanup(func() {
 			mutex.Lock()
 			cache = map[string][]string{}
@@ -124,7 +128,7 @@ func TestGetSourceFromFrame(t *testing.T) {
 		assert.True(t, found, "expected source context to include the line with runtime.Caller")
 	})
 
-	t.Run("OutOfBoundsLine", func(t *testing.T) {
+	t.Run("OutOfBoundsLine", func(t *testing.T) { //nolint:paralleltest
 		t.Cleanup(func() {
 			mutex.Lock()
 			cache = map[string][]string{}
@@ -156,7 +160,7 @@ func TestGetSourceFromFrame(t *testing.T) {
 		assert.Empty(t, result)
 	})
 
-	t.Run("TabCharacterHandling", func(t *testing.T) {
+	t.Run("TabCharacterHandling", func(t *testing.T) { //nolint:paralleltest
 		// Inject a fake file with a tab-indented line into the cache
 		fakeFile := "/fake/tab_test_file.go"
 		fakeLines := []string{

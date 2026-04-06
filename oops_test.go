@@ -1390,7 +1390,7 @@ func TestOopsAutoTraceID(t *testing.T) { //nolint:paralleltest
 // TestSourceCacheConcurrency exercises the sync.RWMutex protecting the global
 // source-file cache in sources.go by creating errors from many goroutines
 // simultaneously.
-func TestSourceCacheConcurrency(t *testing.T) {
+func TestSourceCacheConcurrency(t *testing.T) { //nolint:paralleltest
 	// NOTE: intentionally not calling t.Parallel() — the goroutine fan-out below
 	// already provides the concurrency we want to stress-test.
 	const goroutines = 50
@@ -1407,7 +1407,7 @@ func TestSourceCacheConcurrency(t *testing.T) {
 	wg.Wait()
 
 	for _, err := range errs {
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 	}
 }
 
@@ -1505,7 +1505,7 @@ func TestOopsJoinAttributePropagation(t *testing.T) {
 	err2 := In("service2").With("key2", "val2").Errorf("error 2")
 
 	joined := Join(err1, err2)
-	is.NotNil(joined)
+	is.Error(joined)
 
 	oopsErr, ok := AsOops(joined)
 	is.True(ok)
@@ -1543,10 +1543,10 @@ func TestOopsJoinNilHandling(t *testing.T) {
 	// Join with some nil errors — the non-nil error should be preserved.
 	err1 := New("real error")
 	result := Join(nil, err1, nil)
-	is.NotNil(result)
+	is.Error(result)
 	is.Contains(result.Error(), "real error")
 
 	// All-nil join delegates to errors.Join which returns nil.
 	result2 := Join(nil, nil)
-	is.Nil(result2)
+	is.NoError(result2)
 }
