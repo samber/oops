@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -514,15 +515,8 @@ func (o OopsErrorBuilder) Owner(owner string) OopsErrorBuilder {
 func (o OopsErrorBuilder) User(userID string, userData ...any) OopsErrorBuilder {
 	o2 := o.copy()
 	o2.userID = userID
-
-	// Process user data key-value pairs
-	for i := 0; i < len(userData); i += 2 {
-		if i+1 < len(userData) {
-			key, ok := userData[i].(string)
-			if ok {
-				o2.userData[key] = userData[i+1]
-			}
-		}
+	for key, value := range identityArgsToMap(userData) {
+		o2.userData[key] = value
 	}
 
 	return o2
@@ -537,18 +531,86 @@ func (o OopsErrorBuilder) User(userID string, userData ...any) OopsErrorBuilder 
 func (o OopsErrorBuilder) Tenant(tenantID string, tenantData ...any) OopsErrorBuilder {
 	o2 := o.copy()
 	o2.tenantID = tenantID
-
-	// Process tenant data key-value pairs
-	for i := 0; i < len(tenantData); i += 2 {
-		if i+1 < len(tenantData) {
-			key, ok := tenantData[i].(string)
-			if ok {
-				o2.tenantData[key] = tenantData[i+1]
-			}
-		}
+	for key, value := range identityArgsToMap(tenantData) {
+		o2.tenantData[key] = value
 	}
 
 	return o2
+}
+
+const badKey = "!BADKEY"
+
+// identityArgsToMap converts variadic user/tenant arguments into a flat map.
+//
+// Supported inputs:
+//   - slog.Attr values
+//   - map[string]any values
+//   - alternating string key/value pairs
+//
+// Malformed values are stored under "!BADKEY", mirroring log/slog argsToAttr.
+func identityArgsToMap(args []any) map[string]any {
+	payload := map[string]any{}
+
+	for len(args) > 0 {
+		switch value := args[0].(type) {
+		case slog.Attr:
+			payload[value.Key] = slogValueToAny(value.Value)
+			args = args[1:]
+		case map[string]any:
+			for key, mapValue := range value {
+				payload[key] = mapValue
+			}
+			args = args[1:]
+		case string:
+			if len(args) == 1 {
+				payload[badKey] = value
+				return payload
+			}
+
+			payload[value] = args[1]
+			args = args[2:]
+		default:
+			payload[badKey] = value
+			args = args[1:]
+		}
+	}
+
+	return payload
+}
+
+// slogValueToAny converts a slog.Value into its resolved Go representation.
+//
+// Group values are converted recursively into map[string]any so they can be
+// stored in user/tenant payload maps.
+func slogValueToAny(value slog.Value) any {
+	value = value.Resolve()
+
+	switch value.Kind() {
+	case slog.KindString:
+		return value.String()
+	case slog.KindInt64:
+		return value.Int64()
+	case slog.KindUint64:
+		return value.Uint64()
+	case slog.KindFloat64:
+		return value.Float64()
+	case slog.KindBool:
+		return value.Bool()
+	case slog.KindDuration:
+		return value.Duration()
+	case slog.KindTime:
+		return value.Time()
+	case slog.KindGroup:
+		group := map[string]any{}
+		for _, attr := range value.Group() {
+			group[attr.Key] = slogValueToAny(attr.Value)
+		}
+		return group
+	case slog.KindLogValuer:
+		return slogValueToAny(value.LogValuer().LogValue())
+	default:
+		return value.Any()
+	}
 }
 
 // Request adds HTTP request information to the error context.
