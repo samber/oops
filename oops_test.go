@@ -1126,6 +1126,11 @@ func TestOopsMainFunctions(t *testing.T) { //nolint:paralleltest
 	err8 := Trace("test_trace").Wrap(assert.AnError)
 	is.Error(err8)
 	is.Equal("test_trace", err8.(OopsError).Trace())
+	// Trace() must be idempotent: calling it multiple times without an explicit
+	// trace must return the same auto-generated value every time.
+	errNoTrace := Wrap(assert.AnError)
+	is.NotEmpty(errNoTrace.(OopsError).Trace())
+	is.Equal(errNoTrace.(OopsError).Trace(), errNoTrace.(OopsError).Trace())
 	// Test Span function
 	err9 := Span("test_span").Wrap(assert.AnError)
 	is.Error(err9)
@@ -1171,4 +1176,205 @@ func TestOopsMainFunctions(t *testing.T) { //nolint:paralleltest
 	err17 := Response(resp, false).Wrap(assert.AnError)
 	is.Error(err17)
 	is.Equal(resp, err17.(OopsError).Response())
+}
+
+func TestOopsTrace(t *testing.T) {
+	is := assert.New(t)
+	t.Parallel()
+
+	// --- Single OopsError: auto-generated trace ---
+
+	// Each constructor without explicit Trace() must produce a non-empty trace.
+	errNew := New("msg")
+	is.NotEmpty(errNew.(OopsError).Trace())
+
+	errErrorf := Errorf("msg")
+	is.NotEmpty(errErrorf.(OopsError).Trace())
+
+	errWrap := Wrap(assert.AnError)
+	is.NotEmpty(errWrap.(OopsError).Trace())
+
+	errWrapf := Wrapf(assert.AnError, "msg")
+	is.NotEmpty(errWrapf.(OopsError).Trace())
+
+	// --- Single OopsError: explicit trace ---
+
+	// Each constructor with explicit Trace() must return that exact value.
+	errNewExplicit := Trace("explicit-new").New("msg")
+	is.Equal("explicit-new", errNewExplicit.(OopsError).Trace())
+
+	errErrorfExplicit := Trace("explicit-errorf").Errorf("msg")
+	is.Equal("explicit-errorf", errErrorfExplicit.(OopsError).Trace())
+
+	errWrapExplicit := Trace("explicit-wrap").Wrap(assert.AnError)
+	is.Equal("explicit-wrap", errWrapExplicit.(OopsError).Trace())
+
+	errWrapfExplicit := Trace("explicit-wrapf").Wrapf(assert.AnError, "msg")
+	is.Equal("explicit-wrapf", errWrapfExplicit.(OopsError).Trace())
+
+	// --- Idempotency ---
+
+	// Calling Trace() multiple times on the same error must return the same value.
+	idempErr := Errorf("msg")
+	t1 := idempErr.(OopsError).Trace()
+	t2 := idempErr.(OopsError).Trace()
+	t3 := idempErr.(OopsError).Trace()
+	is.NotEmpty(t1)
+	is.Equal(t1, t2)
+	is.Equal(t1, t3)
+
+	// --- OopsError → OopsError chains ---
+
+	// Inner OopsError has no explicit trace; outer has no explicit trace.
+	// Both get auto-generated traces; deepest (inner) is returned.
+	inner := Errorf("inner")
+	outer := Wrap(inner)
+	innerTrace := inner.(OopsError).Trace()
+	is.NotEmpty(innerTrace)
+	is.Equal(innerTrace, outer.(OopsError).Trace())
+
+	// Outer has explicit trace; inner has no trace → explicit wins.
+	inner2 := Errorf("inner")
+	outer2 := Trace("traceA").Wrap(inner2)
+	is.Equal("traceA", outer2.(OopsError).Trace())
+
+	// Inner has explicit trace; outer has no explicit trace → deepest explicit wins.
+	inner3 := Trace("traceA").Errorf("inner")
+	outer3 := Wrap(inner3)
+	is.Equal("traceA", outer3.(OopsError).Trace())
+
+	// THE KEY CASE: outer has explicit trace, inner has auto-generated trace.
+	// Explicit must always beat auto-generated, regardless of depth.
+	inner4 := Errorf("inner") // auto-generated trace
+	outer4 := Trace("my-explicit-id").Wrap(inner4)
+	is.Equal("my-explicit-id", outer4.(OopsError).Trace())
+
+	// Both have explicit traces → deepest explicit wins.
+	inner5 := Trace("traceB").Errorf("inner")
+	outer5 := Trace("traceA").Wrap(inner5)
+	is.Equal("traceB", outer5.(OopsError).Trace())
+
+	// Three levels deep: middle has explicit trace.
+	innermost := Errorf("innermost")
+	middle := Trace("mid-trace").Wrap(innermost)
+	outermost := Wrap(middle)
+	is.Equal("mid-trace", outermost.(OopsError).Trace())
+
+	// --- Through standard errors (OopsError → error → OopsError) ---
+
+	// Outer OopsError wraps a plain error which wraps an inner OopsError with explicit trace.
+	innerOops := Trace("deep-trace").Errorf("inner")
+	stdErr := fmt.Errorf("wrapped: %w", innerOops)
+	outerOops := Wrap(stdErr)
+	is.Equal("deep-trace", outerOops.(OopsError).Trace())
+
+	// Inner OopsError has auto trace; outer OopsError has explicit trace.
+	innerOops2 := Errorf("inner") // auto-generated
+	stdErr2 := fmt.Errorf("wrapped: %w", innerOops2)
+	outerOops2 := Trace("outer-trace").Wrap(stdErr2)
+	is.Equal("outer-trace", outerOops2.(OopsError).Trace())
+
+	// All auto-generated through a plain error — result must be non-empty.
+	innerOops3 := Errorf("inner")
+	stdErr3 := fmt.Errorf("wrapped: %w", innerOops3)
+	outerOops3 := Wrap(stdErr3)
+	is.NotEmpty(outerOops3.(OopsError).Trace())
+
+	// plain error → OopsError with explicit trace.
+	outerOops4 := Trace("only-trace").Wrap(assert.AnError)
+	is.Equal("only-trace", outerOops4.(OopsError).Trace())
+
+	// --- Recover / Recoverf ---
+
+	recoveredExplicit := Trace("recover-trace").Recover(func() {
+		panic("oops")
+	})
+	is.Equal("recover-trace", recoveredExplicit.(OopsError).Trace())
+
+	recoveredAuto := Recover(func() {
+		panic("oops")
+	})
+	is.NotEmpty(recoveredAuto.(OopsError).Trace())
+
+	recoveredfExplicit := Trace("recoverf-trace").Recoverf(func() {
+		panic("oops")
+	}, "context: %s", "test")
+	is.Equal("recoverf-trace", recoveredfExplicit.(OopsError).Trace())
+
+	recoveredfAuto := Recoverf(func() {
+		panic("oops")
+	}, "context: %s", "test")
+	is.NotEmpty(recoveredfAuto.(OopsError).Trace())
+}
+
+func TestOopsAutoTraceID(t *testing.T) {
+	// NOTE: do NOT call t.Parallel() — this test mutates the global AutoTraceID.
+	is := assert.New(t)
+
+	t.Cleanup(func() { AutoTraceID = true })
+	AutoTraceID = false
+
+	// --- AutoTraceID=false: no trace generated by any constructor ---
+
+	is.Empty(New("msg").(OopsError).Trace())
+	is.Empty(Errorf("msg").(OopsError).Trace())
+	is.Empty(Wrap(assert.AnError).(OopsError).Trace())
+	is.Empty(Wrapf(assert.AnError, "msg").(OopsError).Trace())
+
+	// Trace() must be stable (idempotent) even when empty.
+	errNoTrace := Errorf("msg")
+	is.Empty(errNoTrace.(OopsError).Trace())
+	is.Equal(errNoTrace.(OopsError).Trace(), errNoTrace.(OopsError).Trace())
+
+	// --- AutoTraceID=false: explicit trace still honoured ---
+
+	is.Equal("explicit", Trace("explicit").New("msg").(OopsError).Trace())
+	is.Equal("explicit", Trace("explicit").Errorf("msg").(OopsError).Trace())
+	is.Equal("explicit", Trace("explicit").Wrap(assert.AnError).(OopsError).Trace())
+	is.Equal("explicit", Trace("explicit").Wrapf(assert.AnError, "msg").(OopsError).Trace())
+
+	// --- AutoTraceID=false: chains with no explicit trace produce empty string ---
+
+	inner := Errorf("inner")
+	outer := Wrap(inner)
+	is.Empty(outer.(OopsError).Trace())
+
+	// --- AutoTraceID=false: explicit trace in chain still wins ---
+
+	// Outer explicit, inner has no trace.
+	inner2 := Errorf("inner")
+	outer2 := Trace("traceA").Wrap(inner2)
+	is.Equal("traceA", outer2.(OopsError).Trace())
+
+	// Inner explicit, outer has no trace.
+	inner3 := Trace("traceA").Errorf("inner")
+	outer3 := Wrap(inner3)
+	is.Equal("traceA", outer3.(OopsError).Trace())
+
+	// Both explicit → deepest wins.
+	inner4 := Trace("inner-trace").Errorf("inner")
+	outer4 := Trace("outer-trace").Wrap(inner4)
+	is.Equal("inner-trace", outer4.(OopsError).Trace())
+
+	// --- AutoTraceID=false: Recover / Recoverf ---
+
+	recoveredNoTrace := Recover(func() { panic("oops") })
+	is.Empty(recoveredNoTrace.(OopsError).Trace())
+
+	recoveredExplicit := Trace("recover-trace").Recover(func() { panic("oops") })
+	is.Equal("recover-trace", recoveredExplicit.(OopsError).Trace())
+
+	recoveredfNoTrace := Recoverf(func() { panic("oops") }, "ctx")
+	is.Empty(recoveredfNoTrace.(OopsError).Trace())
+
+	recoveredfExplicit := Trace("recoverf-trace").Recoverf(func() { panic("oops") }, "ctx")
+	is.Equal("recoverf-trace", recoveredfExplicit.(OopsError).Trace())
+
+	// --- Re-enable and verify normal behaviour is restored ---
+
+	AutoTraceID = true
+	is.NotEmpty(New("msg").(OopsError).Trace())
+	is.NotEmpty(Errorf("msg").(OopsError).Trace())
+	is.NotEmpty(Wrap(assert.AnError).(OopsError).Trace())
+	is.NotEmpty(Wrapf(assert.AnError, "msg").(OopsError).Trace())
 }
