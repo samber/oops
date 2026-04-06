@@ -10,14 +10,14 @@ import (
 
 func BenchmarkNew(b *testing.B) {
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oops.New("an error")
 	}
 }
 
 func BenchmarkErrorfSimple(b *testing.B) {
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oops.Errorf("an error: %s", "details")
 	}
 }
@@ -25,7 +25,7 @@ func BenchmarkErrorfSimple(b *testing.B) {
 func BenchmarkErrorfWrap(b *testing.B) {
 	inner := errors.New("inner")
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oops.Wrapf(inner, "wrapped")
 	}
 }
@@ -33,7 +33,7 @@ func BenchmarkErrorfWrap(b *testing.B) {
 func BenchmarkWrap(b *testing.B) {
 	inner := errors.New("inner")
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oops.Wrap(inner)
 	}
 }
@@ -41,7 +41,7 @@ func BenchmarkWrap(b *testing.B) {
 func BenchmarkWrapf(b *testing.B) {
 	inner := errors.New("inner")
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oops.Wrapf(inner, "context: %s", "details")
 	}
 }
@@ -49,7 +49,7 @@ func BenchmarkWrapf(b *testing.B) {
 func BenchmarkBuilderWithContext(b *testing.B) {
 	inner := errors.New("inner")
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oops.
 			In("database").
 			Code("db_error").
@@ -71,7 +71,7 @@ func BenchmarkChainTraversal(b *testing.B) {
 
 	b.ResetTimer()
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oopsErr.Domain()
 		_ = oopsErr.Context()
 		_ = oopsErr.Trace()
@@ -92,21 +92,21 @@ func BenchmarkToMap(b *testing.B) {
 
 	b.ResetTimer()
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oopsErr.ToMap()
 	}
 }
 
 func BenchmarkWrapNil(b *testing.B) {
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oops.Wrap(nil)
 	}
 }
 
 func BenchmarkNewStacktrace(b *testing.B) {
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oops.New("an error") // New() captures stacktrace, good proxy
 	}
 }
@@ -123,7 +123,7 @@ func BenchmarkLogValue(b *testing.B) {
 	oopsErr, _ := oops.AsOops(err)
 	b.ResetTimer()
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oopsErr.LogValue()
 	}
 }
@@ -139,7 +139,7 @@ func BenchmarkMarshalJSON(b *testing.B) {
 	oopsErr, _ := oops.AsOops(err)
 	b.ResetTimer()
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_, _ = oopsErr.MarshalJSON()
 	}
 }
@@ -157,7 +157,7 @@ func BenchmarkErrorDeepChain(b *testing.B) {
 	oopsErr, _ := oops.AsOops(err)
 	b.ResetTimer()
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oopsErr.Error()
 	}
 }
@@ -169,7 +169,7 @@ func BenchmarkReflectionPaths(b *testing.B) {
 	oopsErr, _ := oops.AsOops(err)
 	b.ResetTimer()
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oopsErr.Context()
 	}
 }
@@ -179,14 +179,14 @@ func BenchmarkJoin(b *testing.B) {
 	err2 := oops.In("service2").Errorf("error 2")
 	b.ResetTimer()
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oops.Join(err1, err2)
 	}
 }
 
 func BenchmarkRecover(b *testing.B) {
 	b.ReportAllocs()
-	for b.Loop() {
+	for i := 0; i < b.N; i++ {
 		_ = oops.Recover(func() { panic("test panic") })
 	}
 }
