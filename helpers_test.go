@@ -3,6 +3,7 @@ package oops
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"testing"
 
@@ -64,4 +65,44 @@ func TestAsError(t *testing.T) {
 	// Nil error returns false
 	_, ok = AsError[OopsError](nil)
 	is.False(ok)
+}
+
+// https://github.com/samber/oops/issues/95
+func TestErrorsIsSemanticsWithOopsErrorTargets(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no_panic_when_target_is_non_comparable_oops_error", func(t *testing.T) {
+		t.Parallel()
+
+		base := New("base")
+		wrapped := With("k", "v").Wrap(base)
+
+		defer func() {
+			if r := recover(); r != nil {
+				t.Fatalf("errors.Is panicked: %v", r)
+			}
+		}()
+
+		_ = errors.Is(wrapped, base)
+	})
+
+	t.Run("oops_error_is_reflexive", func(t *testing.T) {
+		t.Parallel()
+
+		err := New("boom")
+		if !errors.Is(err, err) {
+			t.Fatalf("expected errors.Is(err, err) to be true")
+		}
+	})
+
+	t.Run("different_oops_errors_should_not_match_each_other_even_if_same_cause", func(t *testing.T) {
+		t.Parallel()
+
+		err1 := Wrap(io.EOF)
+		err2 := With("ctx", "x").Wrap(io.EOF)
+
+		if errors.Is(err1, err2) || errors.Is(err2, err1) {
+			t.Fatalf("expected errors.Is to be false between distinct oops errors; got true")
+		}
+	})
 }
