@@ -121,7 +121,7 @@ func (o OopsError) Error() string {
 			return o.err.Error()
 		}
 
-		return fmt.Sprintf("%s: %s", o.msg, o.err.Error())
+		return o.msg + ": " + o.err.Error()
 	}
 
 	return o.msg
@@ -185,7 +185,7 @@ func (o OopsError) Domain() string {
 // Tags returns all unique tags from the error chain.
 // Tags are merged from all errors in the chain and deduplicated.
 func (o OopsError) Tags() []string {
-	tags := []string{}
+	tags := make([]string, 0, 8) // reasonable initial capacity for tags
 
 	recursive(o, func(e OopsError) bool {
 		tags = append(tags, e.tags...)
@@ -474,7 +474,8 @@ func (o OopsError) LogValuer() slog.Value {
 // This method implements the slog.LogValuer interface and provides a flattened
 // representation of the error's context and metadata suitable for logging systems.
 func (o OopsError) LogValue() slog.Value { //nolint:gocyclo
-	attrs := []slog.Attr{slog.String("message", o.msg)}
+	attrs := make([]slog.Attr, 0, 16)
+	attrs = append(attrs, slog.String("message", o.msg))
 
 	if err := o.Error(); err != "" {
 		attrs = append(attrs, slog.String("err", err))
@@ -740,7 +741,7 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 	}
 
 	// if span := o.Span(); span != "" {
-	// 	_, _ = fmt.Fprintf(&output,"Span: %s\n", span)
+	// 	_, _ = fmt.Fprintf(&output, "Span: %s\n", span)
 	// }
 
 	if hint := o.Hint(); hint != "" {

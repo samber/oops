@@ -183,8 +183,8 @@ func getSourceFromFrame(frame oopsStacktraceFrame) []string {
 			firstCharIndex := lenLeadingSpaces + (8-1)*nbrTabs // 8 chars per tab
 
 			// Create the visual indicator line
-			sublinePrefix := string(lo.RepeatBy(firstCharIndex, func(_ int) byte { return ' ' }))
-			subline := string(lo.RepeatBy(lenWithoutLeadingSpaces, func(_ int) byte { return '^' }))
+			sublinePrefix := strings.Repeat(" ", firstCharIndex)
+			subline := strings.Repeat("^", lenWithoutLeadingSpaces)
 			output = append(output, "\t"+sublinePrefix+subline)
 		}
 	}

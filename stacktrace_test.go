@@ -80,12 +80,12 @@ func TestShortFuncNameExtended(t *testing.T) {
 	f := runtime.FuncForPC(pc)
 	is.NotNil(f)
 
-	result := shortFuncName(f)
+	result := shortFuncName(f.Name())
 	is.NotEmpty(result)
 	is.Contains(result, "TestShortFuncNameExtended")
 
-	// Test with nil function
-	result2 := shortFuncName(nil)
+	// Test with empty function name
+	result2 := shortFuncName("")
 	is.Empty(result2)
 }
 

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -1384,4 +1385,168 @@ func TestOopsAutoTraceID(t *testing.T) { //nolint:paralleltest
 	is.NotEmpty(Errorf("msg").(OopsError).Trace())
 	is.NotEmpty(Wrap(assert.AnError).(OopsError).Trace())
 	is.NotEmpty(Wrapf(assert.AnError, "msg").(OopsError).Trace())
+}
+
+// TestSourceCacheConcurrency exercises the sync.RWMutex protecting the global
+// source-file cache in sources.go by creating errors from many goroutines
+// simultaneously.
+func TestSourceCacheConcurrency(t *testing.T) { //nolint:paralleltest
+	// NOTE: intentionally not calling t.Parallel() — the goroutine fan-out below
+	// already provides the concurrency we want to stress-test.
+	const goroutines = 50
+	var wg sync.WaitGroup
+	errs := make([]error, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			errs[i] = New("concurrent error")
+		}(i)
+	}
+	wg.Wait()
+
+	for _, err := range errs {
+		assert.Error(t, err)
+	}
+}
+
+// TestOopsToMap verifies the full output shape of ToMap() when all fields are
+// populated.
+func TestOopsToMap(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	req, _ := http.NewRequest("GET", "http://example.com/test", nil)
+
+	err := Code("test_code").
+		In("test_domain").
+		Tags("tag1", "tag2").
+		With("key1", "value1", "key2", 42).
+		Trace("test-trace-id").
+		Hint("check the logs").
+		Public("user-facing message").
+		Owner("team-a").
+		User("user-123", "name", "Alice").
+		Tenant("tenant-456", "plan", "pro").
+		Request(req, false).
+		Errorf("something failed")
+
+	oopsErr, ok := AsOops(err)
+	is.True(ok)
+
+	m := oopsErr.ToMap()
+
+	is.Equal("something failed", m["error"])
+	is.Equal("test_code", m["code"])
+	is.Equal("test_domain", m["domain"])
+	is.Equal([]string{"tag1", "tag2"}, m["tags"])
+	is.Equal("test-trace-id", m["trace"])
+	is.Equal("check the logs", m["hint"])
+	is.Equal("user-facing message", m["public"])
+	is.Equal("team-a", m["owner"])
+
+	// context
+	ctx, ok := m["context"].(map[string]any)
+	is.True(ok)
+	is.Equal("value1", ctx["key1"])
+	is.Equal(42, ctx["key2"])
+
+	// user
+	user, ok := m["user"].(map[string]any)
+	is.True(ok)
+	is.Equal("user-123", user["id"])
+	is.Equal("Alice", user["name"])
+
+	// tenant
+	tenant, ok := m["tenant"].(map[string]any)
+	is.True(ok)
+	is.Equal("tenant-456", tenant["id"])
+	is.Equal("pro", tenant["plan"])
+
+	// request should be present (we passed a real req)
+	is.NotEmpty(m["request"])
+
+	// stacktrace should be present
+	is.NotEmpty(m["stacktrace"])
+}
+
+// TestOopsToMapEmpty verifies that nil/empty fields are omitted from ToMap().
+func TestOopsToMapEmpty(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	err := New("minimal error")
+	oopsErr, ok := AsOops(err)
+	is.True(ok)
+
+	m := oopsErr.ToMap()
+	is.NotEmpty(m["error"])
+	is.NotContains(m, "code")
+	is.NotContains(m, "domain")
+	is.NotContains(m, "tags")
+	is.NotContains(m, "hint")
+	is.NotContains(m, "public")
+	is.NotContains(m, "owner")
+	is.NotContains(m, "context")
+	is.NotContains(m, "user")
+	is.NotContains(m, "tenant")
+	is.NotContains(m, "request")
+	is.NotContains(m, "response")
+}
+
+// TestOopsJoinAttributePropagation tests Join() for attributes beyond tags.
+func TestOopsJoinAttributePropagation(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Join errors with different contexts.
+	err1 := In("service1").With("key1", "val1").Trace("trace-1").Errorf("error 1")
+	err2 := In("service2").With("key2", "val2").Errorf("error 2")
+
+	joined := Join(err1, err2)
+	is.Error(joined)
+
+	oopsErr, ok := AsOops(joined)
+	is.True(ok)
+
+	// AsOops uses errors.As, which finds the outermost OopsError — the Join
+	// wrapper itself.  The Join wrapper's err field holds a *joinError
+	// (from errors.Join) whose first child is err1.  recursive() walks the
+	// linear parent→child chain via AsOops(err.err), so it reaches err1 and
+	// its attributes.
+	//
+	// Domain() walks the chain and returns the deepest non-empty domain; it
+	// finds "service1" from err1.
+	domain := oopsErr.Domain()
+	is.Equal("service1", domain)
+
+	// Trace from the explicit Trace("trace-1") on err1 should be reachable.
+	is.Equal("trace-1", oopsErr.Trace())
+
+	// Context from err1 is reachable via the linear chain; err2 is a sibling
+	// under the joinError and is NOT reachable through the linear walk.
+	ctx := oopsErr.Context()
+	is.NotNil(ctx)
+	is.Equal("val1", ctx["key1"])
+	// key2 is in err2 (sibling, not in the linear chain) — not reachable.
+	_, hasKey2 := ctx["key2"]
+	is.False(hasKey2)
+}
+
+// TestOopsJoinNilHandling verifies Join() behaves correctly when nil errors are
+// mixed in.
+func TestOopsJoinNilHandling(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Join with some nil errors — the non-nil error should be preserved.
+	err1 := New("real error")
+	result := Join(nil, err1, nil)
+	is.Error(result)
+	is.Contains(result.Error(), "real error")
+
+	// All-nil join delegates to errors.Join which returns nil.
+	result2 := Join(nil, nil)
+	is.NoError(result2)
 }

@@ -20,6 +20,12 @@ import (
 	"strings"
 )
 
+var goPathDirs = func() []string {
+	dirs := filepath.SplitList(os.Getenv("GOPATH"))
+	sort.Stable(longestFirst(dirs))
+	return dirs
+}()
+
 // removeGoPath makes a file path relative to one of the src directories
 // in the $GOPATH environment variable, making stacktraces more readable
 // and portable across different development environments.
@@ -53,32 +59,17 @@ import (
 //	clean := removeGoPath(path)
 //	// Result: "/usr/local/bin/program" (unchanged)
 func removeGoPath(path string) string {
-	// Get all GOPATH entries and split them into individual directories
-	dirs := filepath.SplitList(os.Getenv("GOPATH"))
+	return removeGoPathDirs(path, goPathDirs)
+}
 
-	// Sort directories in decreasing order by length so the longest
-	// matching prefix is removed first. This ensures that if a path
-	// matches multiple GOPATH entries, it's made relative to the
-	// most specific (longest) one.
-	sort.Stable(longestFirst(dirs))
-
-	// Check each GOPATH directory for a match
+func removeGoPathDirs(path string, dirs []string) string {
 	for _, dir := range dirs {
-		// Construct the src directory path for this GOPATH entry
 		srcdir := filepath.Join(dir, "src")
-
-		// Try to make the path relative to this src directory
 		rel, err := filepath.Rel(srcdir, path)
-
-		// filepath.Rel can traverse parent directories (using ".."), which
-		// we don't want. We only want paths that are actually within the
-		// src directory structure.
 		if err == nil && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 			return rel
 		}
 	}
-
-	// If no GOPATH match is found, return the original path unchanged
 	return path
 }
 

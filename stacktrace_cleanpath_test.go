@@ -7,17 +7,16 @@ package oops
 ///
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRemoveGoPath(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
+
+	is := assert.New(t)
 
 	for _, testcase := range []struct {
 		gopath   []string
@@ -55,11 +54,10 @@ func TestRemoveGoPath(t *testing.T) {
 			expected: "pkg/prog.go",
 		},
 	} {
-		gopath := strings.Join(testcase.gopath, string(filepath.ListSeparator))
-		err := os.Setenv("GOPATH", gopath)
-		is.NoError(err, "error setting gopath")
-
-		cleaned := removeGoPath(testcase.path)
+		dirs := make([]string, len(testcase.gopath))
+		copy(dirs, testcase.gopath)
+		sort.Stable(longestFirst(dirs))
+		cleaned := removeGoPathDirs(testcase.path, dirs)
 		is.Equal(testcase.expected, cleaned, "testcase: %+v", testcase)
 	}
 }

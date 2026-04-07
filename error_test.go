@@ -54,7 +54,7 @@ func TestErrorsAs(t *testing.T) {
 	var anError error = &fs.PathError{Err: fs.ErrExist}
 	var target *fs.PathError
 
-	err := Errorf("error: %w", anError)
+	err := Errorf("Error: %w", anError)
 	is.ErrorAs(err, &target)
 
 	err = Wrap(anError)
