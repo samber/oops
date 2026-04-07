@@ -18,39 +18,13 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
 )
 
-var (
-	goPathDirsMu     sync.RWMutex
-	goPathDirsCached string
-	goPathDirs       []string
-)
-
-// cachedGoPathDirs returns a sorted (longest-first) slice of GOPATH entries.
-// The result is cached and invalidated automatically when GOPATH changes,
-// so tests that mutate GOPATH via os.Setenv do not need to reset any state.
-func cachedGoPathDirs() []string {
-	current := os.Getenv("GOPATH")
-
-	goPathDirsMu.RLock()
-	if goPathDirsCached == current {
-		dirs := goPathDirs
-		goPathDirsMu.RUnlock()
-		return dirs
-	}
-	goPathDirsMu.RUnlock()
-
-	goPathDirsMu.Lock()
-	defer goPathDirsMu.Unlock()
-	if goPathDirsCached != current {
-		dirs := filepath.SplitList(current)
-		sort.Stable(longestFirst(dirs))
-		goPathDirsCached = current
-		goPathDirs = dirs
-	}
-	return goPathDirs
-}
+var goPathDirs = func() []string {
+	dirs := filepath.SplitList(os.Getenv("GOPATH"))
+	sort.Stable(longestFirst(dirs))
+	return dirs
+}()
 
 // removeGoPath makes a file path relative to one of the src directories
 // in the $GOPATH environment variable, making stacktraces more readable
@@ -85,23 +59,17 @@ func cachedGoPathDirs() []string {
 //	clean := removeGoPath(path)
 //	// Result: "/usr/local/bin/program" (unchanged)
 func removeGoPath(path string) string {
-	// Check each GOPATH directory for a match, using cached sorted dirs.
-	for _, dir := range cachedGoPathDirs() {
-		// Construct the src directory path for this GOPATH entry
+	return removeGoPathDirs(path, goPathDirs)
+}
+
+func removeGoPathDirs(path string, dirs []string) string {
+	for _, dir := range dirs {
 		srcdir := filepath.Join(dir, "src")
-
-		// Try to make the path relative to this src directory
 		rel, err := filepath.Rel(srcdir, path)
-
-		// filepath.Rel can traverse parent directories (using ".."), which
-		// we don't want. We only want paths that are actually within the
-		// src directory structure.
 		if err == nil && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 			return rel
 		}
 	}
-
-	// If no GOPATH match is found, return the original path unchanged
 	return path
 }
 

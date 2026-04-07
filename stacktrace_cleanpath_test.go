@@ -7,25 +7,16 @@ package oops
 ///
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRemoveGoPath(t *testing.T) { //nolint:paralleltest
-	is := assert.New(t)
+func TestRemoveGoPath(t *testing.T) {
+	t.Parallel()
 
-	// This test mutates os.Setenv("GOPATH") so it must NOT run in parallel with
-	// other tests that create oops errors (which call removeGoPath indirectly).
-	// The GOPATH-keyed cache in cachedGoPathDirs invalidates automatically, so
-	// no explicit cache reset is required between sub-cases.
-	originalGoPath := os.Getenv("GOPATH")
-	t.Cleanup(func() {
-		_ = os.Setenv("GOPATH", originalGoPath)
-	})
+	is := assert.New(t)
 
 	for _, testcase := range []struct {
 		gopath   []string
@@ -63,11 +54,10 @@ func TestRemoveGoPath(t *testing.T) { //nolint:paralleltest
 			expected: "pkg/prog.go",
 		},
 	} {
-		gopath := strings.Join(testcase.gopath, string(filepath.ListSeparator))
-		err := os.Setenv("GOPATH", gopath)
-		is.NoError(err, "error setting gopath")
-
-		cleaned := removeGoPath(testcase.path)
+		dirs := make([]string, len(testcase.gopath))
+		copy(dirs, testcase.gopath)
+		sort.Stable(longestFirst(dirs))
+		cleaned := removeGoPathDirs(testcase.path, dirs)
 		is.Equal(testcase.expected, cleaned, "testcase: %+v", testcase)
 	}
 }
