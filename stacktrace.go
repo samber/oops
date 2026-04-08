@@ -29,6 +29,15 @@ import (
 // from user code and examples.
 type fake struct{}
 
+// internalFrameDepth is the number of raw frames between runtime.Callers and
+// the first user frame in the standard call chain:
+//
+//	runtime.Callers → newStacktrace → builder_method → user_code
+//
+// Builder terminal methods (Wrap, Errorf, etc.) pass (internalFrameDepth-1)+callerSkip
+// to newStacktrace so that CallerSkip(n) means "skip n user frames".
+const internalFrameDepth = 3
+
 // Global configuration for stack trace generation.
 var (
 	// StackTraceMaxDepth controls the maximum number of stack frames

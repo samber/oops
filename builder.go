@@ -169,7 +169,7 @@ func (o OopsErrorBuilder) Wrap(err error) error {
 	if o2.span == "" {
 		o2.span = ulid.Make().String() // Generate unique span ID if not set
 	}
-	o2.stacktrace = newStacktrace(o2.span, o2.callerSkip) // Capture stack trace at error creation
+	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip) // Capture stack trace at error creation
 	return OopsError(o2)
 }
 
@@ -201,7 +201,7 @@ func (o OopsErrorBuilder) Wrapf(err error, format string, args ...any) error {
 	if o2.span == "" {
 		o2.span = ulid.Make().String()
 	}
-	o2.stacktrace = newStacktrace(o2.span, o2.callerSkip)
+	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip)
 	return OopsError(o2)
 }
 
@@ -224,7 +224,7 @@ func (o OopsErrorBuilder) New(message string) error {
 	if o2.span == "" {
 		o2.span = ulid.Make().String()
 	}
-	o2.stacktrace = newStacktrace(o2.span, o2.callerSkip)
+	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip)
 	return OopsError(o2)
 }
 
@@ -246,7 +246,7 @@ func (o OopsErrorBuilder) Errorf(format string, args ...any) error {
 	if o2.span == "" {
 		o2.span = ulid.Make().String()
 	}
-	o2.stacktrace = newStacktrace(o2.span, o2.callerSkip)
+	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip)
 	return OopsError(o2)
 }
 
@@ -663,6 +663,9 @@ func slogValueToAny(value slog.Value, depth int) any {
 // and you want the stack trace to start at the actual caller of your
 // helper, not inside the helper itself.
 func (o OopsErrorBuilder) CallerSkip(skip int) OopsErrorBuilder {
+	if skip < 0 {
+		skip = 0
+	}
 	o2 := o.copy()
 	o2.callerSkip = skip
 	return o2

@@ -161,13 +161,12 @@ func helperWrap(err error) error {
 	return Wrap(err)
 }
 
-// helperWrapSkip wraps oops.CallerSkip(3).Wrap — it skips itself and the oops internals,
+// helperWrapSkip wraps oops.CallerSkip(1).Wrap — it skips 1 user frame (itself),
 // so helperWrapSkip itself should NOT appear in the stack trace.
-// The call chain into runtime.Callers is: newStacktrace (frame 2) → Wrap (frame 3) → helperWrapSkip (frame 4).
-// runtime.Callers(1+skip, ...) already skips frame 1 (runtime.Callers itself), so skip=3 means
-// we start capturing at frame 4 (helperWrapSkip), which is the first user frame to be dropped.
+// CallerSkip(1) means "skip 1 user frame", where the base offset already accounts
+// for runtime.Callers → newStacktrace → builder_method (internalFrameDepth=3).
 func helperWrapSkip(err error) error {
-	return CallerSkip(3).Wrap(err)
+	return CallerSkip(1).Wrap(err)
 }
 
 // frameNames returns the list of short function names from an OopsError's stack trace.
@@ -216,15 +215,16 @@ func TestCallerSkip_LastCallWins(t *testing.T) {
 	t.Parallel()
 
 	base := errors.New("base")
-	// Chain CallerSkip(100) then CallerSkip(1): the last call should win (skip=1).
-	// With skip=1 the test function should still be present.
-	// With skip=100 the test function would not appear (all frames skipped), so its presence
-	// here confirms that skip=1 (the last value) was used and not skip=100.
-	err := CallerSkip(100).CallerSkip(1).Wrap(base)
+	// Chain CallerSkip(100) then CallerSkip(0): the last call should win (skip=0).
+	// With skip=0, no user frames are skipped, so the test function itself should appear.
+	// With skip=100, all frames would be skipped and the test function would not appear.
+	// The test function's presence here confirms that skip=0 (the last value) was used,
+	// not skip=100.
+	err := CallerSkip(100).CallerSkip(0).Wrap(base)
 
 	names := frameNames(err)
 	is.NotEmpty(names)
-	is.Contains(names, "TestCallerSkip_LastCallWins", "with skip=1 the test function should still be in frames — confirms last CallerSkip wins")
+	is.Contains(names, "TestCallerSkip_LastCallWins", "with skip=0 the test function should still be in frames — confirms last CallerSkip wins")
 }
 
 // --- FrameSkip tests ---

@@ -174,6 +174,16 @@ func CallerSkip(skip int) OopsErrorBuilder {
 // against the captured frame's file path and short function name respectively.
 // An empty string matches anything (i.e., acts as a wildcard).
 //
+// The file path is matched against the cleaned/shortened path after Go module
+// prefixes are stripped by removeGoPath, leaving paths like
+// "github.com/myorg/myproject/pkg/errutil/helper.go". The function name is the
+// short name only (e.g., "Wrap", not "github.com/samber/oops.(OopsErrorBuilder).Wrap").
+// To discover the exact values, inspect a stack trace first using
+// err.(oops.OopsError).Stacktrace().
+//
+// Calling FrameSkip with the same (file, fun) pair more than once is a no-op —
+// duplicate entries are silently ignored.
+//
 // This function is intended to be called once at program startup, typically in
 // an init() function or main(), not on a per-error basis.
 //
@@ -182,7 +192,13 @@ func CallerSkip(skip int) OopsErrorBuilder {
 //	oops.FrameSkip("github.com/myproject/pkg/errutil/helper.go", "")  // match by exact file path
 //	oops.FrameSkip("", "Wrap")                                         // match by short function name
 func FrameSkip(file string, fun string) {
-	framesSkip = append(framesSkip, oopsStacktraceFrame{file: file, function: fun})
+	entry := oopsStacktraceFrame{file: file, function: fun}
+	for _, existing := range framesSkip {
+		if existing == entry {
+			return
+		}
+	}
+	framesSkip = append(framesSkip, entry)
 }
 
 // GetPublic returns a message that is safe to show to an end user, or a default generic message.
