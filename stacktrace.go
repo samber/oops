@@ -44,7 +44,7 @@ var (
 
 	// framesSkip is a list of frame patterns used to filter out frames from stack traces.
 	// Each entry's file and function fields are matched against the captured frame using
-	// strings.Contains. Register patterns via the FrameSkip() function.
+	// exact equality. Register patterns via the FrameSkip() function.
 	framesSkip []oopsStacktraceFrame
 
 	// packageName stores the current package name for frame filtering.
@@ -227,7 +227,7 @@ func newStacktrace(span string, skip int) *oopsStacktrace {
 		isSkippedFrame := false
 		for _, pattern := range framesSkip {
 			fileMatch := pattern.file == "" || file == pattern.file
-			funcMatch := pattern.function == "" || frame.Function == pattern.function
+			funcMatch := pattern.function == "" || function == pattern.function
 			if fileMatch && funcMatch {
 				isSkippedFrame = true
 				break

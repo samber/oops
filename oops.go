@@ -170,9 +170,10 @@ func CallerSkip(skip int) OopsErrorBuilder {
 }
 
 // FrameSkip registers a frame filter that permanently excludes matching frames
-// from all future stack traces. Both file and function are compared using exact
-// equality against the captured frame's file path and full function name
-// respectively. An empty string matches anything (i.e., acts as a wildcard).
+// from all future stack traces. The file is compared using exact equality against
+// the captured frame's file path; the function is compared using exact equality
+// against the short function name (e.g., "Wrap", not the full package-qualified name).
+// An empty string matches anything (i.e., acts as a wildcard).
 //
 // This function is intended to be called once at program startup, typically in
 // an init() function or main(), not on a per-error basis.
