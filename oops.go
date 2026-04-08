@@ -163,6 +163,27 @@ func Response(res *http.Response, withBody bool) OopsErrorBuilder {
 	return newBuilder().Response(res, withBody)
 }
 
+// CallerSkip sets the number of additional callers to skip when capturing
+// the stack trace. This is useful when oops is wrapped in helper functions.
+func CallerSkip(skip int) OopsErrorBuilder {
+	return newBuilder().CallerSkip(skip)
+}
+
+// FrameSkip registers a frame filter that permanently excludes matching frames
+// from all future stack traces. Both file and function are compared using exact
+// equality against the captured frame's file path and full function name
+// respectively. An empty string matches anything (i.e., acts as a wildcard).
+//
+// This function is intended to be called once at program startup, typically in
+// an init() function or main(), not on a per-error basis.
+//
+// Example:
+//
+//	oops.FrameSkip("myproject/pkg/errutil", "")
+func FrameSkip(file string, fun string) {
+	framesSkip = append(framesSkip, oopsStacktraceFrame{file: file, function: fun})
+}
+
 // GetPublic returns a message that is safe to show to an end user, or a default generic message.
 func GetPublic(err error, defaultPublicMessage string) string {
 	var oopsError OopsError

@@ -86,6 +86,7 @@ type OopsError struct {
 
 	// Stack trace information
 	stacktrace *oopsStacktrace // Captured stack trace
+	callerSkip int             // Number of additional frames to skip when capturing stack trace
 }
 
 // Unwrap returns the underlying error that this OopsError wraps.

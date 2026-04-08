@@ -42,6 +42,11 @@ var (
 	// the most relevant debugging information.
 	StackTraceMaxDepth = 10
 
+	// framesSkip is a list of frame patterns used to filter out frames from stack traces.
+	// Each entry's file and function fields are matched against the captured frame using
+	// strings.Contains. Register patterns via the FrameSkip() function.
+	framesSkip []oopsStacktraceFrame
+
 	// packageName stores the current package name for frame filtering.
 	// This is determined at package initialization time and used
 	// to identify frames that should be excluded from stack traces.
@@ -183,9 +188,9 @@ func (st *oopsStacktrace) Source() (string, []string) {
 //
 // Example usage:
 //
-//	stack := newStacktrace("span-123")
+//	stack := newStacktrace("span-123", 0)
 //	fmt.Println(stack.String(""))
-func newStacktrace(span string) *oopsStacktrace {
+func newStacktrace(span string, skip int) *oopsStacktrace {
 	frames := make([]oopsStacktraceFrame, 0, StackTraceMaxDepth)
 
 	// Capture all program counters in a single batch call.
@@ -195,7 +200,7 @@ func newStacktrace(span string) *oopsStacktrace {
 	// very large value.
 	bufSize := min(StackTraceMaxDepth*3+20, 512)
 	pcs := make([]uintptr, bufSize)
-	n := runtime.Callers(1, pcs)
+	n := runtime.Callers(1+skip, pcs)
 	pcs = pcs[:n]
 
 	// Define package name patterns for filtering (computed once, outside the loop)
@@ -219,8 +224,18 @@ func newStacktrace(span string) *oopsStacktrace {
 		isExamplePkg := strings.Contains(file, packageNameExamples)  // do not skip frames in this package examples
 		isTestPkg := strings.Contains(file, "_test.go")              // do not skip frames in tests
 
+		isSkippedFrame := false
+		for _, pattern := range framesSkip {
+			fileMatch := pattern.file == "" || file == pattern.file
+			funcMatch := pattern.function == "" || frame.Function == pattern.function
+			if fileMatch && funcMatch {
+				isSkippedFrame = true
+				break
+			}
+		}
+
 		// Include frame if it passes all filtering criteria
-		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) {
+		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) && !isSkippedFrame {
 			frames = append(frames, oopsStacktraceFrame{
 				pc:       frame.PC,
 				file:     file,

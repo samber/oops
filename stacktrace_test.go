@@ -30,7 +30,7 @@ func e() *oopsStacktrace {
 }
 
 func f() *oopsStacktrace {
-	return newStacktrace("1234")
+	return newStacktrace("1234", 0)
 }
 
 func TestStacktrace(t *testing.T) {
