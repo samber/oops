@@ -170,9 +170,8 @@ func CallerSkip(skip int) OopsErrorBuilder {
 }
 
 // FrameSkip registers a frame filter that permanently excludes matching frames
-// from all future stack traces. The file is compared using exact equality against
-// the captured frame's file path; the function is compared using exact equality
-// against the short function name (e.g., "Wrap", not the full package-qualified name).
+// from all future stack traces. Both file and fun are matched using exact equality
+// against the captured frame's file path and short function name respectively.
 // An empty string matches anything (i.e., acts as a wildcard).
 //
 // This function is intended to be called once at program startup, typically in
@@ -180,7 +179,8 @@ func CallerSkip(skip int) OopsErrorBuilder {
 //
 // Example:
 //
-//	oops.FrameSkip("myproject/pkg/errutil", "")
+//	oops.FrameSkip("github.com/myproject/pkg/errutil/helper.go", "")  // match by exact file path
+//	oops.FrameSkip("", "Wrap")                                         // match by short function name
 func FrameSkip(file string, fun string) {
 	framesSkip = append(framesSkip, oopsStacktraceFrame{file: file, function: fun})
 }
