@@ -591,6 +591,87 @@ func TestOopsMixedWithGetters(t *testing.T) {
 	is.Equal("a message 42", err.(OopsError).Unwrap().(OopsError).msg)
 }
 
+func TestOopsLayers(t *testing.T) {
+	is := assert.New(t)
+	t.Parallel()
+
+	// single layer
+	oopsErr, ok := AsOops(New("hello"))
+	is.True(ok)
+	layers := oopsErr.Layers()
+	is.Len(layers, 1)
+
+	// multiple layers with distinct attributes
+	inner := Code("inner_code").Public("inner public").New("inner")
+	outer := Code("outer_code").Public("outer public").Wrap(inner)
+	oopsErr, ok = AsOops(outer)
+	is.True(ok)
+	layers = oopsErr.Layers()
+	is.Len(layers, 2)
+	is.Equal("outer_code", layers[0].Code)
+	is.Equal("outer public", layers[0].Public)
+	is.Equal("inner_code", layers[1].Code)
+	is.Equal("inner public", layers[1].Public)
+
+	// non-OopsError root is skipped
+	root := errors.New("plain error")
+	wrapped := Code("outer code").Public("outer public").Wrap(root)
+	oopsErr, ok = AsOops(wrapped)
+	is.True(ok)
+	layers = oopsErr.Layers()
+	is.Len(layers, 1)
+	is.Equal("outer code", layers[0].Code)
+	is.Equal("outer public", layers[0].Public)
+
+	// three layers deep
+	l1 := Code("l1").New("level 1")
+	l2 := Code("l2").Wrap(l1)
+	l3 := Code("l3").Wrap(l2)
+	oopsErr, ok = AsOops(l3)
+	is.True(ok)
+	layers = oopsErr.Layers()
+	is.Len(layers, 3)
+	is.Equal("l3", layers[0].Code)
+	is.Equal("l2", layers[1].Code)
+	is.Equal("l1", layers[2].Code)
+
+	// layers are pointers (not shared)
+	is.NotSame(layers[0], layers[1])
+	is.NotSame(layers[1], layers[2])
+
+	// Mixed chain: oopserror -> error -> error -> oopserror -> oopserror -> error
+	//
+	// Construction (innermost to outermost):
+	//   plainRoot      plain error
+	//   oopsInner2     OopsError wrapping plainRoot
+	//   oopsInner1     OopsError wrapping oopsInner2
+	//   plainMid2      plain error wrapping oopsInner1 (via fmt.Errorf %w)
+	//   plainMid1      plain error wrapping plainMid2 (via fmt.Errorf %w)
+	//   oopsOuter      OopsError wrapping plainMid1
+	//
+	// Layers() only surfaces OopsError nodes; plain errors are transparent.
+	// Expected layers (outermost first): oopsOuter, oopsInner1, oopsInner2
+	plainRoot := errors.New("plain root")
+	oopsInner2 := Code("inner2").Public("public inner2").Wrap(plainRoot)
+	oopsInner1 := Code("inner1").Public("public inner1").Wrap(oopsInner2)
+	plainMid2 := fmt.Errorf("plain mid2: %w", oopsInner1)
+	plainMid1 := fmt.Errorf("plain mid1: %w", plainMid2)
+	oopsOuter := Code("outer").Public("public outer").Wrap(plainMid1)
+
+	oopsErr, ok = AsOops(oopsOuter)
+	is.True(ok)
+	layers = oopsErr.Layers()
+	is.Len(layers, 3)
+	is.Equal("outer", layers[0].Code)
+	is.Equal("public outer", layers[0].Public)
+	is.Equal("inner1", layers[1].Code)
+	is.Equal("public inner1", layers[1].Public)
+	is.Equal("inner2", layers[2].Code)
+	is.Equal("public inner2", layers[2].Public)
+	is.NotSame(layers[0], layers[1])
+	is.NotSame(layers[1], layers[2])
+}
+
 func TestOopsLogValue(t *testing.T) {
 	is := assert.New(t)
 	t.Parallel()
