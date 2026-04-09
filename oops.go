@@ -169,28 +169,22 @@ func CallerSkip(skip int) OopsErrorBuilder {
 	return newBuilder().CallerSkip(skip)
 }
 
-// FrameSkip registers a frame filter that permanently excludes matching frames
-// from all future stack traces. Both file and fun are matched using exact equality
-// against the captured frame's file path and short function name respectively.
-// An empty string matches anything (i.e., acts as a wildcard).
+// FrameSkip registers a frame filter that excludes matching frames from stack trace
+// output. Both file and fun are matched using strings.Contains against the raw values
+// returned by runtime.CallersFrames — the absolute file path and the fully-qualified
+// function name respectively. An empty string matches anything (i.e., acts as a wildcard).
 //
-// The file path is matched against the cleaned/shortened path after Go module
-// prefixes are stripped by removeGoPath, leaving paths like
-// "github.com/myorg/myproject/pkg/errutil/helper.go". The function name is the
-// short name only (e.g., "Wrap", not "github.com/samber/oops.(OopsErrorBuilder).Wrap").
-// To discover the exact values, inspect a stack trace first using
-// err.(oops.OopsError).Stacktrace().
+// Filtering is applied at output time (when Stacktrace(), Sources(), or StackFrames()
+// is called), not at error creation time. This means patterns registered after an error
+// is created will still filter frames from that error's stack trace.
 //
 // Calling FrameSkip with the same (file, fun) pair more than once is a no-op —
 // duplicate entries are silently ignored.
 //
-// This function is intended to be called once at program startup, typically in
-// an init() function or main(), not on a per-error basis.
-//
 // Example:
 //
-//	oops.FrameSkip("github.com/myproject/pkg/errutil/helper.go", "")  // match by exact file path
-//	oops.FrameSkip("", "Wrap")                                         // match by short function name
+//	oops.FrameSkip("myproject/pkg/errutil", "")          // match by file path substring
+//	oops.FrameSkip("", "myproject/pkg/errutil.WrapErr")  // match by full function name substring
 func FrameSkip(file string, fun string) {
 	entry := oopsStacktraceFrame{file: file, function: fun}
 	for _, existing := range framesSkip {

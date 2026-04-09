@@ -52,8 +52,8 @@ var (
 	StackTraceMaxDepth = 10
 
 	// framesSkip is a list of frame patterns used to filter out frames from stack traces.
-	// Each entry's file and function fields are matched against the captured frame using
-	// exact equality. Register patterns via the FrameSkip() function.
+	// Each entry's file and function fields are matched using strings.Contains against
+	// the raw runtime.CallersFrames values. Register patterns via the FrameSkip() function.
 	framesSkip []oopsStacktraceFrame
 
 	// packageName stores the current package name for frame filtering.
@@ -67,10 +67,12 @@ var (
 // call stack, including the program counter, file path, function
 // name, and line number.
 type oopsStacktraceFrame struct {
-	pc       uintptr // Program counter for the function call
-	file     string  // File path where the call occurred
-	function string  // Name of the function being called
-	line     int     // Line number in the file where the call occurred
+	pc          uintptr // Program counter for the function call
+	file        string  // cleaned path via removeGoPath (for display)
+	function    string  // short name via shortFuncName (for display)
+	line        int     // Line number in the file where the call occurred
+	rawFile     string  // raw frame.File from runtime.CallersFrames (for matching)
+	rawFunction string  // raw frame.Function from runtime.CallersFrames (for matching)
 }
 
 // String returns a formatted string representation of the stack frame.
@@ -233,23 +235,15 @@ func newStacktrace(span string, skip int) *oopsStacktrace {
 		isExamplePkg := strings.Contains(file, packageNameExamples)  // do not skip frames in this package examples
 		isTestPkg := strings.Contains(file, "_test.go")              // do not skip frames in tests
 
-		isSkippedFrame := false
-		for _, pattern := range framesSkip {
-			fileMatch := pattern.file == "" || file == pattern.file
-			funcMatch := pattern.function == "" || function == pattern.function
-			if fileMatch && funcMatch {
-				isSkippedFrame = true
-				break
-			}
-		}
-
 		// Include frame if it passes all filtering criteria
-		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) && !isSkippedFrame {
+		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) {
 			frames = append(frames, oopsStacktraceFrame{
-				pc:       frame.PC,
-				file:     file,
-				function: function,
-				line:     frame.Line,
+				pc:          frame.PC,
+				file:        file,
+				function:    function,
+				line:        frame.Line,
+				rawFile:     frame.File,
+				rawFunction: frame.Function,
 			})
 		}
 
@@ -300,6 +294,31 @@ func shortFuncName(longName string) string {
 	shortName = strings.Replace(shortName, ")", "", 1) // Remove closing parenthesis
 
 	return shortName
+}
+
+// applyFrameSkip returns a copy of frames with any entries matching framesSkip patterns removed.
+// Matching uses strings.Contains against the raw runtime.CallersFrames values stored in
+// rawFile and rawFunction. An empty pattern field is a wildcard (matches anything).
+func applyFrameSkip(frames []oopsStacktraceFrame) []oopsStacktraceFrame {
+	if len(framesSkip) == 0 {
+		return frames
+	}
+	filtered := make([]oopsStacktraceFrame, 0, len(frames))
+	for _, f := range frames {
+		skip := false
+		for _, pattern := range framesSkip {
+			fileMatch := pattern.file == "" || strings.Contains(f.rawFile, pattern.file)
+			funcMatch := pattern.function == "" || strings.Contains(f.rawFunction, pattern.function)
+			if fileMatch && funcMatch {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			filtered = append(filtered, f)
+		}
+	}
+	return filtered
 }
 
 func framesToStacktraceBlocks(blocks []lo.Tuple3[error, string, []oopsStacktraceFrame]) []string {

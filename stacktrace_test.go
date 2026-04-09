@@ -169,15 +169,17 @@ func helperWrapSkip(err error) error {
 	return CallerSkip(1).Wrap(err)
 }
 
-// frameNames returns the list of short function names from an OopsError's stack trace.
+// frameNames returns the list of short function names from an OopsError's stack trace,
+// applying output-time FrameSkip filtering (via StackFrames()).
 func frameNames(err error) []string {
 	oopsErr, ok := err.(OopsError)
 	if !ok {
 		return nil
 	}
-	names := make([]string, 0, len(oopsErr.stacktrace.frames))
-	for _, f := range oopsErr.stacktrace.frames {
-		names = append(names, f.function)
+	frames := oopsErr.StackFrames()
+	names := make([]string, 0, len(frames))
+	for _, f := range frames {
+		names = append(names, f.Function)
 	}
 	return names
 }
@@ -247,8 +249,11 @@ func TestFrameSkip_ByFunction(t *testing.T) {
 	namesBefore := frameNames(errBefore)
 	is.Contains(namesBefore, "gWrapper", "gWrapper should appear before FrameSkip is registered")
 
-	// Register a skip for the function name "gWrapper".
+	// Create error BEFORE registering the skip — filtering should still apply at output time.
+	errCreatedBeforeSkip := gWrapper(base)
 	FrameSkip("", "gWrapper")
+	namesBeforeSkip := frameNames(errCreatedBeforeSkip)
+	is.NotContains(namesBeforeSkip, "gWrapper", "FrameSkip should apply to errors created before registration")
 
 	errAfter := gWrapper(base)
 	namesAfter := frameNames(errAfter)
@@ -262,27 +267,20 @@ func TestFrameSkip_ByFile(t *testing.T) {
 	originalFramesSkip := framesSkip
 	defer func() { framesSkip = originalFramesSkip }()
 
-	// Capture an error to discover the exact file path of this test file.
+	// Get the raw file path as runtime.CallersFrames would report it.
+	_, thisFile, _, _ := runtime.Caller(0)
+
+	// Confirm helperWrap appears before registering the skip.
 	base := errors.New("base")
-	errSample := helperWrap(base)
-	sampleNames := frameNames(errSample)
-	is.NotEmpty(sampleNames)
+	errBefore := helperWrap(base)
+	is.Contains(frameNames(errBefore), "helperWrap", "helperWrap should appear before FrameSkip is registered")
 
-	// Find the file path corresponding to "helperWrap" frame.
-	oopsErr, ok := errSample.(OopsError)
-	is.True(ok)
-
-	var testFilePath string
-	for _, fr := range oopsErr.stacktrace.frames {
-		if fr.function == "helperWrap" {
-			testFilePath = fr.file
-			break
-		}
-	}
-	is.NotEmpty(testFilePath, "should have found the file path for helperWrap")
-
-	// Register a skip for that exact file path.
-	FrameSkip(testFilePath, "")
+	// Create error BEFORE registering the skip — filtering should still apply at output time.
+	errCreatedBeforeSkip := helperWrap(base)
+	// Register a skip for this test file (helperWrap lives in the same file).
+	FrameSkip(thisFile, "")
+	namesBeforeSkip := frameNames(errCreatedBeforeSkip)
+	is.NotContains(namesBeforeSkip, "helperWrap", "FrameSkip should apply to errors created before registration")
 
 	errAfter := helperWrap(base)
 	namesAfter := frameNames(errAfter)

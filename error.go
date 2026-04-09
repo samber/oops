@@ -399,12 +399,11 @@ func (o OopsError) response() *lo.Tuple2[*http.Response, bool] {
 func (o OopsError) Stacktrace() string {
 	blocks := []lo.Tuple3[error, string, []oopsStacktraceFrame]{}
 	recursive(o, func(e OopsError) bool {
-		if e.stacktrace != nil && len(e.stacktrace.frames) > 0 {
-			blocks = append(blocks, lo.T3(
-				e.err,
-				e.msg,
-				e.stacktrace.frames,
-			))
+		if e.stacktrace != nil {
+			filteredFrames := applyFrameSkip(e.stacktrace.frames)
+			if len(filteredFrames) > 0 {
+				blocks = append(blocks, lo.T3[error, string, []oopsStacktraceFrame](e.err, e.msg, filteredFrames))
+			}
 		}
 		return true
 	})
@@ -419,20 +418,19 @@ func (o OopsError) Stacktrace() string {
 // StackFrames returns the raw stack frames as runtime.Frame objects.
 // This is useful for custom stack trace formatting or analysis.
 func (o OopsError) StackFrames() []runtime.Frame {
-	if o.stacktrace == nil || len(o.stacktrace.frames) == 0 {
+	if o.stacktrace == nil {
 		return nil
 	}
-
-	frames := make([]runtime.Frame, len(o.stacktrace.frames))
-	for i, frame := range o.stacktrace.frames {
-		frames[i] = runtime.Frame{
-			PC:       frame.pc,
-			File:     frame.file,
-			Line:     frame.line,
-			Function: frame.function,
-		}
+	filtered := applyFrameSkip(o.stacktrace.frames)
+	frames := make([]runtime.Frame, 0, len(filtered))
+	for _, f := range filtered {
+		frames = append(frames, runtime.Frame{
+			PC:       f.pc,
+			File:     f.file,
+			Line:     f.line,
+			Function: f.function,
+		})
 	}
-
 	return frames
 }
 
@@ -444,11 +442,12 @@ func (o OopsError) Sources() string {
 	blocks := []lo.Tuple2[string, *oopsStacktrace]{}
 
 	recursive(o, func(e OopsError) bool {
-		if e.stacktrace != nil && len(e.stacktrace.frames) > 0 {
-			blocks = append(blocks, lo.T2(
-				e.msg,
-				e.stacktrace,
-			))
+		if e.stacktrace != nil {
+			filteredFrames := applyFrameSkip(e.stacktrace.frames)
+			if len(filteredFrames) > 0 {
+				filteredSt := &oopsStacktrace{span: e.stacktrace.span, frames: filteredFrames}
+				blocks = append(blocks, lo.T2[string, *oopsStacktrace](e.msg, filteredSt))
+			}
 		}
 		return true
 	})
