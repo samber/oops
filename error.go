@@ -10,6 +10,7 @@ import (
 	"net/http/httputil"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/samber/lo"
@@ -47,6 +48,13 @@ var (
 	_ error          = (*OopsError)(nil)
 	_ slog.LogValuer = (*OopsError)(nil)
 )
+
+// outputBlock is one node in the error chain, holding pre-filtered frames.
+type outputBlock struct {
+	err    error
+	msg    string
+	frames []oopsStacktraceFrame
+}
 
 // OopsError represents an enhanced error with additional contextual information.
 // It implements the standard error interface while providing rich metadata for
@@ -87,6 +95,12 @@ type OopsError struct {
 	// Stack trace information
 	stacktrace *oopsStacktrace // Captured stack trace
 	callerSkip int             // Number of additional frames to skip when capturing stack trace
+
+	// Lazily computed filtered frame blocks shared by Stacktrace() and Sources().
+	// Both are pointers so that value copies of OopsError share the same state;
+	// cacheOnce as a pointer also avoids the go vet copylocks check.
+	cacheOnce   *sync.Once
+	cacheBlocks *[]outputBlock
 }
 
 // Unwrap returns the underlying error that this OopsError wraps.
@@ -391,28 +405,50 @@ func (o OopsError) response() *lo.Tuple2[*http.Response, bool] {
 	)
 }
 
+// rawBlocksWithCache returns the filtered frame blocks shared by Stacktrace and Sources.
+// When a cache is present the traversal runs at most once; subsequent calls return
+// the cached slice directly.
+func (o OopsError) rawBlocksWithCache() []outputBlock {
+	if o.cacheOnce == nil || o.cacheBlocks == nil {
+		return o.rawBlocks()
+	}
+	o.cacheOnce.Do(func() {
+		*o.cacheBlocks = o.rawBlocks()
+	})
+	return *o.cacheBlocks
+}
+
+// rawBlocks performs the actual recursive frame traversal and applyFrameSkip filtering.
+func (o OopsError) rawBlocks() []outputBlock {
+	var blocks []outputBlock
+	recursive(o, func(e OopsError) bool {
+		if e.stacktrace != nil {
+			filteredFrames := applyFrameSkip(e.stacktrace.frames)
+			if len(filteredFrames) > 0 {
+				blocks = append(blocks, outputBlock{e.err, e.msg, filteredFrames})
+			}
+		}
+		return true
+	})
+	return blocks
+}
+
 // Stacktrace returns a formatted string representation of the error's stack trace.
 // The stack trace shows the call hierarchy leading to the error, excluding
 // frames from the Go standard library and this package.
 // The stacktrace is basically written from the bottom to the top, in order to dedup frames.
 // It support recursive code.
 func (o OopsError) Stacktrace() string {
-	blocks := []lo.Tuple3[error, string, []oopsStacktraceFrame]{}
-	recursive(o, func(e OopsError) bool {
-		if e.stacktrace != nil {
-			filteredFrames := applyFrameSkip(e.stacktrace.frames)
-			if len(filteredFrames) > 0 {
-				blocks = append(blocks, lo.T3[error, string, []oopsStacktraceFrame](e.err, e.msg, filteredFrames))
-			}
-		}
-		return true
-	})
-
+	blocks := o.rawBlocksWithCache()
 	if len(blocks) == 0 {
 		return ""
 	}
 
-	return "Oops: " + strings.Join(framesToStacktraceBlocks(blocks), "\nThrown: ")
+	stBlocks := make([]lo.Tuple3[error, string, []oopsStacktraceFrame], len(blocks))
+	for i, b := range blocks {
+		stBlocks[i] = lo.T3[error, string, []oopsStacktraceFrame](b.err, b.msg, b.frames)
+	}
+	return "Oops: " + strings.Join(framesToStacktraceBlocks(stBlocks), "\nThrown: ")
 }
 
 // StackFrames returns the raw stack frames as runtime.Frame objects.
@@ -439,27 +475,16 @@ func (o OopsError) StackFrames() []runtime.Frame {
 // particularly useful for debugging. The output includes line numbers and
 // highlights the exact line where the error occurred.
 func (o OopsError) Sources() string {
-	blocks := []lo.Tuple2[string, *oopsStacktrace]{}
-
-	recursive(o, func(e OopsError) bool {
-		if e.stacktrace != nil {
-			filteredFrames := applyFrameSkip(e.stacktrace.frames)
-			if len(filteredFrames) > 0 {
-				filteredSt := &oopsStacktrace{span: e.stacktrace.span, frames: filteredFrames}
-				blocks = append(blocks, lo.T2[string, *oopsStacktrace](e.msg, filteredSt))
-			}
-		}
-		return true
-	})
-
+	blocks := o.rawBlocksWithCache()
 	if len(blocks) == 0 {
 		return ""
 	}
 
-	return "Oops: " + strings.Join(
-		framesToSourceBlocks(blocks),
-		"\n\nThrown: ",
-	)
+	srcBlocks := make([]lo.Tuple2[string, *oopsStacktrace], len(blocks))
+	for i, b := range blocks {
+		srcBlocks[i] = lo.T2[string, *oopsStacktrace](b.msg, &oopsStacktrace{frames: b.frames})
+	}
+	return "Oops: " + strings.Join(framesToSourceBlocks(srcBlocks), "\n\nThrown: ")
 }
 
 // LogValuer returns a slog.Value representation of the error.

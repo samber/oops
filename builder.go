@@ -8,6 +8,7 @@ import (
 	"maps"
 	"net/http"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -170,6 +171,8 @@ func (o OopsErrorBuilder) Wrap(err error) error {
 		o2.span = ulid.Make().String() // Generate unique span ID if not set
 	}
 	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip) // Capture stack trace at error creation
+	o2.cacheOnce = &sync.Once{}
+	o2.cacheBlocks = &[]outputBlock{}
 	return OopsError(o2)
 }
 
@@ -202,6 +205,8 @@ func (o OopsErrorBuilder) Wrapf(err error, format string, args ...any) error {
 		o2.span = ulid.Make().String()
 	}
 	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip)
+	o2.cacheOnce = &sync.Once{}
+	o2.cacheBlocks = &[]outputBlock{}
 	return OopsError(o2)
 }
 
@@ -225,6 +230,8 @@ func (o OopsErrorBuilder) New(message string) error {
 		o2.span = ulid.Make().String()
 	}
 	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip)
+	o2.cacheOnce = &sync.Once{}
+	o2.cacheBlocks = &[]outputBlock{}
 	return OopsError(o2)
 }
 
@@ -247,6 +254,8 @@ func (o OopsErrorBuilder) Errorf(format string, args ...any) error {
 		o2.span = ulid.Make().String()
 	}
 	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip)
+	o2.cacheOnce = &sync.Once{}
+	o2.cacheBlocks = &[]outputBlock{}
 	return OopsError(o2)
 }
 
