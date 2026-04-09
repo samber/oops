@@ -91,8 +91,8 @@ func TestLayers(t *testing.T) {
 	is.Equal("l1", layers[2].code)
 
 	// layers are pointers (not shared)
-	is.True(layers[0] != layers[1])
-	is.True(layers[1] != layers[2])
+	is.NotSame(layers[0], layers[1])
+	is.NotSame(layers[1], layers[2])
 }
 
 func TestErrorsAs(t *testing.T) {
