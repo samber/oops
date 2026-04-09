@@ -2,11 +2,11 @@
 package oops
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 	"unsafe"
-	"fmt"
-	"errors"
 
 	"github.com/stretchr/testify/assert"
 )
