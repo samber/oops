@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"time"
 )
 
@@ -187,10 +188,8 @@ func CallerSkip(skip int) OopsErrorBuilder {
 //	oops.FrameSkip("", "myproject/pkg/errutil.WrapErr")  // match by full function name substring
 func FrameSkip(file string, fun string) {
 	entry := oopsStacktraceFrame{file: file, function: fun}
-	for _, existing := range framesSkip {
-		if existing == entry {
-			return
-		}
+	if slices.Contains(framesSkip, entry) {
+		return
 	}
 	framesSkip = append(framesSkip, entry)
 }

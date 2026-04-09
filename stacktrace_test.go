@@ -236,7 +236,7 @@ func gWrapper(err error) error {
 	return Wrap(err)
 }
 
-func TestFrameSkip_ByFunction(t *testing.T) {
+func TestFrameSkip_ByFunction(t *testing.T) { //nolint:paralleltest
 	// Modifies global framesSkip — do not run in parallel.
 	is := assert.New(t)
 
@@ -260,7 +260,7 @@ func TestFrameSkip_ByFunction(t *testing.T) {
 	is.NotContains(namesAfter, "gWrapper", "gWrapper should NOT appear after FrameSkip(\"\", \"gWrapper\") is registered")
 }
 
-func TestFrameSkip_ByFile(t *testing.T) {
+func TestFrameSkip_ByFile(t *testing.T) { //nolint:paralleltest
 	// Modifies global framesSkip — do not run in parallel.
 	is := assert.New(t)
 
