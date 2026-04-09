@@ -211,6 +211,7 @@ The `oops.OopsError` builder must finish with either `.Errorf(...)`, `.Wrap(...)
 | `.Request(*http.Request, bool)`         | `err.Request() *http.Request`           | Supply http request                                                                                                                                                                        |
 | `.Response(*http.Response, bool)`       | `err.Response() *http.Response`         | Supply http response                                                                                                                                                                       |
 | `.FromContext(context.Context)`         |                                         | Reuse an existing OopsErrorBuilder transported in a Go context                                                                                                                             |
+|                                         | `err.Layers() []*OopsError`             | Return all OopsError layers in the chain from outermost to innermost, so callers can inspect attributes at any layer (non-OopsError errors are skipped)                                    |
 
 #### Examples
 
