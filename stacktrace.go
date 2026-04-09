@@ -201,6 +201,8 @@ func (st *oopsStacktrace) Source() (string, []string) {
 //
 //	stack := newStacktrace("span-123", 0)
 //	fmt.Println(stack.String(""))
+//
+// @TODO: filtering should be done lazily, not at creation time.
 func newStacktrace(span string, skip int) *oopsStacktrace {
 	frames := make([]oopsStacktraceFrame, 0, StackTraceMaxDepth)
 
