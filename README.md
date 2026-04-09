@@ -325,7 +325,7 @@ Patterns are matched using `strings.Contains` against the raw values from
 ```go
 // Call once at program startup (not goroutine-safe)
 oops.FrameSkip("myproject/pkg/errutil", "")         // skip by file path substring
-oops.FrameSkip("", "myproject/pkg/errutil.WrapErr") // skip by function name substring
+oops.FrameSkip("", "WrapErr") // skip by function name substring
 ```
 
 The stack trace will be printed this way:
