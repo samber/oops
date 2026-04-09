@@ -822,34 +822,3 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 func (o *OopsError) formatSummary() string {
 	return o.Error()
 }
-
-// recursive is a helper function that traverses the error chain
-// and applies a function to each OopsError in the chain.
-func recursive(err OopsError, tap func(OopsError) bool) {
-	if !tap(err) {
-		return
-	}
-
-	if err.err == nil {
-		return
-	}
-
-	if child, ok := AsOops(err.err); ok {
-		recursive(child, tap)
-	}
-}
-
-// // recursive is a helper function that traverses the error chain
-// // and applies a function to each OopsError in the chain.
-// func recursiveBackward(err OopsError, tap func(OopsError)) {
-// 	if err.err == nil {
-// 		tap(err)
-// 		return
-// 	}
-
-// 	if child, ok := AsOops(err.err); ok {
-// 		recursiveBackward(child, tap)
-// 	}
-
-// 	tap(err)
-// }
