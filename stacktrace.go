@@ -29,6 +29,15 @@ import (
 // from user code and examples.
 type fake struct{}
 
+// internalFrameDepth is the number of raw frames between runtime.Callers and
+// the first user frame in the standard call chain:
+//
+//	runtime.Callers → newStacktrace → builder_method → user_code
+//
+// Builder terminal methods (Wrap, Errorf, etc.) pass (internalFrameDepth-1)+callerSkip
+// to newStacktrace so that CallerSkip(n) means "skip n user frames".
+const internalFrameDepth = 3
+
 // Global configuration for stack trace generation.
 var (
 	// StackTraceMaxDepth controls the maximum number of stack frames
@@ -42,6 +51,11 @@ var (
 	// the most relevant debugging information.
 	StackTraceMaxDepth = 10
 
+	// framesSkip is a list of frame patterns used to filter out frames from stack traces.
+	// Each entry's file and function fields are matched using strings.Contains against
+	// the raw runtime.CallersFrames values. Register patterns via the FrameSkip() function.
+	framesSkip []oopsStacktraceFrame
+
 	// packageName stores the current package name for frame filtering.
 	// This is determined at package initialization time and used
 	// to identify frames that should be excluded from stack traces.
@@ -53,10 +67,12 @@ var (
 // call stack, including the program counter, file path, function
 // name, and line number.
 type oopsStacktraceFrame struct {
-	pc       uintptr // Program counter for the function call
-	file     string  // File path where the call occurred
-	function string  // Name of the function being called
-	line     int     // Line number in the file where the call occurred
+	pc          uintptr // Program counter for the function call
+	file        string  // cleaned path via removeGoPath (for display)
+	function    string  // short name via shortFuncName (for display)
+	line        int     // Line number in the file where the call occurred
+	rawFile     string  // raw frame.File from runtime.CallersFrames (for matching)
+	rawFunction string  // raw frame.Function from runtime.CallersFrames (for matching)
 }
 
 // String returns a formatted string representation of the stack frame.
@@ -183,9 +199,11 @@ func (st *oopsStacktrace) Source() (string, []string) {
 //
 // Example usage:
 //
-//	stack := newStacktrace("span-123")
+//	stack := newStacktrace("span-123", 0)
 //	fmt.Println(stack.String(""))
-func newStacktrace(span string) *oopsStacktrace {
+//
+// @TODO: filtering should be done lazily, not at creation time.
+func newStacktrace(span string, skip int) *oopsStacktrace {
 	frames := make([]oopsStacktraceFrame, 0, StackTraceMaxDepth)
 
 	// Capture all program counters in a single batch call.
@@ -195,7 +213,7 @@ func newStacktrace(span string) *oopsStacktrace {
 	// very large value.
 	bufSize := min(StackTraceMaxDepth*3+20, 512)
 	pcs := make([]uintptr, bufSize)
-	n := runtime.Callers(1, pcs)
+	n := runtime.Callers(1+skip, pcs)
 	pcs = pcs[:n]
 
 	// Define package name patterns for filtering (computed once, outside the loop)
@@ -222,10 +240,12 @@ func newStacktrace(span string) *oopsStacktrace {
 		// Include frame if it passes all filtering criteria
 		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) {
 			frames = append(frames, oopsStacktraceFrame{
-				pc:       frame.PC,
-				file:     file,
-				function: function,
-				line:     frame.Line,
+				pc:          frame.PC,
+				file:        file,
+				function:    function,
+				line:        frame.Line,
+				rawFile:     frame.File,
+				rawFunction: frame.Function,
 			})
 		}
 
@@ -276,6 +296,31 @@ func shortFuncName(longName string) string {
 	shortName = strings.Replace(shortName, ")", "", 1) // Remove closing parenthesis
 
 	return shortName
+}
+
+// applyFrameSkip returns a copy of frames with any entries matching framesSkip patterns removed.
+// Matching uses strings.Contains against the raw runtime.CallersFrames values stored in
+// rawFile and rawFunction. An empty pattern field is a wildcard (matches anything).
+func applyFrameSkip(frames []oopsStacktraceFrame) []oopsStacktraceFrame {
+	if len(framesSkip) == 0 {
+		return frames
+	}
+	filtered := make([]oopsStacktraceFrame, 0, len(frames))
+	for _, f := range frames {
+		skip := false
+		for _, pattern := range framesSkip {
+			fileMatch := pattern.file == "" || strings.Contains(f.rawFile, pattern.file)
+			funcMatch := pattern.function == "" || strings.Contains(f.rawFunction, pattern.function)
+			if fileMatch && funcMatch {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			filtered = append(filtered, f)
+		}
+	}
+	return filtered
 }
 
 func framesToStacktraceBlocks(blocks []lo.Tuple3[error, string, []oopsStacktraceFrame]) []string {

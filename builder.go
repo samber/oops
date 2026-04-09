@@ -8,6 +8,7 @@ import (
 	"maps"
 	"net/http"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -126,6 +127,8 @@ func (o OopsErrorBuilder) copy() OopsErrorBuilder {
 		req: o.req,
 		res: o.res,
 
+		callerSkip: o.callerSkip,
+
 		// stacktrace: o.stacktrace, // Not copied as it's generated per error
 	}
 	// maps.Clone(nil) returns nil; ensure maps are never nil so callers can
@@ -167,7 +170,9 @@ func (o OopsErrorBuilder) Wrap(err error) error {
 	if o2.span == "" {
 		o2.span = ulid.Make().String() // Generate unique span ID if not set
 	}
-	o2.stacktrace = newStacktrace(o2.span) // Capture stack trace at error creation
+	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip) // Capture stack trace at error creation
+	o2.cacheOnce = &sync.Once{}
+	o2.cacheBlocks = &[]outputBlock{}
 	return OopsError(o2)
 }
 
@@ -199,7 +204,9 @@ func (o OopsErrorBuilder) Wrapf(err error, format string, args ...any) error {
 	if o2.span == "" {
 		o2.span = ulid.Make().String()
 	}
-	o2.stacktrace = newStacktrace(o2.span)
+	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip)
+	o2.cacheOnce = &sync.Once{}
+	o2.cacheBlocks = &[]outputBlock{}
 	return OopsError(o2)
 }
 
@@ -222,7 +229,9 @@ func (o OopsErrorBuilder) New(message string) error {
 	if o2.span == "" {
 		o2.span = ulid.Make().String()
 	}
-	o2.stacktrace = newStacktrace(o2.span)
+	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip)
+	o2.cacheOnce = &sync.Once{}
+	o2.cacheBlocks = &[]outputBlock{}
 	return OopsError(o2)
 }
 
@@ -244,7 +253,9 @@ func (o OopsErrorBuilder) Errorf(format string, args ...any) error {
 	if o2.span == "" {
 		o2.span = ulid.Make().String()
 	}
-	o2.stacktrace = newStacktrace(o2.span)
+	o2.stacktrace = newStacktrace(o2.span, (internalFrameDepth-1)+o2.callerSkip)
+	o2.cacheOnce = &sync.Once{}
+	o2.cacheBlocks = &[]outputBlock{}
 	return OopsError(o2)
 }
 
@@ -654,6 +665,19 @@ func slogValueToAny(value slog.Value, depth int) any {
 	default:
 		return value.Any()
 	}
+}
+
+// CallerSkip sets the number of additional callers to skip when capturing
+// the stack trace. This is useful when oops is wrapped in helper functions
+// and you want the stack trace to start at the actual caller of your
+// helper, not inside the helper itself.
+func (o OopsErrorBuilder) CallerSkip(skip int) OopsErrorBuilder {
+	if skip < 0 {
+		skip = 0
+	}
+	o2 := o.copy()
+	o2.callerSkip = skip
+	return o2
 }
 
 // Request adds HTTP request information to the error context.

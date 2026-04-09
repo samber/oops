@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"time"
 )
 
@@ -161,6 +162,36 @@ func Request(req *http.Request, withBody bool) OopsErrorBuilder {
 // Response supplies a http.Response.
 func Response(res *http.Response, withBody bool) OopsErrorBuilder {
 	return newBuilder().Response(res, withBody)
+}
+
+// CallerSkip sets the number of additional callers to skip when capturing
+// the stack trace. This is useful when oops is wrapped in helper functions.
+func CallerSkip(skip int) OopsErrorBuilder {
+	return newBuilder().CallerSkip(skip)
+}
+
+// FrameSkip registers a frame filter that excludes matching frames from stack trace
+// output. Both file and fun are matched using strings.Contains against the raw values
+// returned by runtime.CallersFrames — the absolute file path and the fully-qualified
+// function name respectively. An empty string matches anything (i.e., acts as a wildcard).
+//
+// Filtering is applied at output time (when Stacktrace(), Sources(), or StackFrames()
+// is called), not at error creation time. This means patterns registered after an error
+// is created will still filter frames from that error's stack trace.
+//
+// Calling FrameSkip with the same (file, fun) pair more than once is a no-op —
+// duplicate entries are silently ignored.
+//
+// Example:
+//
+//	oops.FrameSkip("myproject/pkg/errutil", "")          // match by file path substring
+//	oops.FrameSkip("", "myproject/pkg/errutil.WrapErr")  // match by full function name substring
+func FrameSkip(file string, fun string) {
+	entry := oopsStacktraceFrame{file: file, function: fun}
+	if slices.Contains(framesSkip, entry) {
+		return
+	}
+	framesSkip = append(framesSkip, entry)
 }
 
 // GetPublic returns a message that is safe to show to an end user, or a default generic message.

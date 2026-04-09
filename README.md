@@ -142,6 +142,7 @@ GoDoc: [https://godoc.org/github.com/samber/oops](https://godoc.org/github.com/s
 | `.Assert(condition bool) OopsErrorBuilder`                              | Panics if condition is false. Assertions can be chained.                                              |
 | `.Assertf(condition bool, format string, args ...any) OopsErrorBuilder` | Panics if condition is false and formats an error message. Assertions can be chained.                 |
 | `.Join(err1 error, err2 error, ...) error`                              | Join returns an error that wraps the given errors.                                                    |
+| `.CallerSkip(n int) OopsErrorBuilder`                                   | Skip N extra frames when capturing the stack trace (useful when wrapping oops in helper functions)    |
 
 #### Examples
 
@@ -307,6 +308,24 @@ The stack trace max depth can be set using:
 ```go
 // default: 10
 oops.StackTraceMaxDepth = 42
+```
+
+Callers can be skipped when wrapping oops in helper functions:
+
+```go
+func myWrapError(err error) error {
+    return oops.CallerSkip(1).Wrap(err)
+}
+```
+
+Specific packages or functions can be permanently excluded from stack traces.
+Patterns are matched using `strings.Contains` against the raw values from
+`runtime.CallersFrames` (absolute file path and fully-qualified function name):
+
+```go
+// Call once at program startup (not goroutine-safe)
+oops.FrameSkip("myproject/pkg/errutil", "")         // skip by file path substring
+oops.FrameSkip("", "WrapErr") // skip by function name substring
 ```
 
 The stack trace will be printed this way:
