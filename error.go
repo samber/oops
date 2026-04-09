@@ -109,20 +109,86 @@ func (o OopsError) Unwrap() error {
 	return o.err
 }
 
+// OopsErrorLayer holds the attributes of a single layer in an error chain,
+// as returned by Layers(). Every field reflects the value set at that specific
+// wrapping level only — no chain traversal is performed. Fields that were not
+// set on that layer carry their zero value.
+type OopsErrorLayer struct {
+	// Core error information
+	Code     any
+	Time     time.Time
+	Duration time.Duration
+
+	// Contextual information
+	Domain  string
+	Tags    []string
+	Context map[string]any
+
+	// Tracing information
+	Trace string
+	Span  string
+
+	// Developer-facing information
+	Hint   string
+	Public string
+	Owner  string
+
+	// User and tenant information
+	UserID     string
+	UserData   map[string]any
+	TenantID   string
+	TenantData map[string]any
+
+	// HTTP request/response information
+	Request  *http.Request
+	Response *http.Response
+}
+
+// toLayer converts the current OopsError into an OopsErrorLayer containing
+// only the attributes set at this specific layer. No chain traversal is performed.
+// Map values are processed the same way as in ToMap: lazy functions are evaluated
+// and pointer values are dereferenced.
+func (o OopsError) toLayer() *OopsErrorLayer {
+	layer := &OopsErrorLayer{
+		Code:       o.code,
+		Duration:   o.duration,
+		Domain:     o.domain,
+		Tags:       o.tags,
+		Context:    dereferencePointers(lazyMapEvaluation(o.context)),
+		Trace:      o.trace,
+		Span:       o.span,
+		Hint:       o.hint,
+		Public:     o.public,
+		Owner:      o.owner,
+		UserID:     o.userID,
+		UserData:   dereferencePointers(lazyMapEvaluation(o.userData)),
+		TenantID:   o.tenantID,
+		TenantData: dereferencePointers(lazyMapEvaluation(o.tenantData)),
+	}
+	if !o.time.IsZero() {
+		layer.Time = o.time.In(Local)
+	}
+	if o.req != nil {
+		layer.Request = o.req.A
+	}
+	if o.res != nil {
+		layer.Response = o.res.A
+	}
+	return layer
+}
+
 // Layers returns a slice of all OopsError layers in the error chain,
 // from outermost to innermost. Each element represents one wrapping layer
-// with its own attributes (code, public message, domain, etc.), allowing
-// callers to inspect or select attributes from any layer rather than only
-// the deepest one.
+// with its own attributes, allowing callers to inspect or select attributes
+// from any layer rather than only the deepest one.
 //
 // Only OopsError layers are included; non-OopsError errors in the chain
 // (e.g. a plain fmt.Errorf or sentinel error at the root) are skipped.
 // Use Unwrap() on the innermost layer to access the underlying error.
-func (o OopsError) Layers() []*OopsError {
-	var layers []*OopsError
+func (o OopsError) Layers() []*OopsErrorLayer {
+	var layers []*OopsErrorLayer
 	recursive(o, func(e OopsError) bool {
-		e2 := e
-		layers = append(layers, &e2)
+		layers = append(layers, e.toLayer())
 		return true
 	})
 	return layers

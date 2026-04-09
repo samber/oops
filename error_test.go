@@ -56,7 +56,6 @@ func TestLayers(t *testing.T) {
 	is.True(ok)
 	layers := oopsErr.Layers()
 	is.Len(layers, 1)
-	is.Equal("hello", layers[0].Error())
 
 	// multiple layers with distinct attributes
 	inner := Code("inner_code").Public("inner public").New("inner")
@@ -65,10 +64,10 @@ func TestLayers(t *testing.T) {
 	is.True(ok)
 	layers = oopsErr.Layers()
 	is.Len(layers, 2)
-	is.Equal("outer_code", layers[0].code)
-	is.Equal("outer public", layers[0].public)
-	is.Equal("inner_code", layers[1].code)
-	is.Equal("inner public", layers[1].public)
+	is.Equal("outer_code", layers[0].Code)
+	is.Equal("outer public", layers[0].Public)
+	is.Equal("inner_code", layers[1].Code)
+	is.Equal("inner public", layers[1].Public)
 
 	// non-OopsError root is skipped
 	root := errors.New("plain error")
@@ -86,9 +85,9 @@ func TestLayers(t *testing.T) {
 	is.True(ok)
 	layers = oopsErr.Layers()
 	is.Len(layers, 3)
-	is.Equal("l3", layers[0].code)
-	is.Equal("l2", layers[1].code)
-	is.Equal("l1", layers[2].code)
+	is.Equal("l3", layers[0].Code)
+	is.Equal("l2", layers[1].Code)
+	is.Equal("l1", layers[2].Code)
 
 	// layers are pointers (not shared)
 	is.NotSame(layers[0], layers[1])
