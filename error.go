@@ -49,6 +49,41 @@ var (
 	_ slog.LogValuer = (*OopsError)(nil)
 )
 
+// OopsErrorLayer holds the attributes of a single layer in an error chain,
+// as returned by Layers(). Every field reflects the value set at that specific
+// wrapping level only — no chain traversal is performed. Fields that were not
+// set on that layer carry their zero value.
+type OopsErrorLayer struct {
+	// Core error information
+	Code     any
+	Time     time.Time
+	Duration time.Duration
+
+	// Contextual information
+	Domain  string
+	Tags    []string
+	Context map[string]any
+
+	// Tracing information
+	Trace string
+	Span  string
+
+	// Developer-facing information
+	Hint   string
+	Public string
+	Owner  string
+
+	// User and tenant information
+	UserID     string
+	UserData   map[string]any
+	TenantID   string
+	TenantData map[string]any
+
+	// HTTP request/response information
+	Request  *http.Request
+	Response *http.Response
+}
+
 // outputBlock is one node in the error chain, holding pre-filtered frames.
 type outputBlock struct {
 	err    error
@@ -107,41 +142,6 @@ type OopsError struct {
 // This method implements the errors.Wrapper interface.
 func (o OopsError) Unwrap() error {
 	return o.err
-}
-
-// OopsErrorLayer holds the attributes of a single layer in an error chain,
-// as returned by Layers(). Every field reflects the value set at that specific
-// wrapping level only — no chain traversal is performed. Fields that were not
-// set on that layer carry their zero value.
-type OopsErrorLayer struct {
-	// Core error information
-	Code     any
-	Time     time.Time
-	Duration time.Duration
-
-	// Contextual information
-	Domain  string
-	Tags    []string
-	Context map[string]any
-
-	// Tracing information
-	Trace string
-	Span  string
-
-	// Developer-facing information
-	Hint   string
-	Public string
-	Owner  string
-
-	// User and tenant information
-	UserID     string
-	UserData   map[string]any
-	TenantID   string
-	TenantData map[string]any
-
-	// HTTP request/response information
-	Request  *http.Request
-	Response *http.Response
 }
 
 // toLayer converts the current OopsError into an OopsErrorLayer containing
@@ -531,7 +531,7 @@ func (o OopsError) Stacktrace() string {
 
 	stBlocks := make([]lo.Tuple3[error, string, []oopsStacktraceFrame], len(blocks))
 	for i, b := range blocks {
-		stBlocks[i] = lo.T3[error, string, []oopsStacktraceFrame](b.err, b.msg, b.frames)
+		stBlocks[i] = lo.T3(b.err, b.msg, b.frames)
 	}
 	return "Oops: " + strings.Join(framesToStacktraceBlocks(stBlocks), "\nThrown: ")
 }
@@ -567,7 +567,7 @@ func (o OopsError) Sources() string {
 
 	srcBlocks := make([]lo.Tuple2[string, *oopsStacktrace], len(blocks))
 	for i, b := range blocks {
-		srcBlocks[i] = lo.T2[string, *oopsStacktrace](b.msg, &oopsStacktrace{frames: b.frames})
+		srcBlocks[i] = lo.T2(b.msg, &oopsStacktrace{frames: b.frames})
 	}
 	return "Oops: " + strings.Join(framesToSourceBlocks(srcBlocks), "\n\nThrown: ")
 }
