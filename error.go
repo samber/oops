@@ -109,6 +109,25 @@ func (o OopsError) Unwrap() error {
 	return o.err
 }
 
+// Layers returns a slice of all OopsError layers in the error chain,
+// from outermost to innermost. Each element represents one wrapping layer
+// with its own attributes (code, public message, domain, etc.), allowing
+// callers to inspect or select attributes from any layer rather than only
+// the deepest one.
+//
+// Only OopsError layers are included; non-OopsError errors in the chain
+// (e.g. a plain fmt.Errorf or sentinel error at the root) are skipped.
+// Use Unwrap() on the innermost layer to access the underlying error.
+func (o OopsError) Layers() []*OopsError {
+	var layers []*OopsError
+	recursive(o, func(e OopsError) bool {
+		e2 := e
+		layers = append(layers, &e2)
+		return true
+	})
+	return layers
+}
+
 // Is implements the errors.Is interface.
 //
 // OopsError contains non-comparable fields (maps, slices), so the default
