@@ -2,6 +2,8 @@
 package oops
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 	"unsafe"
@@ -257,6 +259,66 @@ func TestDereferencePointerRecursiveEdgeCases(t *testing.T) {
 	is.Nil(result3)
 }
 
+func TestLazyMapEvaluation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input map[string]any
+		want  map[string]any
+	}{
+		{
+			name:  "static values pass through unchanged",
+			input: map[string]any{"s": "hello", "n": 42, "b": true},
+			want:  map[string]any{"s": "hello", "n": 42, "b": true},
+		},
+		{
+			name:  "zero-arg single-return func is evaluated",
+			input: map[string]any{"fn": func() any { return "computed" }},
+			want:  map[string]any{"fn": "computed"},
+		},
+		{
+			name: "nested map is recursively evaluated",
+			input: map[string]any{
+				"outer": map[string]any{
+					"fn": func() any { return 99 },
+				},
+			},
+			want: map[string]any{
+				"outer": map[string]any{"fn": 99},
+			},
+		},
+		{
+			name:  "func with wrong signature is left unevaluated",
+			input: map[string]any{"fn": func() (string, error) { return "x", nil }},
+			want:  map[string]any{"fn": func() (string, error) { return "x", nil }},
+		},
+		{
+			name:  "nil value is preserved",
+			input: map[string]any{"n": nil},
+			want:  map[string]any{"n": nil},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+
+			got := lazyMapEvaluation(tt.input)
+			// Compare func entries by kind only (functions aren't directly comparable).
+			for k, wantVal := range tt.want {
+				if wantVal != nil && reflect.TypeOf(wantVal).Kind() == reflect.Func {
+					is.Equal(reflect.Func, reflect.TypeOf(got[k]).Kind(), "key %q", k)
+				} else {
+					is.Equal(wantVal, got[k], "key %q", k)
+				}
+			}
+		})
+	}
+}
+
 func TestLazyValueEvaluationEdgeCases(t *testing.T) {
 	is := assert.New(t)
 	t.Parallel()
@@ -276,4 +338,297 @@ func TestLazyValueEvaluationEdgeCases(t *testing.T) {
 	result3 := lazyValueEvaluation(fn)
 	// Should return function as-is when it returns error
 	is.Equal(reflect.Func, reflect.TypeOf(result3).Kind())
+}
+
+func TestRecursive(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		err         OopsError
+		stopAfter   int // 0 = never stop early; N = stop after N visits
+		wantVisited []string
+	}{
+		{
+			name:        "single error visits once",
+			err:         Code("single").Errorf("single").(OopsError),
+			wantVisited: []string{"single"},
+		},
+		{
+			name:        "chain of three visited outer to inner",
+			err:         Code("outer").Wrapf(Code("mid").Wrapf(Code("inner").Errorf("inner"), "mid"), "outer").(OopsError),
+			wantVisited: []string{"outer", "mid", "inner"},
+		},
+		{
+			name:        "early stop halts traversal after first visit",
+			err:         Code("outer").Wrapf(Code("mid").Wrapf(Code("inner").Errorf("inner"), "mid"), "outer").(OopsError),
+			stopAfter:   1,
+			wantVisited: []string{"outer"},
+		},
+		{
+			name:        "non-oops wrapped error stops at boundary",
+			err:         Code("oops").Wrapf(errors.New("plain"), "oops").(OopsError),
+			wantVisited: []string{"oops"},
+		},
+		// Mixed: OopsError -> plain -> OopsError
+		// fmt.Errorf is transparent to errors.As, so the inner OopsError is still reached.
+		{
+			name: "oops wrapping fmt.Errorf wrapping oops visits both oops layers",
+			err: func() OopsError {
+				inner := Code("inner").Errorf("inner")
+				mid := fmt.Errorf("mid: %w", inner) // plain wrapper, transparent to errors.As
+				return Code("outer").Wrapf(mid, "outer").(OopsError)
+			}(),
+			wantVisited: []string{"outer", "inner"},
+		},
+		// Mixed: OopsError -> plain -> OopsError -> plain
+		// The second plain boundary stops traversal after the second OopsError.
+		{
+			name: "oops wrapping fmt.Errorf wrapping oops wrapping plain visits two oops layers",
+			err: func() OopsError {
+				inner := Code("inner").Wrapf(errors.New("plain"), "inner")
+				mid := fmt.Errorf("mid: %w", inner) // transparent
+				return Code("outer").Wrapf(mid, "outer").(OopsError)
+			}(),
+			wantVisited: []string{"outer", "inner"},
+		},
+		// Mixed: OopsError -> fmt.Errorf -> plain (no inner OopsError)
+		// errors.As finds no OopsError through the plain chain, so traversal stops at outer.
+		{
+			name: "oops wrapping fmt.Errorf wrapping plain stops at boundary",
+			err: func() OopsError {
+				mid := fmt.Errorf("mid: %w", errors.New("plain"))
+				return Code("outer").Wrapf(mid, "outer").(OopsError)
+			}(),
+			wantVisited: []string{"outer"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+
+			var (
+				visited []string
+				count   int
+			)
+			recursive(tt.err, func(e OopsError) bool {
+				visited = append(visited, e.code.(string))
+				count++
+				return tt.stopAfter == 0 || count < tt.stopAfter
+			})
+			is.Equal(tt.wantVisited, visited)
+		})
+	}
+}
+
+func TestGetDeepestErrorAttribute(t *testing.T) {
+	t.Parallel()
+
+	getter := func(e OopsError) any { return e.code }
+
+	tests := []struct {
+		name string
+		err  func() OopsError
+		want any
+	}{
+		{
+			name: "single error returns its own code",
+			err:  func() OopsError { return Code("single").Errorf("single").(OopsError) },
+			want: "single",
+		},
+		{
+			name: "deepest code wins when only inner is set",
+			err: func() OopsError {
+				return Wrapf(Code("inner").Errorf("inner"), "outer").(OopsError)
+			},
+			want: "inner",
+		},
+		{
+			name: "outer code used as fallback when inner has none",
+			err: func() OopsError {
+				return Code("outer").Wrap(Errorf("inner")).(OopsError)
+			},
+			want: "outer",
+		},
+		{
+			name: "deepest code wins when both levels are set",
+			err: func() OopsError {
+				return Code("outer").Wrap(Code("inner").Errorf("inner")).(OopsError)
+			},
+			want: "inner",
+		},
+		{
+			name: "outer code used as fallback when inner is plain error",
+			err: func() OopsError {
+				return Code("fallback").Wrap(errors.New("plain")).(OopsError)
+			},
+			want: "fallback",
+		},
+		// Zero value
+		{
+			name: "no code set anywhere returns nil",
+			err:  func() OopsError { return Wrap(Errorf("inner")).(OopsError) },
+			want: nil,
+		},
+		// Three-level chains
+		{
+			name: "three-level: only deepest has code",
+			err: func() OopsError {
+				return Wrapf(Wrap(Code("deep").Errorf("inner")), "outer").(OopsError)
+			},
+			want: "deep",
+		},
+		{
+			name: "three-level: only middle has code",
+			err: func() OopsError {
+				return Wrapf(Code("mid").Wrap(Errorf("inner")), "outer").(OopsError)
+			},
+			want: "mid",
+		},
+		{
+			name: "three-level: only outer has code",
+			err: func() OopsError {
+				return Code("outer").Wrapf(Wrap(Errorf("inner")), "mid").(OopsError)
+			},
+			want: "outer",
+		},
+		{
+			name: "three-level: all set returns deepest",
+			err: func() OopsError {
+				return Code("outer").Wrapf(Code("mid").Wrap(Code("inner").Errorf("inner")), "mid").(OopsError)
+			},
+			want: "inner",
+		},
+		// Non-string comparable type
+		{
+			name: "integer code is returned correctly",
+			err:  func() OopsError { return Code(42).Errorf("err").(OopsError) },
+			want: 42,
+		},
+		// Mixed: OopsError -> plain -> OopsError
+		// fmt.Errorf is transparent to errors.As, so the inner OopsError is found.
+		{
+			name: "plain wrapper between two oops layers is transparent: deepest code wins",
+			err: func() OopsError {
+				inner := Code("inner").Errorf("inner")
+				mid := fmt.Errorf("mid: %w", inner)
+				return Code("outer").Wrapf(mid, "outer").(OopsError)
+			},
+			want: "inner",
+		},
+		{
+			name: "plain wrapper between two oops layers is transparent: falls back to outer when inner has no code",
+			err: func() OopsError {
+				inner := Errorf("inner")
+				mid := fmt.Errorf("mid: %w", inner)
+				return Code("outer").Wrapf(mid, "outer").(OopsError)
+			},
+			want: "outer",
+		},
+		// Mixed: OopsError -> plain -> OopsError -> plain
+		// Second plain stops recursion; the middle OopsError code is the deepest reachable.
+		{
+			name: "oops wrapping plain wrapping oops wrapping plain: middle oops code is deepest",
+			err: func() OopsError {
+				inner := Code("mid").Wrapf(errors.New("plain"), "mid")
+				outer_plain := fmt.Errorf("wrap: %w", inner)
+				return Code("outer").Wrapf(outer_plain, "outer").(OopsError)
+			},
+			want: "mid",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			is.Equal(tt.want, getDeepestErrorAttribute(tt.err(), getter))
+		})
+	}
+}
+
+func TestMergeNestedErrorMap(t *testing.T) {
+	t.Parallel()
+
+	getter := func(e OopsError) map[string]any { return e.context }
+
+	tests := []struct {
+		name string
+		err  func() OopsError
+		want map[string]any
+	}{
+		{
+			name: "single error returns its own context",
+			err:  func() OopsError { return With("a", 1).Errorf("err").(OopsError) },
+			want: map[string]any{"a": 1},
+		},
+		{
+			name: "deeper key overrides shallower key in chain",
+			err: func() OopsError {
+				inner := With("a", "inner", "b", 2).Errorf("inner")
+				return With("a", "outer", "c", 3).Wrap(inner).(OopsError)
+			},
+			want: map[string]any{"a": "inner", "b": 2, "c": 3},
+		},
+		{
+			name: "error with no context returns empty map",
+			err:  func() OopsError { return Errorf("no context").(OopsError) },
+			want: map[string]any{},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			is.Equal(tt.want, mergeNestedErrorMap(tt.err(), getter))
+		})
+	}
+}
+
+func TestCollectMaps(t *testing.T) {
+	t.Parallel()
+
+	getter := func(e OopsError) map[string]any { return e.context }
+
+	tests := []struct {
+		name     string
+		err      func() OopsError
+		wantMaps []map[string]any
+	}{
+		{
+			name:     "single error with context appends one map",
+			err:      func() OopsError { return With("x", 1).Errorf("err").(OopsError) },
+			wantMaps: []map[string]any{{"x": 1}},
+		},
+		{
+			name: "chain appends maps in shallow to deep order",
+			err: func() OopsError {
+				return With("shallow", false).Wrap(With("deep", true).Errorf("inner")).(OopsError)
+			},
+			wantMaps: []map[string]any{{"shallow": false}, {"deep": true}},
+		},
+		{
+			name:     "error with no context appends nothing",
+			err:      func() OopsError { return Errorf("no context").(OopsError) },
+			wantMaps: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+
+			var result []map[string]any
+			collectMaps(tt.err(), getter, &result)
+			is.Equal(tt.wantMaps, result)
+		})
+	}
 }
