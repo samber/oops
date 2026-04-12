@@ -8,6 +8,7 @@ require (
 	github.com/samber/oops v0.0.0
 	github.com/sirupsen/logrus v1.9.1
 	github.com/stretchr/testify v1.11.1
+	go.uber.org/goleak v1.3.0
 )
 
 require (
@@ -17,7 +18,6 @@ require (
 	github.com/samber/lo v1.53.0 // indirect
 	go.opentelemetry.io/otel v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
-	go.uber.org/goleak v1.3.0 // indirect
 	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
