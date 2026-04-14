@@ -540,6 +540,7 @@ We are looking for contributions and examples for:
 - go-sentry
 - otel
 - other?
+- (Go Error Handling: Complete Guide with Examples)[https://middleware.io/blog/go-error-handling/]
 
 Examples of formatters can be found in `ToMap()`, `Format()`, `Marshal()` and `LogValuer` methods of `oops.OopsError`.
 
