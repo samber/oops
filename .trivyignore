@@ -1,0 +1,8 @@
+# Vulnerabilities in indirect deps of recovery/gin (golang.org/x/crypto and
+# golang.org/x/net pulled in by gin v1.9.1). Dependabot is responsible for
+# bumping these when a version compatible with go 1.21 becomes available.
+CVE-2025-22869
+CVE-2025-47914
+CVE-2025-58181
+CVE-2025-22870
+CVE-2025-22872
