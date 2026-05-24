@@ -42,7 +42,7 @@ func dereferencePointers(data map[string]any) map[string]any {
 			continue // not a pointer, skip
 		}
 		val := reflect.ValueOf(value)
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			data[key] = dereferencePointerRecursive(val, 0)
 		}
 	}
@@ -80,7 +80,7 @@ func dereferencePointerRecursive(val reflect.Value, depth int) (ret any) {
 	if !val.IsValid() {
 		return nil
 	}
-	if val.Kind() != reflect.Ptr {
+	if val.Kind() != reflect.Pointer {
 		return val.Interface()
 	}
 
@@ -99,7 +99,7 @@ func dereferencePointerRecursive(val reflect.Value, depth int) (ret any) {
 	}
 
 	// Recursively handle nested pointers
-	if elem.Kind() == reflect.Ptr {
+	if elem.Kind() == reflect.Pointer {
 		return dereferencePointerRecursive(elem, depth+1)
 	}
 
