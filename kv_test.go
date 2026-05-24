@@ -14,137 +14,250 @@ import (
 const anErrorStr = "assert.AnError general error for testing"
 
 func TestDereferencePointers(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
 	ptr := func(v string) *string { return &v }
 
-	err := With("hello", "world").Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"hello": "world"}, err.Context())
+	tests := []struct {
+		name        string
+		makeVal     func() any
+		wantCtx     map[string]any
+		equalValues bool
+	}{
+		{
+			name:    "string_value",
+			makeVal: func() any { return "world" },
+			wantCtx: map[string]any{"hello": "world"},
+		},
+		{
+			name:    "string_pointer",
+			makeVal: func() any { return ptr("world") },
+			wantCtx: map[string]any{"hello": "world"},
+		},
+		{
+			name:    "nil_value",
+			makeVal: func() any { return nil },
+			wantCtx: map[string]any{"hello": nil},
+		},
+		{
+			name:    "nil_int_pointer",
+			makeVal: func() any { return (*int)(nil) },
+			wantCtx: map[string]any{"hello": nil},
+		},
+		{
+			name:    "nil_triple_pointer",
+			makeVal: func() any { return (***int)(nil) },
+			wantCtx: map[string]any{"hello": nil},
+		},
+		{
+			name: "nil_through_triple_pointer",
+			makeVal: func() any {
+				var i **int
+				return (***int)(&i) //nolint:unconvert
+			},
+			wantCtx:     map[string]any{"hello": nil},
+			equalValues: true,
+		},
+	}
 
-	err = With("hello", ptr("world")).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"hello": "world"}, err.Context())
-
-	err = With("hello", nil).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"hello": nil}, err.Context())
-
-	err = With("hello", (*int)(nil)).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"hello": nil}, err.Context())
-
-	err = With("hello", (***int)(nil)).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"hello": nil}, err.Context())
-
-	var i **int
-	err = With("hello", (***int)(&i)).Errorf(anErrorStr).(OopsError) //nolint:unconvert
-	is.EqualValues(map[string]any{"hello": nil}, err.Context())      //nolint:testifylint
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			err := With("hello", tt.makeVal()).Errorf(anErrorStr).(OopsError)
+			if tt.equalValues {
+				is.EqualValues(tt.wantCtx, err.Context()) //nolint:testifylint
+			} else {
+				is.Equal(tt.wantCtx, err.Context())
+			}
+		})
+	}
 }
 
 func TestDereferencePointerEdgeCases(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test deeply nested pointers (should not panic)
-	deepValue := "deep"
-	ptr1 := &deepValue
-	ptr2 := &ptr1
-	ptr3 := &ptr2
-	ptr4 := &ptr3
-	ptr5 := &ptr4
-
-	err := With("deep", ptr5).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"deep": "deep"}, err.Context())
-
-	// Test nil pointers at different levels
-	var nilPtr *string
-	err = With("nil1", nilPtr).Errorf(anErrorStr).(OopsError)
-	is.EqualValues(map[string]any{"nil1": nil}, err.Context()) //nolint:testifylint
-
-	var nilPtr2 **string
-	err = With("nil2", nilPtr2).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"nil2": nil}, err.Context())
-
-	// Test mixed nil and non-nil pointers
-	value := "test"
-	valuePtr := &value
-	mixedPtr := &valuePtr
-	err = With("mixed", mixedPtr).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"mixed": "test"}, err.Context())
-
-	// Test with different types
-	intValue := 42
-	intPtr := &intValue
-	err = With("int", intPtr).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"int": 42}, err.Context())
-
-	// Test with struct pointers
-	type testStruct struct {
-		Field string
+	tests := []struct {
+		name string
+		run  func(is *assert.Assertions)
+	}{
+		{
+			name: "deeply_nested_pointers",
+			run: func(is *assert.Assertions) {
+				deepValue := "deep"
+				ptr1 := &deepValue
+				ptr2 := &ptr1
+				ptr3 := &ptr2
+				ptr4 := &ptr3
+				ptr5 := &ptr4
+				err := With("deep", ptr5).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"deep": "deep"}, err.Context())
+			},
+		},
+		{
+			name: "nil_single_pointer",
+			run: func(is *assert.Assertions) {
+				var nilPtr *string
+				err := With("nil1", nilPtr).Errorf(anErrorStr).(OopsError)
+				is.EqualValues(map[string]any{"nil1": nil}, err.Context()) //nolint:testifylint
+			},
+		},
+		{
+			name: "nil_double_pointer",
+			run: func(is *assert.Assertions) {
+				var nilPtr2 **string
+				err := With("nil2", nilPtr2).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"nil2": nil}, err.Context())
+			},
+		},
+		{
+			name: "mixed_nil_and_non_nil",
+			run: func(is *assert.Assertions) {
+				value := "test"
+				valuePtr := &value
+				mixedPtr := &valuePtr
+				err := With("mixed", mixedPtr).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"mixed": "test"}, err.Context())
+			},
+		},
+		{
+			name: "int_pointer",
+			run: func(is *assert.Assertions) {
+				intValue := 42
+				intPtr := &intValue
+				err := With("int", intPtr).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"int": 42}, err.Context())
+			},
+		},
+		{
+			name: "struct_pointer",
+			run: func(is *assert.Assertions) {
+				type testStruct struct{ Field string }
+				structValue := testStruct{Field: "test"}
+				structPtr := &structValue
+				err := With("struct", structPtr).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"struct": testStruct{Field: "test"}}, err.Context())
+			},
+		},
 	}
-	structValue := testStruct{Field: "test"}
-	structPtr := &structValue
-	err = With("struct", structPtr).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"struct": testStruct{Field: "test"}}, err.Context())
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			tt.run(is)
+		})
+	}
 }
 
 func TestDereferencePointerSafety(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test with invalid reflect values (should not panic)
-	var invalidPtr unsafe.Pointer
-	err := With("invalid", invalidPtr).Errorf(anErrorStr).(OopsError)
-	// Should handle gracefully without panic
-	is.NotNil(err)
+	tests := []struct {
+		name string
+		run  func(is *assert.Assertions)
+	}{
+		{
+			name: "invalid_pointer",
+			run: func(is *assert.Assertions) {
+				var invalidPtr unsafe.Pointer
+				err := With("invalid", invalidPtr).Errorf(anErrorStr).(OopsError)
+				is.NotNil(err)
+			},
+		},
+		{
+			name: "function_pointer",
+			run: func(is *assert.Assertions) {
+				testFunc := func() string { return "test" }
+				err := With("func", &testFunc).Errorf(anErrorStr).(OopsError)
+				is.NotNil(err)
+			},
+		},
+		{
+			name: "channel_pointer",
+			run: func(is *assert.Assertions) {
+				ch := make(chan int)
+				err := With("channel", &ch).Errorf(anErrorStr).(OopsError)
+				is.NotNil(err)
+			},
+		},
+		{
+			name: "slice_pointer",
+			run: func(is *assert.Assertions) {
+				slice := []int{1, 2, 3}
+				err := With("slice", &slice).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"slice": []int{1, 2, 3}}, err.Context())
+			},
+		},
+		{
+			name: "map_pointer",
+			run: func(is *assert.Assertions) {
+				m := map[string]int{"a": 1, "b": 2}
+				err := With("map", &m).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"map": map[string]int{"a": 1, "b": 2}}, err.Context())
+			},
+		},
+	}
 
-	// Test with function pointers
-	testFunc := func() string { return "test" }
-	err = With("func", &testFunc).Errorf(anErrorStr).(OopsError)
-	// Should handle function pointers gracefully
-	is.NotNil(err)
-
-	// Test with channel pointers
-	ch := make(chan int)
-	err = With("channel", &ch).Errorf(anErrorStr).(OopsError)
-	// Should handle channel pointers gracefully
-	is.NotNil(err)
-
-	// Test with slice pointers
-	slice := []int{1, 2, 3}
-	err = With("slice", &slice).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"slice": []int{1, 2, 3}}, err.Context())
-
-	// Test with map pointers
-	m := map[string]int{"a": 1, "b": 2}
-	err = With("map", &m).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"map": map[string]int{"a": 1, "b": 2}}, err.Context())
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			tt.run(is)
+		})
+	}
 }
 
 func TestDereferencePointerComplexTypes(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test with interface pointers
-	var iface any = "interface_value"
-	ifacePtr := &iface
-	err := With("interface", ifacePtr).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"interface": "interface_value"}, err.Context())
-
-	// Test with array pointers
-	arr := [3]int{1, 2, 3}
-	arrPtr := &arr
-	err = With("array", arrPtr).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"array": [3]int{1, 2, 3}}, err.Context())
-
-	// Test with nested struct pointers
-	type nestedStruct struct {
-		Inner struct {
-			Value string
-		}
+	tests := []struct {
+		name string
+		run  func(is *assert.Assertions)
+	}{
+		{
+			name: "interface_pointer",
+			run: func(is *assert.Assertions) {
+				var iface any = "interface_value"
+				ifacePtr := &iface
+				err := With("interface", ifacePtr).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"interface": "interface_value"}, err.Context())
+			},
+		},
+		{
+			name: "array_pointer",
+			run: func(is *assert.Assertions) {
+				arr := [3]int{1, 2, 3}
+				arrPtr := &arr
+				err := With("array", arrPtr).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"array": [3]int{1, 2, 3}}, err.Context())
+			},
+		},
+		{
+			name: "nested_struct_pointer",
+			run: func(is *assert.Assertions) {
+				type nestedStruct struct {
+					Inner struct{ Value string }
+				}
+				nested := nestedStruct{Inner: struct{ Value string }{Value: "nested"}}
+				nestedPtr := &nested
+				err := With("nested", nestedPtr).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"nested": nested}, err.Context())
+			},
+		},
 	}
-	nested := nestedStruct{Inner: struct{ Value string }{Value: "nested"}}
-	nestedPtr := &nested
-	err = With("nested", nestedPtr).Errorf(anErrorStr).(OopsError)
-	is.Equal(map[string]any{"nested": nested}, err.Context())
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			tt.run(is)
+		})
+	}
 }
 
 func TestDereferencePointerWithDisabled(t *testing.T) { //nolint:paralleltest
@@ -193,70 +306,112 @@ func TestDereferencePointerMultipleValues(t *testing.T) {
 }
 
 func TestDereferencePointerPanicPrevention(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test that the function doesn't panic with extremely deep nesting
-	// This would have caused a stack overflow in the original implementation
-	deepValue := "deep"
-	ptr1 := &deepValue
-	ptr2 := &ptr1
-	ptr3 := &ptr2
-	ptr4 := &ptr3
-	ptr5 := &ptr4
-	ptr6 := &ptr5
-	ptr7 := &ptr6
-	ptr8 := &ptr7
-	ptr9 := &ptr8
-	ptr10 := &ptr9
-	ptr11 := &ptr10 // This exceeds the 10-level limit
-
-	// This should not panic and should return the original value
-	err := With("very_deep", ptr11).Errorf(anErrorStr).(OopsError)
-	is.NotNil(err)
-
-	// The context should contain the pointer as-is since it exceeds the depth limit
-	context := err.Context()
-	is.Contains(context, "very_deep")
-
-	// Test with invalid reflect values that could cause panics
-	var invalidValue any = func() {} // Function type
-	err = With("invalid", &invalidValue).Errorf(anErrorStr).(OopsError)
-	is.NotNil(err)
-
-	// Test with unexported fields that might cause panics when accessing
-	type unexportedStruct struct {
-		unexported string
+	tests := []struct {
+		name string
+		run  func(is *assert.Assertions)
+	}{
+		{
+			// This would have caused a stack overflow in the original implementation.
+			name: "deeply_nested_exceeds_limit",
+			run: func(is *assert.Assertions) {
+				deepValue := "deep"
+				ptr1 := &deepValue
+				ptr2 := &ptr1
+				ptr3 := &ptr2
+				ptr4 := &ptr3
+				ptr5 := &ptr4
+				ptr6 := &ptr5
+				ptr7 := &ptr6
+				ptr8 := &ptr7
+				ptr9 := &ptr8
+				ptr10 := &ptr9
+				ptr11 := &ptr10 // exceeds the 10-level limit
+				err := With("very_deep", ptr11).Errorf(anErrorStr).(OopsError)
+				is.NotNil(err)
+				is.Contains(err.Context(), "very_deep")
+			},
+		},
+		{
+			name: "function_type",
+			run: func(is *assert.Assertions) {
+				var invalidValue any = func() {}
+				err := With("invalid", &invalidValue).Errorf(anErrorStr).(OopsError)
+				is.NotNil(err)
+			},
+		},
+		{
+			name: "unexported_struct_fields",
+			run: func(is *assert.Assertions) {
+				type unexportedStruct struct{ unexported string }
+				unexported := unexportedStruct{unexported: "test"}
+				err := With("unexported", &unexported).Errorf(anErrorStr).(OopsError)
+				is.NotNil(err)
+			},
+		},
+		{
+			name: "nil_interface",
+			run: func(is *assert.Assertions) {
+				var nilInterface any
+				err := With("nil_interface", &nilInterface).Errorf(anErrorStr).(OopsError)
+				is.NotNil(err)
+			},
+		},
 	}
-	unexported := unexportedStruct{unexported: "test"}
-	err = With("unexported", &unexported).Errorf(anErrorStr).(OopsError)
-	is.NotNil(err)
 
-	// Test with nil interface
-	var nilInterface any
-	err = With("nil_interface", &nilInterface).Errorf(anErrorStr).(OopsError)
-	is.NotNil(err)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			tt.run(is)
+		})
+	}
 }
 
 func TestDereferencePointerRecursiveEdgeCases(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test with nil pointer
-	var nilPtr *string
-	result := dereferencePointerRecursive(reflect.ValueOf(nilPtr), 0)
-	is.Nil(result)
+	tests := []struct {
+		name string
+		run  func(is *assert.Assertions)
+	}{
+		{
+			name: "nil_pointer",
+			run: func(is *assert.Assertions) {
+				var nilPtr *string
+				result := dereferencePointerRecursive(reflect.ValueOf(nilPtr), 0)
+				is.Nil(result)
+			},
+		},
+		{
+			name: "max_depth_exceeded",
+			run: func(is *assert.Assertions) {
+				value := "test"
+				ptr := &value
+				result := dereferencePointerRecursive(reflect.ValueOf(ptr), 100)
+				is.Equal(ptr, result)
+			},
+		},
+		{
+			name: "invalid_reflect_value",
+			run: func(is *assert.Assertions) {
+				var invalid reflect.Value
+				result := dereferencePointerRecursive(invalid, 0)
+				is.Nil(result)
+			},
+		},
+	}
 
-	// Test with max depth exceeded
-	value := "test"
-	ptr := &value
-	result2 := dereferencePointerRecursive(reflect.ValueOf(ptr), 100)
-	is.Equal(ptr, result2) // Should return the pointer itself
-
-	// Test with invalid reflect value
-	var invalid reflect.Value
-	result3 := dereferencePointerRecursive(invalid, 0)
-	is.Nil(result3)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			tt.run(is)
+		})
+	}
 }
 
 func TestLazyMapEvaluation(t *testing.T) {
@@ -307,8 +462,10 @@ func TestLazyMapEvaluation(t *testing.T) {
 			is := assert.New(t)
 
 			got := lazyMapEvaluation(tt.input)
+			is.Len(got, len(tt.want))
 			// Compare func entries by kind only (functions aren't directly comparable).
 			for k, wantVal := range tt.want {
+				is.Contains(got, k, "key %q missing from result", k)
 				if wantVal != nil && reflect.TypeOf(wantVal).Kind() == reflect.Func {
 					is.Equal(reflect.Func, reflect.TypeOf(got[k]).Kind(), "key %q", k)
 				} else {
@@ -320,24 +477,44 @@ func TestLazyMapEvaluation(t *testing.T) {
 }
 
 func TestLazyValueEvaluationEdgeCases(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test with nil value
-	result := lazyValueEvaluation(nil)
-	is.Nil(result)
-
-	// Test with non-function value
-	result2 := lazyValueEvaluation("string")
-	is.Equal("string", result2)
-
-	// Test with function that returns error
-	fn := func() (string, error) {
-		return "test", assert.AnError
+	tests := []struct {
+		name string
+		run  func(is *assert.Assertions)
+	}{
+		{
+			name: "nil_value",
+			run: func(is *assert.Assertions) {
+				result := lazyValueEvaluation(nil)
+				is.Nil(result)
+			},
+		},
+		{
+			name: "non_function_value",
+			run: func(is *assert.Assertions) {
+				result := lazyValueEvaluation("string")
+				is.Equal("string", result)
+			},
+		},
+		{
+			name: "function_returning_error",
+			run: func(is *assert.Assertions) {
+				fn := func() (string, error) { return "test", assert.AnError }
+				result := lazyValueEvaluation(fn)
+				is.Equal(reflect.Func, reflect.TypeOf(result).Kind())
+			},
+		},
 	}
-	result3 := lazyValueEvaluation(fn)
-	// Should return function as-is when it returns error
-	is.Equal(reflect.Func, reflect.TypeOf(result3).Kind())
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			tt.run(is)
+		})
+	}
 }
 
 func TestRecursive(t *testing.T) {

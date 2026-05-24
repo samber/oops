@@ -35,57 +35,38 @@ func TestGinOopsRecovery_NoPanic(t *testing.T) {
 	}
 }
 
-func TestGinOopsRecovery_PanicWithString(t *testing.T) {
+func TestGinOopsRecovery_PanicWith(t *testing.T) {
 	t.Parallel()
 
-	router := gin.New()
-	router.Use(GinOopsRecovery())
-	router.GET("/panic-string", func(c *gin.Context) {
-		panic("something went wrong")
-	})
-
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/panic-string", nil)
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", w.Code)
+	tests := []struct {
+		name     string
+		path     string
+		panicVal any
+	}{
+		{name: "string", path: "/panic-string", panicVal: "something went wrong"},
+		{name: "error", path: "/panic-error", panicVal: errors.New("db failure")},
+		{name: "int", path: "/panic-int", panicVal: 42},
 	}
-}
 
-func TestGinOopsRecovery_PanicWithError(t *testing.T) {
-	t.Parallel()
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	router := gin.New()
-	router.Use(GinOopsRecovery())
-	router.GET("/panic-error", func(c *gin.Context) {
-		panic(errors.New("db failure"))
-	})
+			router := gin.New()
+			router.Use(GinOopsRecovery())
+			router.GET(tt.path, func(c *gin.Context) {
+				panic(tt.panicVal)
+			})
 
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/panic-error", nil)
-	router.ServeHTTP(w, req)
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", w.Code)
-	}
-}
-
-func TestGinOopsRecovery_PanicWithInt(t *testing.T) {
-	t.Parallel()
-
-	router := gin.New()
-	router.Use(GinOopsRecovery())
-	router.GET("/panic-int", func(c *gin.Context) {
-		panic(42)
-	})
-
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/panic-int", nil)
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", w.Code)
+			if w.Code != http.StatusInternalServerError {
+				t.Errorf("expected status 500, got %d", w.Code)
+			}
+		})
 	}
 }
 

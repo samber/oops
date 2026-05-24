@@ -12,59 +12,115 @@ import (
 
 func TestAsOops(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// OopsError is found
-	err := In("test").With("key", "value").Errorf("oops error")
-	oopsErr, ok := AsOops(err)
-	is.True(ok)
-	is.Equal("test", oopsErr.Domain())
-	is.Equal(map[string]any{"key": "value"}, oopsErr.Context())
+	tests := []struct {
+		name string
+		run  func(is *assert.Assertions)
+	}{
+		{
+			name: "oops_error_found",
+			run: func(is *assert.Assertions) {
+				err := In("test").With("key", "value").Errorf("oops error")
+				oopsErr, ok := AsOops(err)
+				is.True(ok)
+				is.Equal("test", oopsErr.Domain())
+				is.Equal(map[string]any{"key": "value"}, oopsErr.Context())
+			},
+		},
+		{
+			name: "non_oops_returns_false",
+			run: func(is *assert.Assertions) {
+				_, ok := AsOops(errors.New("plain error"))
+				is.False(ok)
+			},
+		},
+		{
+			name: "nil_returns_false",
+			run: func(is *assert.Assertions) {
+				_, ok := AsOops(nil)
+				is.False(ok)
+			},
+		},
+		{
+			name: "wrapped_oops_found",
+			run: func(is *assert.Assertions) {
+				err := In("test").With("key", "value").Errorf("oops error")
+				wrapped := fmt.Errorf("wrapper: %w", err)
+				oopsErr, ok := AsOops(wrapped)
+				is.True(ok)
+				is.Equal("test", oopsErr.Domain())
+			},
+		},
+		{
+			name: "deeply_nested_oops_found",
+			run: func(is *assert.Assertions) {
+				err := In("test").With("key", "value").Errorf("oops error")
+				deepWrapped := fmt.Errorf("outer: %w", fmt.Errorf("inner: %w", err))
+				oopsErr, ok := AsOops(deepWrapped)
+				is.True(ok)
+				is.Equal("test", oopsErr.Domain())
+			},
+		},
+	}
 
-	// Non-oops error returns false
-	plainErr := errors.New("plain error")
-	_, ok = AsOops(plainErr)
-	is.False(ok)
-
-	// Nil error returns false
-	_, ok = AsOops(nil)
-	is.False(ok)
-
-	// OopsError wrapped by fmt.Errorf is found
-	wrapped := fmt.Errorf("wrapper: %w", err)
-	oopsErr, ok = AsOops(wrapped)
-	is.True(ok)
-	is.Equal("test", oopsErr.Domain())
-
-	// Deeply nested OopsError is found
-	deepWrapped := fmt.Errorf("outer: %w", fmt.Errorf("inner: %w", err))
-	oopsErr, ok = AsOops(deepWrapped)
-	is.True(ok)
-	is.Equal("test", oopsErr.Domain())
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			tt.run(is)
+		})
+	}
 }
 
 func TestAsError(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// Matches concrete error type
-	err := Wrapf(fs.ErrExist, "wrapped")
-	fsErr, ok := AsError[*fs.PathError](fmt.Errorf("path: %w", &fs.PathError{Op: "open", Path: "/tmp", Err: fs.ErrExist}))
-	is.True(ok)
-	is.Equal("open", fsErr.Op)
+	tests := []struct {
+		name string
+		run  func(is *assert.Assertions)
+	}{
+		{
+			name: "matches_concrete_type",
+			run: func(is *assert.Assertions) {
+				fsErr, ok := AsError[*fs.PathError](fmt.Errorf("path: %w", &fs.PathError{Op: "open", Path: "/tmp", Err: fs.ErrExist}))
+				is.True(ok)
+				is.Equal("open", fsErr.Op)
+			},
+		},
+		{
+			name: "oops_via_AsError",
+			run: func(is *assert.Assertions) {
+				err := Wrapf(fs.ErrExist, "wrapped")
+				oopsErr, ok := AsError[OopsError](err)
+				is.True(ok)
+				is.NotEmpty(oopsErr.Span())
+			},
+		},
+		{
+			name: "non_matching_returns_false",
+			run: func(is *assert.Assertions) {
+				_, ok := AsError[*fs.PathError](errors.New("not a path error"))
+				is.False(ok)
+			},
+		},
+		{
+			name: "nil_returns_false",
+			run: func(is *assert.Assertions) {
+				_, ok := AsError[OopsError](nil)
+				is.False(ok)
+			},
+		},
+	}
 
-	// OopsError matched via AsError
-	oopsErr, ok := AsError[OopsError](err)
-	is.True(ok)
-	is.NotEmpty(oopsErr.Span())
-
-	// Non-matching type returns false
-	_, ok = AsError[*fs.PathError](errors.New("not a path error"))
-	is.False(ok)
-
-	// Nil error returns false
-	_, ok = AsError[OopsError](nil)
-	is.False(ok)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			tt.run(is)
+		})
+	}
 }
 
 // https://github.com/samber/oops/issues/95
