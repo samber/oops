@@ -91,69 +91,118 @@ func TestShortFuncNameExtended(t *testing.T) {
 }
 
 func TestOopsStacktraceError(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test stacktrace Error method - returns formatted stacktrace, not span
-	st := &oopsStacktrace{span: "test"}
-	err := st.Error()
-	is.Empty(err) // Empty because no frames
+	frame := oopsStacktraceFrame{file: "test.go", line: 10, function: "testFunc"}
 
-	// Test with frames
-	frame := oopsStacktraceFrame{
-		file:     "test.go",
-		line:     10,
-		function: "testFunc",
+	tests := []struct {
+		name         string
+		st           *oopsStacktrace
+		wantEmpty    bool
+		wantContains string
+	}{
+		{
+			name:      "empty_frames",
+			st:        &oopsStacktrace{span: "test"},
+			wantEmpty: true,
+		},
+		{
+			name:         "with_frames",
+			st:           &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{frame}},
+			wantContains: "test.go:10 testFunc()",
+		},
 	}
-	st2 := &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{frame}}
-	err2 := st2.Error()
-	is.Contains(err2, "test.go:10 testFunc()")
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			result := tt.st.Error()
+			if tt.wantEmpty {
+				is.Empty(result)
+			} else {
+				is.Contains(result, tt.wantContains)
+			}
+		})
+	}
 }
 
 func TestOopsStacktraceString(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test with empty frames
-	st := &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{}}
-	result := st.String("")
-	is.Empty(result)
+	frame := oopsStacktraceFrame{file: "test.go", line: 10, function: "testFunc"}
 
-	// Test with frames
-	frame := oopsStacktraceFrame{
-		file:     "test.go",
-		line:     10,
-		function: "testFunc",
+	tests := []struct {
+		name         string
+		st           *oopsStacktrace
+		deepest      string
+		wantEmpty    bool
+		wantContains string
+	}{
+		{
+			name:      "empty_frames",
+			st:        &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{}},
+			deepest:   "",
+			wantEmpty: true,
+		},
+		{
+			name:         "with_frames",
+			st:           &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{frame}},
+			deepest:      "",
+			wantContains: "test.go:10 testFunc()",
+		},
+		{
+			name:      "matching_deepest_frame_excluded",
+			st:        &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{frame}},
+			deepest:   "test.go:10 testFunc()",
+			wantEmpty: true,
+		},
 	}
-	st2 := &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{frame}}
-	result2 := st2.String("")
-	is.Contains(result2, "test.go:10 testFunc()")
 
-	// Test with deepest frame
-	result3 := st2.String("test.go:10 testFunc()")
-	is.Empty(result3)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			result := tt.st.String(tt.deepest)
+			if tt.wantEmpty {
+				is.Empty(result)
+			} else {
+				is.Contains(result, tt.wantContains)
+			}
+		})
+	}
 }
 
 func TestOopsStacktraceFrameString(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test with function
-	frame := &oopsStacktraceFrame{
-		file:     "test.go",
-		line:     10,
-		function: "testFunc",
+	tests := []struct {
+		name  string
+		frame *oopsStacktraceFrame
+		want  string
+	}{
+		{
+			name:  "with_function",
+			frame: &oopsStacktraceFrame{file: "test.go", line: 10, function: "testFunc"},
+			want:  "test.go:10 testFunc()",
+		},
+		{
+			name:  "without_function",
+			frame: &oopsStacktraceFrame{file: "test.go", line: 10},
+			want:  "test.go:10",
+		},
 	}
-	result := frame.String()
-	is.Equal("test.go:10 testFunc()", result)
 
-	// Test without function
-	frame2 := &oopsStacktraceFrame{
-		file: "test.go",
-		line: 10,
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			is.Equal(tt.want, tt.frame.String())
+		})
 	}
-	result2 := frame2.String()
-	is.Equal("test.go:10", result2)
 }
 
 // helperWrap wraps oops.Wrap without any caller skip — it should appear in the stack trace.

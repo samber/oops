@@ -225,56 +225,94 @@ func TestOopsTxSpanFromOtel(t *testing.T) {
 }
 
 func TestOopsWith(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	err := newBuilder().With("user_id", 1234).Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal(map[string]any{"user_id": 1234}, err.(OopsError).context)
-	err = newBuilder().With("user_id", 1234, "foo").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal(map[string]any{"user_id": 1234}, err.(OopsError).context)
-	err = newBuilder().With("user_id", 1234, "foo", "bar").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal(map[string]any{"user_id": 1234, "foo": "bar"}, err.(OopsError).context)
+	tests := []struct {
+		name    string
+		args    []any
+		wantCtx map[string]any
+	}{
+		{
+			name:    "single_pair",
+			args:    []any{"user_id", 1234},
+			wantCtx: map[string]any{"user_id": 1234},
+		},
+		{
+			name:    "odd_args_ignored",
+			args:    []any{"user_id", 1234, "foo"},
+			wantCtx: map[string]any{"user_id": 1234},
+		},
+		{
+			name:    "two_pairs",
+			args:    []any{"user_id", 1234, "foo", "bar"},
+			wantCtx: map[string]any{"user_id": 1234, "foo": "bar"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			err := newBuilder().With(tt.args...).Wrap(assert.AnError)
+			is.Error(err)
+			is.Equal(assert.AnError, err.(OopsError).err)
+			is.Equal(tt.wantCtx, err.(OopsError).context)
+		})
+	}
 }
 
 func TestOopsWithContext(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
 	type test string
 	const fooo test = "fooo"
 	ctx := context.WithValue(context.Background(), "foo", "bar") //nolint:staticcheck,revive
 	ctx = context.WithValue(ctx, fooo, "baz")
-	// string
-	err := newBuilder().WithContext(ctx, "foo").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal(map[string]any{"foo": "bar"}, err.(OopsError).context)
-	// type alias
-	err = newBuilder().WithContext(ctx, fooo).Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal(map[string]any{"fooo": "baz"}, err.(OopsError).context)
-	// multiple
-	err = newBuilder().WithContext(ctx, "foo", fooo).Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal(map[string]any{"foo": "bar", "fooo": "baz"}, err.(OopsError).context)
-	// not found
-	err = newBuilder().WithContext(ctx, "bar").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal(map[string]any{"bar": nil}, err.(OopsError).context)
-	// none
-	err = newBuilder().WithContext(ctx).Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal(map[string]any{}, err.(OopsError).context)
+
+	tests := []struct {
+		name    string
+		keys    []any
+		wantCtx map[string]any
+	}{
+		{
+			name:    "string_key",
+			keys:    []any{"foo"},
+			wantCtx: map[string]any{"foo": "bar"},
+		},
+		{
+			name:    "type_alias_key",
+			keys:    []any{fooo},
+			wantCtx: map[string]any{"fooo": "baz"},
+		},
+		{
+			name:    "multiple_keys",
+			keys:    []any{"foo", fooo},
+			wantCtx: map[string]any{"foo": "bar", "fooo": "baz"},
+		},
+		{
+			name:    "not_found",
+			keys:    []any{"bar"},
+			wantCtx: map[string]any{"bar": nil},
+		},
+		{
+			name:    "no_keys",
+			keys:    []any{},
+			wantCtx: map[string]any{},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			err := newBuilder().WithContext(ctx, tt.keys...).Wrap(assert.AnError)
+			is.Error(err)
+			is.Equal(assert.AnError, err.(OopsError).err)
+			is.Equal(tt.wantCtx, err.(OopsError).context)
+		})
+	}
 }
 
 func TestOopsWithLazyEvaluation(t *testing.T) {
@@ -318,119 +356,142 @@ func TestOopsOwner(t *testing.T) {
 }
 
 func TestOopsUser(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	err := newBuilder().User("user-123").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("user-123", err.(OopsError).userID)
-	is.Equal(map[string]any{}, err.(OopsError).userData)
-	err = newBuilder().User("user-123", "firstname", "john").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("user-123", err.(OopsError).userID)
-	is.Equal(map[string]any{"firstname": "john"}, err.(OopsError).userData)
-	err = newBuilder().User("user-123", "firstname", "john", "lastname").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("user-123", err.(OopsError).userID)
-	is.Equal(map[string]any{"firstname": "john", badKey: "lastname"}, err.(OopsError).userData)
-	err = newBuilder().User("user-123", "firstname", "john", "lastname", "doe").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("user-123", err.(OopsError).userID)
-	is.Equal(map[string]any{"firstname": "john", "lastname": "doe"}, err.(OopsError).userData)
-	err = newBuilder().User("user-123", 42).Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("user-123", err.(OopsError).userID)
-	is.Equal(map[string]any{badKey: 42}, err.(OopsError).userData)
-	err = newBuilder().User(
-		"user-123",
-		slog.String("firstname", "john"),
-		slog.Group("profile", "lastname", "doe", "age", 42),
-	).Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("user-123", err.(OopsError).userID)
-	is.Equal(
-		map[string]any{
-			"firstname": "john",
-			"profile":   map[string]any{"lastname": "doe", "age": int64(42)},
+	tests := []struct {
+		name     string
+		args     []any
+		wantData map[string]any
+	}{
+		{
+			name:     "id_only",
+			args:     nil,
+			wantData: map[string]any{},
 		},
-		err.(OopsError).userData,
-	)
-	err = newBuilder().User(
-		"user-123",
-		map[string]any{"firstname": "john"},
-		"lastname",
-		"doe",
-		map[string]any{"country": "fr"},
-	).Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("user-123", err.(OopsError).userID)
-	is.Equal(map[string]any{"firstname": "john", "lastname": "doe", "country": "fr"}, err.(OopsError).userData)
+		{
+			name:     "id_with_one_pair",
+			args:     []any{"firstname", "john"},
+			wantData: map[string]any{"firstname": "john"},
+		},
+		{
+			name:     "id_with_odd_args",
+			args:     []any{"firstname", "john", "lastname"},
+			wantData: map[string]any{"firstname": "john", badKey: "lastname"},
+		},
+		{
+			name:     "id_with_two_pairs",
+			args:     []any{"firstname", "john", "lastname", "doe"},
+			wantData: map[string]any{"firstname": "john", "lastname": "doe"},
+		},
+		{
+			name:     "id_with_non_string_key",
+			args:     []any{42},
+			wantData: map[string]any{badKey: 42},
+		},
+		{
+			name: "id_with_slog_attrs",
+			args: []any{
+				slog.String("firstname", "john"),
+				slog.Group("profile", "lastname", "doe", "age", 42),
+			},
+			wantData: map[string]any{
+				"firstname": "john",
+				"profile":   map[string]any{"lastname": "doe", "age": int64(42)},
+			},
+		},
+		{
+			name: "id_with_mixed_maps_and_pairs",
+			args: []any{
+				map[string]any{"firstname": "john"},
+				"lastname",
+				"doe",
+				map[string]any{"country": "fr"},
+			},
+			wantData: map[string]any{"firstname": "john", "lastname": "doe", "country": "fr"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			err := newBuilder().User("user-123", tt.args...).Wrap(assert.AnError)
+			is.Error(err)
+			is.Equal(assert.AnError, err.(OopsError).err)
+			is.Equal("user-123", err.(OopsError).userID)
+			is.Equal(tt.wantData, err.(OopsError).userData)
+		})
+	}
 }
 
 func TestOopsTenant(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	err := newBuilder().Tenant("workspace-123").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("workspace-123", err.(OopsError).tenantID)
-	is.Equal(map[string]any{}, err.(OopsError).tenantData)
-	err = newBuilder().Tenant("workspace-123", "name", "My 'hello world' project").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("workspace-123", err.(OopsError).tenantID)
-	is.Equal(map[string]any{"name": "My 'hello world' project"}, err.(OopsError).tenantData)
-	err = newBuilder().Tenant("workspace-123", "name", "My 'hello world' project", "date").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("workspace-123", err.(OopsError).tenantID)
-	is.Equal(map[string]any{"name": "My 'hello world' project", badKey: "date"}, err.(OopsError).tenantData)
-	err = newBuilder().Tenant("workspace-123", "name", "My 'hello world' project", "date", "2023-01-01").Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("workspace-123", err.(OopsError).tenantID)
-	is.Equal(map[string]any{"name": "My 'hello world' project", "date": "2023-01-01"}, err.(OopsError).tenantData)
-	err = newBuilder().Tenant(
-		"workspace-123",
-		slog.String("country", "fr"),
-		slog.Group("billing", "plan", "pro", "seats", 42),
-	).Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("workspace-123", err.(OopsError).tenantID)
-	is.Equal(
-		map[string]any{
-			"country": "fr",
-			"billing": map[string]any{"plan": "pro", "seats": int64(42)},
+	tests := []struct {
+		name     string
+		args     []any
+		wantData map[string]any
+	}{
+		{
+			name:     "id_only",
+			args:     nil,
+			wantData: map[string]any{},
 		},
-		err.(OopsError).tenantData,
-	)
-	err = newBuilder().Tenant(
-		"workspace-123",
-		map[string]any{"name": "My 'hello world' project"},
-		"date",
-		"2023-01-01",
-		map[string]any{"country": "fr"},
-	).Wrap(assert.AnError)
-	is.Error(err)
-	is.Equal(assert.AnError, err.(OopsError).err)
-	is.Equal("workspace-123", err.(OopsError).tenantID)
-	is.Equal(
-		map[string]any{
-			"name":    "My 'hello world' project",
-			"date":    "2023-01-01",
-			"country": "fr",
+		{
+			name:     "id_with_one_pair",
+			args:     []any{"name", "My 'hello world' project"},
+			wantData: map[string]any{"name": "My 'hello world' project"},
 		},
-		err.(OopsError).tenantData,
-	)
+		{
+			name:     "id_with_odd_args",
+			args:     []any{"name", "My 'hello world' project", "date"},
+			wantData: map[string]any{"name": "My 'hello world' project", badKey: "date"},
+		},
+		{
+			name:     "id_with_two_pairs",
+			args:     []any{"name", "My 'hello world' project", "date", "2023-01-01"},
+			wantData: map[string]any{"name": "My 'hello world' project", "date": "2023-01-01"},
+		},
+		{
+			name: "id_with_slog_attrs",
+			args: []any{
+				slog.String("country", "fr"),
+				slog.Group("billing", "plan", "pro", "seats", 42),
+			},
+			wantData: map[string]any{
+				"country": "fr",
+				"billing": map[string]any{"plan": "pro", "seats": int64(42)},
+			},
+		},
+		{
+			name: "id_with_mixed_maps_and_pairs",
+			args: []any{
+				map[string]any{"name": "My 'hello world' project"},
+				"date",
+				"2023-01-01",
+				map[string]any{"country": "fr"},
+			},
+			wantData: map[string]any{
+				"name":    "My 'hello world' project",
+				"date":    "2023-01-01",
+				"country": "fr",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			err := newBuilder().Tenant("workspace-123", tt.args...).Wrap(assert.AnError)
+			is.Error(err)
+			is.Equal(assert.AnError, err.(OopsError).err)
+			is.Equal("workspace-123", err.(OopsError).tenantID)
+			is.Equal(tt.wantData, err.(OopsError).tenantData)
+		})
+	}
 }
 
 func TestOopsRequest(t *testing.T) {
@@ -839,14 +900,42 @@ func TestOopsMarshalJSON(t *testing.T) {
 }
 
 func TestOopsGetPublic(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	err := newBuilder().Public("public message").Wrap(assert.AnError)
-	is.Equal("public message", GetPublic(err, "default"))
-	err = newBuilder().Wrap(assert.AnError)
-	is.Equal("default", GetPublic(err, "default"))
-	is.Equal("default", GetPublic(nil, "default"))
+	tests := []struct {
+		name     string
+		err      error
+		fallback string
+		want     string
+	}{
+		{
+			name:     "with_public",
+			err:      newBuilder().Public("public message").Wrap(assert.AnError),
+			fallback: "default",
+			want:     "public message",
+		},
+		{
+			name:     "without_public",
+			err:      newBuilder().Wrap(assert.AnError),
+			fallback: "default",
+			want:     "default",
+		},
+		{
+			name:     "nil_error",
+			err:      nil,
+			fallback: "default",
+			want:     "default",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			is.Equal(tt.want, GetPublic(tt.err, tt.fallback))
+		})
+	}
 }
 
 func TestOopsAssert(t *testing.T) {
@@ -968,30 +1057,46 @@ func TestOopsErrorMethods(t *testing.T) {
 }
 
 func TestOopsRecoverEdgeCases(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test recover with non-error panic
-	err := newBuilder().Recover(func() {
-		panic("string panic")
-	})
-	is.Error(err)
-	is.Contains(err.Error(), "string panic")
-	// Test recover with nil panic
-	err = newBuilder().Recover(func() {
-		panic(nil)
-	})
-	is.Error(err)
-	is.Contains(err.Error(), "panic")
-	// Test recover with struct panic
 	type testStruct struct {
 		Field string
 	}
-	err = newBuilder().Recover(func() {
-		panic(testStruct{Field: "test"})
-	})
-	is.Error(err)
-	is.Contains(err.Error(), "test")
+
+	tests := []struct {
+		name         string
+		panicVal     any
+		wantContains string
+	}{
+		{
+			name:         "string_panic",
+			panicVal:     "string panic",
+			wantContains: "string panic",
+		},
+		{
+			name:         "nil_panic",
+			panicVal:     nil,
+			wantContains: "panic",
+		},
+		{
+			name:         "struct_panic",
+			panicVal:     testStruct{Field: "test"},
+			wantContains: "test",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			err := newBuilder().Recover(func() {
+				panic(tt.panicVal)
+			})
+			is.Error(err)
+			is.Contains(err.Error(), tt.wantContains)
+		})
+	}
 }
 
 func TestOopsWithContextEdgeCases(t *testing.T) {
@@ -1015,18 +1120,38 @@ func TestOopsWithContextEdgeCases(t *testing.T) {
 }
 
 func TestOopsErrorFormatEdgeCases(t *testing.T) {
-	is := assert.New(t)
 	t.Parallel()
 
-	// Test error with nil underlying error
-	err := OopsError{msg: "test message"}
-	is.Equal("test message", err.Error())
-	// Test error with empty message
-	err2 := OopsError{err: assert.AnError}
-	is.Equal("assert.AnError general error for testing", err2.Error())
-	// Test error with both message and underlying error
-	err3 := OopsError{err: assert.AnError, msg: "test message"}
-	is.Equal("test message: assert.AnError general error for testing", err3.Error())
+	tests := []struct {
+		name    string
+		oopsErr OopsError
+		want    string
+	}{
+		{
+			name:    "nil_underlying_error",
+			oopsErr: OopsError{msg: "test message"},
+			want:    "test message",
+		},
+		{
+			name:    "empty_message",
+			oopsErr: OopsError{err: assert.AnError},
+			want:    "assert.AnError general error for testing",
+		},
+		{
+			name:    "both_message_and_error",
+			oopsErr: OopsError{err: assert.AnError, msg: "test message"},
+			want:    "test message: assert.AnError general error for testing",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+			is.Equal(tt.want, tt.oopsErr.Error())
+		})
+	}
 }
 
 func TestOopsRequestEdgeCases(t *testing.T) {
