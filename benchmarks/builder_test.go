@@ -1,16 +1,15 @@
 package benchmarks
 
-// Benchmarks focused on the builder pattern before migration to functional options.
+// Benchmarks for the OopsErrorBuilder API.
 //
-// The core overhead: every builder method calls copy(), which clones 3 maps
-// (context, userData, tenantData) and 1 slice (tags). A chain of N methods
-// pays that cost N times, regardless of whether the error is ever read.
+// These benchmarks target the current implementation and are designed for
+// cross-commit comparisons (e.g. benchstat main...HEAD).
 //
 // Run:
-//   go test -bench=. -benchmem -count=10 ./benchmarks/ | tee bench-builder.txt
+//   go test -bench=. -benchmem -count=10 ./benchmarks/ | tee bench.txt
 //
-// Compare after refactoring:
-//   benchstat bench-builder.txt bench-functional-options.txt
+// Compare two commits:
+//   benchstat bench-before.txt bench-after.txt
 
 import (
 	"errors"
@@ -278,7 +277,7 @@ func BenchmarkBuilderVsStdlib(b *testing.B) {
 	b.Run("stdlib/fmt.Errorf", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_ = errors.New("wrapped: " + inner.Error())
+			_ = fmt.Errorf("wrapped: %w", inner)
 		}
 	})
 
@@ -391,10 +390,7 @@ func BenchmarkOopsErrorMemoryFootprint(b *testing.B) {
 				var after runtime.MemStats
 				runtime.ReadMemStats(&after)
 
-				liveTotal := int64(after.HeapInuse) - int64(before.HeapInuse)
-				if liveTotal < 0 {
-					liveTotal = 0
-				}
+				liveTotal := max(int64(after.HeapInuse)-int64(before.HeapInuse), 0)
 				b.ReportMetric(float64(liveTotal), "live-B/total")
 				b.ReportMetric(float64(liveTotal)/float64(count), "live-B/error")
 
