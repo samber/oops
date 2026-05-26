@@ -84,7 +84,7 @@ func TestOopsFromContext(t *testing.T) {
 	is.Error(err)
 	is.Equal(domain, err.(OopsError).domain)
 	is.Equal(val, err.(OopsError).context[key])
-	is.NotZero(FromContext(context.Background()).time)
+	is.NotZero(FromContext(context.Background()).New("test").(OopsError).Time())
 }
 
 func TestOopsNew(t *testing.T) {
