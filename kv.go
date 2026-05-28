@@ -29,7 +29,14 @@ import (
 //	result := dereferencePointers(data)
 //	// result["user"] will be User{Name: "John"} instead of *User
 //	// result["count"] will be 42 instead of *int
-func dereferencePointers(data map[string]any) map[string]any { //nolint:gocyclo
+func derefPtr[T any](p *T) any {
+	if p == nil {
+		return nil
+	}
+	return *p
+}
+
+func dereferencePointers(data map[string]any) map[string]any {
 	if !DereferencePointers {
 		return data
 	}
@@ -42,47 +49,19 @@ func dereferencePointers(data map[string]any) map[string]any { //nolint:gocyclo
 			map[string]any, []any:
 			continue // not a pointer, skip
 		case *string:
-			if v != nil {
-				data[key] = *v
-			} else {
-				data[key] = nil
-			}
+			data[key] = derefPtr(v)
 		case *int:
-			if v != nil {
-				data[key] = *v
-			} else {
-				data[key] = nil
-			}
+			data[key] = derefPtr(v)
 		case *int64:
-			if v != nil {
-				data[key] = *v
-			} else {
-				data[key] = nil
-			}
+			data[key] = derefPtr(v)
 		case *uint:
-			if v != nil {
-				data[key] = *v
-			} else {
-				data[key] = nil
-			}
+			data[key] = derefPtr(v)
 		case *uint64:
-			if v != nil {
-				data[key] = *v
-			} else {
-				data[key] = nil
-			}
+			data[key] = derefPtr(v)
 		case *float64:
-			if v != nil {
-				data[key] = *v
-			} else {
-				data[key] = nil
-			}
+			data[key] = derefPtr(v)
 		case *bool:
-			if v != nil {
-				data[key] = *v
-			} else {
-				data[key] = nil
-			}
+			data[key] = derefPtr(v)
 		default:
 			val := reflect.ValueOf(value)
 			if val.Kind() == reflect.Pointer {
