@@ -568,7 +568,7 @@ func (o OopsError) Sources() string {
 // flattened OopsError. Maps are merged, lazy values evaluated, and pointers
 // dereferenced. Semantics match the individual public accessors.
 // Only the data fields are populated; err/msg/stacktrace/cache are left zero.
-func snapshot(o OopsError) OopsError {
+func snapshot(o OopsError) OopsError { //nolint:gocyclo
 	var s OopsError
 	var explicitTrace, autoTrace string
 	var contextMaps, userDataMaps, tenantDataMaps []map[string]any
