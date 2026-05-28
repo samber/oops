@@ -29,23 +29,44 @@ import (
 //	result := dereferencePointers(data)
 //	// result["user"] will be User{Name: "John"} instead of *User
 //	// result["count"] will be 42 instead of *int
+func derefPtr[T any](p *T) any {
+	if p == nil {
+		return nil
+	}
+	return *p
+}
+
 func dereferencePointers(data map[string]any) map[string]any {
 	if !DereferencePointers {
 		return data
 	}
 
 	for key, value := range data {
-		// Fast path: only use reflect for types that could be pointers
-		switch value.(type) {
+		switch v := value.(type) {
 		case nil, string, int, int8, int16, int32, int64,
 			uint, uint8, uint16, uint32, uint64,
 			float32, float64, bool, []byte,
 			map[string]any, []any:
 			continue // not a pointer, skip
-		}
-		val := reflect.ValueOf(value)
-		if val.Kind() == reflect.Pointer {
-			data[key] = dereferencePointerRecursive(val, 0)
+		case *string:
+			data[key] = derefPtr(v)
+		case *int:
+			data[key] = derefPtr(v)
+		case *int64:
+			data[key] = derefPtr(v)
+		case *uint:
+			data[key] = derefPtr(v)
+		case *uint64:
+			data[key] = derefPtr(v)
+		case *float64:
+			data[key] = derefPtr(v)
+		case *bool:
+			data[key] = derefPtr(v)
+		default:
+			val := reflect.ValueOf(value)
+			if val.Kind() == reflect.Pointer {
+				data[key] = dereferencePointerRecursive(val, 0)
+			}
 		}
 	}
 
