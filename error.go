@@ -286,13 +286,19 @@ func (o OopsError) Domain() string {
 // Tags are merged from all errors in the chain and deduplicated.
 func (o OopsError) Tags() []string {
 	tags := make([]string, 0, 8) // reasonable initial capacity for tags
+	seen := map[string]struct{}{}
 
 	recursive(o, func(e OopsError) bool {
-		tags = append(tags, e.tags...)
+		for _, tag := range e.tags {
+			if _, ok := seen[tag]; !ok {
+				tags = append(tags, tag)
+				seen[tag] = struct{}{}
+			}
+		}
 		return true
 	})
 
-	return lo.Uniq(tags)
+	return tags
 }
 
 // HasTag checks if the error or any of its wrapped errors contain the specified tag.

@@ -35,17 +35,59 @@ func dereferencePointers(data map[string]any) map[string]any {
 	}
 
 	for key, value := range data {
-		// Fast path: only use reflect for types that could be pointers
-		switch value.(type) {
+		switch v := value.(type) {
 		case nil, string, int, int8, int16, int32, int64,
 			uint, uint8, uint16, uint32, uint64,
 			float32, float64, bool, []byte,
 			map[string]any, []any:
 			continue // not a pointer, skip
-		}
-		val := reflect.ValueOf(value)
-		if val.Kind() == reflect.Pointer {
-			data[key] = dereferencePointerRecursive(val, 0)
+		case *string:
+			if v != nil {
+				data[key] = *v
+			} else {
+				data[key] = nil
+			}
+		case *int:
+			if v != nil {
+				data[key] = *v
+			} else {
+				data[key] = nil
+			}
+		case *int64:
+			if v != nil {
+				data[key] = *v
+			} else {
+				data[key] = nil
+			}
+		case *uint:
+			if v != nil {
+				data[key] = *v
+			} else {
+				data[key] = nil
+			}
+		case *uint64:
+			if v != nil {
+				data[key] = *v
+			} else {
+				data[key] = nil
+			}
+		case *float64:
+			if v != nil {
+				data[key] = *v
+			} else {
+				data[key] = nil
+			}
+		case *bool:
+			if v != nil {
+				data[key] = *v
+			} else {
+				data[key] = nil
+			}
+		default:
+			val := reflect.ValueOf(value)
+			if val.Kind() == reflect.Pointer {
+				data[key] = dereferencePointerRecursive(val, 0)
+			}
 		}
 	}
 
