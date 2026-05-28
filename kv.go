@@ -29,7 +29,7 @@ import (
 //	result := dereferencePointers(data)
 //	// result["user"] will be User{Name: "John"} instead of *User
 //	// result["count"] will be 42 instead of *int
-func dereferencePointers(data map[string]any) map[string]any {
+func dereferencePointers(data map[string]any) map[string]any { //nolint:gocyclo
 	if !DereferencePointers {
 		return data
 	}
