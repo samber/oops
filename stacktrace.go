@@ -353,7 +353,7 @@ func framesToStacktraceBlocks(blocks []outputBlock) []string {
 }
 
 func framesToSourceBlocks(blocks []outputBlock) []string {
-	output := [][]string{}
+	output := make([][]string, 0, len(blocks))
 
 	for _, b := range blocks {
 		st := oopsStacktrace{frames: b.frames}
