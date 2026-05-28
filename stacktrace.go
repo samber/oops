@@ -275,6 +275,7 @@ func newStacktrace(span string, skip int) *oopsStacktrace {
 //	"github.com/user/app.(*Handler).ProcessRequest" -> "ProcessRequest"
 //	"main.main" -> "main"
 //	"github.com/user/pkg.helper" -> "helper"
+
 // ptrReceiverReplacer strips pointer receiver syntax characters from function names.
 var ptrReceiverReplacer = strings.NewReplacer("(", "", "*", "", ")", "")
 
