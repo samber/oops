@@ -276,14 +276,15 @@ func mergeNestedErrorMap(err OopsError, getter func(OopsError) map[string]any) m
 	// Collect all maps from the chain (shallower first, deeper last).
 	var maps []map[string]any
 	collectMaps(err, getter, &maps)
+	return mergeMaps(maps)
+}
 
+// mergeMaps merges a slice of maps into one, with later entries overwriting
+// earlier ones (deeper-in-chain maps win over shallower ones).
+func mergeMaps(maps []map[string]any) map[string]any {
 	if len(maps) == 0 {
 		return map[string]any{}
 	}
-
-	// Merge into a single result: deeper maps (appended last) overwrite
-	// shallower ones, preserving the original semantics.
-	// Preallocate with the first map's length as a rough capacity hint.
 	result := make(map[string]any, len(maps[0]))
 	for _, m := range maps {
 		for k, v := range m {
