@@ -125,10 +125,91 @@ func TestDereferencePointerEdgeCases(t *testing.T) {
 		{
 			name: "int_pointer",
 			run: func(is *assert.Assertions) {
-				intValue := 42
-				intPtr := &intValue
-				err := With("int", intPtr).Errorf(anErrorStr).(OopsError)
+				v := 42
+				err := With("int", &v).Errorf(anErrorStr).(OopsError)
 				is.Equal(map[string]any{"int": 42}, err.Context())
+			},
+		},
+		{
+			name: "nil_int_fast_path",
+			run: func(is *assert.Assertions) {
+				err := With("v", (*int)(nil)).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": nil}, err.Context())
+			},
+		},
+		{
+			name: "int64_pointer",
+			run: func(is *assert.Assertions) {
+				v := int64(100)
+				err := With("v", &v).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": int64(100)}, err.Context())
+			},
+		},
+		{
+			name: "nil_int64_fast_path",
+			run: func(is *assert.Assertions) {
+				err := With("v", (*int64)(nil)).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": nil}, err.Context())
+			},
+		},
+		{
+			name: "uint_pointer",
+			run: func(is *assert.Assertions) {
+				v := uint(7)
+				err := With("v", &v).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": uint(7)}, err.Context())
+			},
+		},
+		{
+			name: "nil_uint_fast_path",
+			run: func(is *assert.Assertions) {
+				err := With("v", (*uint)(nil)).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": nil}, err.Context())
+			},
+		},
+		{
+			name: "uint64_pointer",
+			run: func(is *assert.Assertions) {
+				v := uint64(999)
+				err := With("v", &v).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": uint64(999)}, err.Context())
+			},
+		},
+		{
+			name: "nil_uint64_fast_path",
+			run: func(is *assert.Assertions) {
+				err := With("v", (*uint64)(nil)).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": nil}, err.Context())
+			},
+		},
+		{
+			name: "float64_pointer",
+			run: func(is *assert.Assertions) {
+				v := 3.14
+				err := With("v", &v).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": 3.14}, err.Context())
+			},
+		},
+		{
+			name: "nil_float64_fast_path",
+			run: func(is *assert.Assertions) {
+				err := With("v", (*float64)(nil)).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": nil}, err.Context())
+			},
+		},
+		{
+			name: "bool_pointer",
+			run: func(is *assert.Assertions) {
+				v := true
+				err := With("v", &v).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": true}, err.Context())
+			},
+		},
+		{
+			name: "nil_bool_fast_path",
+			run: func(is *assert.Assertions) {
+				err := With("v", (*bool)(nil)).Errorf(anErrorStr).(OopsError)
+				is.Equal(map[string]any{"v": nil}, err.Context())
 			},
 		},
 		{
