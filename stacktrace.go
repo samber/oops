@@ -275,6 +275,10 @@ func newStacktrace(span string, skip int) *oopsStacktrace {
 //	"github.com/user/app.(*Handler).ProcessRequest" -> "ProcessRequest"
 //	"main.main" -> "main"
 //	"github.com/user/pkg.helper" -> "helper"
+
+// ptrReceiverReplacer strips pointer receiver syntax characters from function names.
+var ptrReceiverReplacer = strings.NewReplacer("(", "", "*", "", ")", "")
+
 func shortFuncName(longName string) string {
 	// longName is the full function name including package path
 	// Examples of possible formats:
@@ -290,12 +294,7 @@ func shortFuncName(longName string) string {
 
 	// Clean up the function name by removing parentheses and asterisks
 	// that are part of pointer receiver syntax
-	shortName := withoutPackage
-	shortName = strings.Replace(shortName, "(", "", 1) // Remove opening parenthesis
-	shortName = strings.Replace(shortName, "*", "", 1) // Remove asterisk
-	shortName = strings.Replace(shortName, ")", "", 1) // Remove closing parenthesis
-
-	return shortName
+	return ptrReceiverReplacer.Replace(withoutPackage)
 }
 
 // applyFrameSkip returns a copy of frames with any entries matching framesSkip patterns removed.
@@ -323,21 +322,21 @@ func applyFrameSkip(frames []oopsStacktraceFrame) []oopsStacktraceFrame {
 	return filtered
 }
 
-func framesToStacktraceBlocks(blocks []lo.Tuple3[error, string, []oopsStacktraceFrame]) []string {
+func framesToStacktraceBlocks(blocks []outputBlock) []string {
 	output := make([]string, 0, len(blocks))
 	shownFrames := make(map[string]bool)
 
 	for _, e := range blocks {
-		err := lo.TernaryF(e.A != nil, func() string { return e.A.Error() }, func() string { return "" })
-		msg := coalesceOrEmpty(e.B, err, "Error")
+		err := lo.TernaryF(e.err != nil, func() string { return e.err.Error() }, func() string { return "" })
+		msg := coalesceOrEmpty(e.msg, err, "Error")
 
 		// Build stacktrace for this error, avoiding already shown frames
 		var frameLines []string
 		firstFrame := true // we always show the first frame, because the PC of a recursive function might appear multiple time.
-		for _, frame := range e.C {
+		for _, frame := range e.frames {
 			frameStr := frame.String()
 			if !shownFrames[frameStr] || firstFrame {
-				frameLines = append(frameLines, "  --- at "+frame.String())
+				frameLines = append(frameLines, "  --- at "+frameStr)
 				shownFrames[frameStr] = true
 			}
 			firstFrame = false
@@ -353,14 +352,15 @@ func framesToStacktraceBlocks(blocks []lo.Tuple3[error, string, []oopsStacktrace
 	return output
 }
 
-func framesToSourceBlocks(blocks []lo.Tuple2[string, *oopsStacktrace]) []string {
+func framesToSourceBlocks(blocks []outputBlock) []string {
 	output := [][]string{}
 
-	for _, e := range blocks {
-		header, body := e.B.Source()
+	for _, b := range blocks {
+		st := oopsStacktrace{frames: b.frames}
+		header, body := st.Source()
 
-		if e.A != "" {
-			header = fmt.Sprintf("%s\n%s", e.A, header)
+		if b.msg != "" {
+			header = fmt.Sprintf("%s\n%s", b.msg, header)
 		}
 
 		if header != "" && len(body) > 0 {
