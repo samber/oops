@@ -529,11 +529,7 @@ func (o OopsError) Stacktrace() string {
 		return ""
 	}
 
-	stBlocks := make([]lo.Tuple3[error, string, []oopsStacktraceFrame], len(blocks))
-	for i, b := range blocks {
-		stBlocks[i] = lo.T3(b.err, b.msg, b.frames)
-	}
-	return "Oops: " + strings.Join(framesToStacktraceBlocks(stBlocks), "\nThrown: ")
+	return "Oops: " + strings.Join(framesToStacktraceBlocks(blocks), "\nThrown: ")
 }
 
 // StackFrames returns the raw stack frames as runtime.Frame objects.
@@ -543,14 +539,14 @@ func (o OopsError) StackFrames() []runtime.Frame {
 		return nil
 	}
 	filtered := applyFrameSkip(o.stacktrace.frames)
-	frames := make([]runtime.Frame, 0, len(filtered))
-	for _, f := range filtered {
-		frames = append(frames, runtime.Frame{
+	frames := make([]runtime.Frame, len(filtered))
+	for i, f := range filtered {
+		frames[i] = runtime.Frame{
 			PC:       f.pc,
 			File:     f.file,
 			Line:     f.line,
 			Function: f.function,
-		})
+		}
 	}
 	return frames
 }
@@ -565,11 +561,7 @@ func (o OopsError) Sources() string {
 		return ""
 	}
 
-	srcBlocks := make([]lo.Tuple2[string, *oopsStacktrace], len(blocks))
-	for i, b := range blocks {
-		srcBlocks[i] = lo.T2(b.msg, &oopsStacktrace{frames: b.frames})
-	}
-	return "Oops: " + strings.Join(framesToSourceBlocks(srcBlocks), "\n\nThrown: ")
+	return "Oops: " + strings.Join(framesToSourceBlocks(blocks), "\n\nThrown: ")
 }
 
 // LogValuer returns a slog.Value representation of the error.
