@@ -327,7 +327,10 @@ func framesToStacktraceBlocks(blocks []outputBlock) []string {
 	shownFrames := make(map[string]bool)
 
 	for _, e := range blocks {
-		err := lo.TernaryF(e.err != nil, func() string { return e.err.Error() }, func() string { return "" })
+		err := ""
+		if e.err != nil {
+			err = e.err.Error()
+		}
 		msg := coalesceOrEmpty(e.msg, err, "Error")
 
 		// Build stacktrace for this error, avoiding already shown frames
@@ -353,7 +356,7 @@ func framesToStacktraceBlocks(blocks []outputBlock) []string {
 }
 
 func framesToSourceBlocks(blocks []outputBlock) []string {
-	output := [][]string{}
+	output := make([][]string, 0, len(blocks))
 
 	for _, b := range blocks {
 		st := oopsStacktrace{frames: b.frames}
