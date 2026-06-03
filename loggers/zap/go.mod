@@ -1,6 +1,6 @@
 module github.com/samber/oops/loggers/zap
 
-go 1.21
+go 1.25.0
 
 replace github.com/samber/oops => ../..
 
@@ -19,6 +19,6 @@ require (
 	go.opentelemetry.io/otel v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
