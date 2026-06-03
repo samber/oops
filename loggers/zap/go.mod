@@ -8,7 +8,7 @@ require (
 	github.com/samber/oops v0.0.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/goleak v1.3.0
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.28.0
 )
 
 require (
