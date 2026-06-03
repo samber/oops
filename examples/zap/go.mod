@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/samber/oops v0.0.0
 	github.com/samber/oops/loggers/zap v0.0.0
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.28.0
 )
 
 require (
