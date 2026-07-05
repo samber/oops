@@ -52,21 +52,22 @@ func TestStacktrace(t *testing.T) {
 
 	path := strings.Replace(bi.Path, ".test", "", 1) // starting go1.24, go adds ".test" to the path when running tests
 
-	if st.frames != nil {
-		for _, f := range st.frames {
+	frames := st.resolvedFrames()
+	if frames != nil {
+		for _, f := range frames {
 			is.Contains(f.file, path, "frame file %s should contain %s", f.file, path)
 		}
 
-		is.Len(st.frames, 7, "expected 7 frames")
+		is.Len(frames, 7, "expected 7 frames")
 
-		if len(st.frames) == 7 {
-			is.Equal("f", (st.frames)[0].function)
-			is.Equal("e", (st.frames)[1].function)
-			is.Equal("d", (st.frames)[2].function)
-			is.Equal("c", (st.frames)[3].function)
-			is.Equal("b", (st.frames)[4].function)
-			is.Equal("a", (st.frames)[5].function)
-			is.Equal("TestStacktrace", (st.frames)[6].function)
+		if len(frames) == 7 {
+			is.Equal("f", frames[0].function)
+			is.Equal("e", frames[1].function)
+			is.Equal("d", frames[2].function)
+			is.Equal("c", frames[3].function)
+			is.Equal("b", frames[4].function)
+			is.Equal("a", frames[5].function)
+			is.Equal("TestStacktrace", frames[6].function)
 		}
 	}
 }

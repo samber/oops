@@ -515,7 +515,7 @@ func (o OopsError) rawBlocks() []outputBlock {
 	var blocks []outputBlock
 	recursive(o, func(e OopsError) bool {
 		if e.stacktrace != nil {
-			filteredFrames := applyFrameSkip(e.stacktrace.frames)
+			filteredFrames := applyFrameSkip(e.stacktrace.resolvedFrames())
 			if len(filteredFrames) > 0 {
 				blocks = append(blocks, outputBlock{e.err, e.msg, filteredFrames})
 			}
@@ -545,7 +545,7 @@ func (o OopsError) StackFrames() []runtime.Frame {
 	if o.stacktrace == nil {
 		return nil
 	}
-	filtered := applyFrameSkip(o.stacktrace.frames)
+	filtered := applyFrameSkip(o.stacktrace.resolvedFrames())
 	frames := make([]runtime.Frame, len(filtered))
 	for i, f := range filtered {
 		frames[i] = runtime.Frame{

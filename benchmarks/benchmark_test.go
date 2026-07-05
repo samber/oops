@@ -190,3 +190,18 @@ func BenchmarkRecover(b *testing.B) {
 		_ = oops.Recover(func() { panic("test panic") })
 	}
 }
+
+// BenchmarkCreateThenStacktrace measures the combined cost of creating an
+// error and immediately formatting its stack trace. Stack frame symbolization
+// is deferred to the first read, so this benchmark exposes the full
+// create+resolve+format cost that the single-error read benchmarks above
+// (ToMap, LogValue) amortize away by reusing one error across iterations.
+func BenchmarkCreateThenStacktrace(b *testing.B) {
+	inner := errors.New("inner")
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		err := oops.Wrap(inner)
+		oopsErr, _ := oops.AsOops(err)
+		_ = oopsErr.Stacktrace()
+	}
+}
