@@ -139,6 +139,7 @@ func (st *oopsStacktrace) resolvedFrames() []oopsStacktraceFrame {
 // tests), and at most maxDepth frames are kept.
 func (st *oopsStacktrace) resolve() {
 	if len(st.pcs) == 0 {
+		st.pcs = nil
 		return
 	}
 
