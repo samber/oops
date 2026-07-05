@@ -303,9 +303,17 @@ func snapshot(o OopsError) OopsError { //nolint:gocyclo
 	}
 
 	s.tags = lo.Uniq(s.tags)
-	s.context = dereferencePointers(lazyMapEvaluation(mergeMaps(contextMaps)))
-	s.userData = dereferencePointers(lazyMapEvaluation(mergeMaps(userDataMaps)))
-	s.tenantData = dereferencePointers(lazyMapEvaluation(mergeMaps(tenantDataMaps)))
+	// Only merge when the chain actually carries maps: mergeMaps allocates
+	// even for empty input, and consumers only ever check len() on these.
+	if len(contextMaps) > 0 {
+		s.context = dereferencePointers(lazyMapEvaluation(mergeMaps(contextMaps)))
+	}
+	if len(userDataMaps) > 0 {
+		s.userData = dereferencePointers(lazyMapEvaluation(mergeMaps(userDataMaps)))
+	}
+	if len(tenantDataMaps) > 0 {
+		s.tenantData = dereferencePointers(lazyMapEvaluation(mergeMaps(tenantDataMaps)))
+	}
 
 	return s
 }
