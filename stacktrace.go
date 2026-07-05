@@ -143,7 +143,8 @@ func (st *oopsStacktrace) resolve() {
 		return
 	}
 
-	frames := make([]oopsStacktraceFrame, 0, st.maxDepth)
+	capDepth := min(st.maxDepth, len(st.pcs))
+	frames := make([]oopsStacktraceFrame, 0, capDepth)
 
 	// Iterate over the captured frames
 	iter := runtime.CallersFrames(st.pcs)
