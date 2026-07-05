@@ -176,6 +176,98 @@ func TestOopsStacktraceString(t *testing.T) {
 	}
 }
 
+func TestOopsStacktraceSource(t *testing.T) {
+	t.Parallel()
+
+	_, currentFile, currentLine, _ := runtime.Caller(0)
+
+	t.Run("empty_frames", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		st := &oopsStacktrace{span: "test"}
+		header, body := st.Source()
+		is.Empty(header)
+		is.Empty(body)
+	})
+
+	t.Run("with_frames", func(t *testing.T) { //nolint:paralleltest
+		t.Cleanup(func() {
+			mutex.Lock()
+			cache = map[string][]string{}
+			mutex.Unlock()
+		})
+		is := assert.New(t)
+
+		frame := oopsStacktraceFrame{file: currentFile, line: currentLine, function: "TestOopsStacktraceSource"}
+		st := &oopsStacktrace{span: "test", frames: []oopsStacktraceFrame{frame}}
+
+		header, body := st.Source()
+		is.Equal(frame.String(), header)
+		is.NotEmpty(body)
+	})
+}
+
+func TestFramesToSourceBlocks(t *testing.T) {
+	t.Parallel()
+
+	_, currentFile, currentLine, _ := runtime.Caller(0)
+
+	t.Run("no_blocks", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		is.Empty(framesToSourceBlocks(nil))
+	})
+
+	t.Run("message_and_frames_produce_a_block", func(t *testing.T) { //nolint:paralleltest
+		t.Cleanup(func() {
+			mutex.Lock()
+			cache = map[string][]string{}
+			mutex.Unlock()
+		})
+		is := assert.New(t)
+
+		frame := oopsStacktraceFrame{file: currentFile, line: currentLine, function: "TestFramesToSourceBlocks"}
+		blocks := []outputBlock{{msg: "boom", frames: []oopsStacktraceFrame{frame}}}
+
+		out := framesToSourceBlocks(blocks)
+		is.Len(out, 1)
+		is.Contains(out[0], "boom")
+		is.Contains(out[0], frame.String())
+	})
+
+	t.Run("unresolvable_frame_produces_no_block", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		frame := oopsStacktraceFrame{file: "/nonexistent/path/file.go", line: 1, function: "x"}
+		blocks := []outputBlock{{msg: "boom", frames: []oopsStacktraceFrame{frame}}}
+
+		is.Empty(framesToSourceBlocks(blocks))
+	})
+
+	t.Run("multiple_blocks_are_reversed", func(t *testing.T) { //nolint:paralleltest
+		t.Cleanup(func() {
+			mutex.Lock()
+			cache = map[string][]string{}
+			mutex.Unlock()
+		})
+		is := assert.New(t)
+
+		frame := oopsStacktraceFrame{file: currentFile, line: currentLine, function: "TestFramesToSourceBlocks"}
+		blocks := []outputBlock{
+			{msg: "first", frames: []oopsStacktraceFrame{frame}},
+			{msg: "second", frames: []oopsStacktraceFrame{frame}},
+		}
+
+		out := framesToSourceBlocks(blocks)
+		is.Len(out, 2)
+		is.Contains(out[0], "second")
+		is.Contains(out[1], "first")
+	})
+}
+
 func TestOopsStacktraceFrameString(t *testing.T) {
 	t.Parallel()
 
