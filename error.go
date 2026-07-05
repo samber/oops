@@ -744,8 +744,12 @@ func (o OopsError) ToMap() map[string]any { //nolint:gocyclo
 
 	if s.userID != "" || len(s.userData) > 0 {
 		// snapshot() owns s.userData (freshly merged in mergeMaps), so it can
-		// be used directly instead of copying.
+		// be used directly instead of copying. It is nil when only the user
+		// ID was set.
 		user := s.userData
+		if user == nil {
+			user = map[string]any{}
+		}
 		if s.userID != "" {
 			user["id"] = s.userID
 		}
@@ -754,8 +758,12 @@ func (o OopsError) ToMap() map[string]any { //nolint:gocyclo
 
 	if s.tenantID != "" || len(s.tenantData) > 0 {
 		// snapshot() owns s.tenantData (freshly merged in mergeMaps), so it can
-		// be used directly instead of copying.
+		// be used directly instead of copying. It is nil when only the tenant
+		// ID was set.
 		tenant := s.tenantData
+		if tenant == nil {
+			tenant = map[string]any{}
+		}
 		if s.tenantID != "" {
 			tenant["id"] = s.tenantID
 		}
