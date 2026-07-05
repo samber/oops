@@ -680,8 +680,13 @@ func (o OopsError) LogValue() slog.Value { //nolint:gocyclo
 		attrs = append(attrs, slog.String("stacktrace", stacktrace))
 	}
 
-	if sources := o.Sources(); sources != "" && !SourceFragmentsHidden {
-		attrs = append(attrs, slog.String("sources", sources))
+	// Check the flag before calling Sources(): formatting source fragments
+	// reads source files from disk and builds the full output string, all of
+	// which would be discarded here when fragments are hidden (the default).
+	if !SourceFragmentsHidden {
+		if sources := o.Sources(); sources != "" {
+			attrs = append(attrs, slog.String("sources", sources))
+		}
 	}
 
 	return slog.GroupValue(attrs...)
@@ -780,8 +785,11 @@ func (o OopsError) ToMap() map[string]any { //nolint:gocyclo
 		payload["stacktrace"] = stacktrace
 	}
 
-	if sources := o.Sources(); sources != "" && !SourceFragmentsHidden {
-		payload["sources"] = sources
+	// See LogValue: only format source fragments when they will be used.
+	if !SourceFragmentsHidden {
+		if sources := o.Sources(); sources != "" {
+			payload["sources"] = sources
+		}
 	}
 
 	return payload
@@ -910,8 +918,11 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 		_, _ = fmt.Fprintf(&output, "Stacktrace:\n%s\n", stacktrace)
 	}
 
-	if sources := o.Sources(); sources != "" && !SourceFragmentsHidden {
-		_, _ = fmt.Fprintf(&output, "Sources:\n%s\n", sources)
+	// See LogValue: only format source fragments when they will be used.
+	if !SourceFragmentsHidden {
+		if sources := o.Sources(); sources != "" {
+			_, _ = fmt.Fprintf(&output, "Sources:\n%s\n", sources)
+		}
 	}
 
 	return output.String()
