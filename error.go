@@ -632,32 +632,35 @@ func (o OopsError) LogValue() slog.Value { //nolint:gocyclo
 	}
 
 	if len(s.context) > 0 {
-		attrs = append(attrs,
-			slog.Group(
-				"context",
-				lo.ToAnySlice(
-					lo.MapToSlice(s.context, slog.Any),
-				)...,
-			),
-		)
+		// Build the []any argument list directly instead of going through
+		// lo.MapToSlice + lo.ToAnySlice, which allocates two intermediate slices.
+		args := make([]any, 0, len(s.context))
+		for k, v := range s.context {
+			args = append(args, slog.Any(k, v))
+		}
+		attrs = append(attrs, slog.Group("context", args...))
 	}
 
 	if s.userID != "" || len(s.userData) > 0 {
-		userPayload := []slog.Attr{}
+		userPayload := make([]any, 0, len(s.userData)+1)
 		if s.userID != "" {
 			userPayload = append(userPayload, slog.String("id", s.userID))
-			userPayload = append(userPayload, lo.MapToSlice(s.userData, slog.Any)...)
+			for k, v := range s.userData {
+				userPayload = append(userPayload, slog.Any(k, v))
+			}
 		}
-		attrs = append(attrs, slog.Group("user", lo.ToAnySlice(userPayload)...))
+		attrs = append(attrs, slog.Group("user", userPayload...))
 	}
 
 	if s.tenantID != "" || len(s.tenantData) > 0 {
-		tenantPayload := []slog.Attr{}
+		tenantPayload := make([]any, 0, len(s.tenantData)+1)
 		if s.tenantID != "" {
 			tenantPayload = append(tenantPayload, slog.String("id", s.tenantID))
-			tenantPayload = append(tenantPayload, lo.MapToSlice(s.tenantData, slog.Any)...)
+			for k, v := range s.tenantData {
+				tenantPayload = append(tenantPayload, slog.Any(k, v))
+			}
 		}
-		attrs = append(attrs, slog.Group("tenant", lo.ToAnySlice(tenantPayload)...))
+		attrs = append(attrs, slog.Group("tenant", tenantPayload...))
 	}
 
 	if s.req != nil {
@@ -741,7 +744,9 @@ func (o OopsError) ToMap() map[string]any { //nolint:gocyclo
 	}
 
 	if s.userID != "" || len(s.userData) > 0 {
-		user := lo.Assign(map[string]any{}, s.userData)
+		// snapshot() owns s.userData (freshly merged in mergeMaps), so it can
+		// be used directly instead of copying.
+		user := s.userData
 		if s.userID != "" {
 			user["id"] = s.userID
 		}
@@ -749,7 +754,9 @@ func (o OopsError) ToMap() map[string]any { //nolint:gocyclo
 	}
 
 	if s.tenantID != "" || len(s.tenantData) > 0 {
-		tenant := lo.Assign(map[string]any{}, s.tenantData)
+		// snapshot() owns s.tenantData (freshly merged in mergeMaps), so it can
+		// be used directly instead of copying.
+		tenant := s.tenantData
 		if s.tenantID != "" {
 			tenant["id"] = s.tenantID
 		}
@@ -885,22 +892,16 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 	if s.req != nil {
 		dump, e := httputil.DumpRequestOut(s.req.A, s.req.B)
 		if e == nil {
-			lines := strings.Split(string(dump), "\n")
-			lines = lo.Map(lines, func(line string, _ int) string {
-				return "  * " + line
-			})
-			_, _ = fmt.Fprintf(&output, "Request:\n%s\n", strings.Join(lines, "\n"))
+			output.WriteString("Request:\n")
+			writePrefixedLines(&output, string(dump))
 		}
 	}
 
 	if s.res != nil {
 		dump, e := httputil.DumpResponse(s.res.A, s.res.B)
 		if e == nil {
-			lines := strings.Split(string(dump), "\n")
-			lines = lo.Map(lines, func(line string, _ int) string {
-				return "  * " + line
-			})
-			_, _ = fmt.Fprintf(&output, "Response:\n%s\n", strings.Join(lines, "\n"))
+			output.WriteString("Response:\n")
+			writePrefixedLines(&output, string(dump))
 		}
 	}
 
@@ -920,4 +921,23 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 // formatSummary returns a brief summary of the error for logging.
 func (o *OopsError) formatSummary() string {
 	return o.Error()
+}
+
+// writePrefixedLines writes s to output with each line prefixed by "  * ",
+// followed by a trailing newline. Equivalent to splitting on "\n", prefixing
+// every element (including a trailing empty one), and joining - but in a
+// single pass without the intermediate slices.
+func writePrefixedLines(output *strings.Builder, s string) {
+	for {
+		output.WriteString("  * ")
+		idx := strings.IndexByte(s, '\n')
+		if idx < 0 {
+			output.WriteString(s)
+			output.WriteByte('\n')
+			return
+		}
+		output.WriteString(s[:idx])
+		output.WriteByte('\n')
+		s = s[idx+1:]
+	}
 }
