@@ -1,8 +1,8 @@
 package oops
 
 import (
-	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -166,8 +166,7 @@ func getSourceFromFrame(frame oopsStacktraceFrame) []string {
 
 		line := lines[i]
 
-		// Format the line with line number
-		message := fmt.Sprintf("%d\t%s", i+1, line)
+		message := strconv.Itoa(i+1) + "\t" + line
 		output = append(output, message)
 
 		// Add visual indicator for the error line

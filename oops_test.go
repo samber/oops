@@ -1756,3 +1756,63 @@ func TestOopsJoinNilHandling(t *testing.T) {
 	result2 := Join(nil, nil)
 	is.NoError(result2)
 }
+
+// TestOopsSourceFragmentsVisible verifies that ToMap, LogValue and
+// formatVerbose include the "sources" entry when SourceFragmentsHidden is
+// false, and that its content matches OopsError.Sources().
+func TestOopsSourceFragmentsVisible(t *testing.T) { //nolint:paralleltest
+	// Modifies the global SourceFragmentsHidden flag — do not run in parallel.
+	is := assert.New(t)
+
+	original := SourceFragmentsHidden
+	SourceFragmentsHidden = false
+	defer func() { SourceFragmentsHidden = original }()
+
+	err := New("boom")
+	oopsErr := err.(OopsError)
+
+	sources := oopsErr.Sources()
+	is.NotEmpty(sources, "Sources() should be non-empty when SourceFragmentsHidden is false")
+
+	m := oopsErr.ToMap()
+	is.Equal(sources, m["sources"])
+
+	group := oopsErr.LogValue().Group()
+	var got string
+	var found bool
+	for _, a := range group {
+		if a.Key == "sources" {
+			found = true
+			got = a.Value.String()
+		}
+	}
+	is.True(found, "expected a 'sources' attr in LogValue when SourceFragmentsHidden is false")
+	is.Equal(sources, got)
+
+	verbose := oopsErr.formatVerbose()
+	is.Contains(verbose, "Sources:\n"+sources)
+}
+
+// TestOopsSourceFragmentsHiddenByDefault verifies that ToMap, LogValue and
+// formatVerbose omit "sources" when SourceFragmentsHidden is true (the
+// default), even though the error carries a resolvable stacktrace.
+//
+// Not parallel: asserts on the SourceFragmentsHidden default, which
+// TestOopsSourceFragmentsVisible flips for its own duration.
+func TestOopsSourceFragmentsHiddenByDefault(t *testing.T) { //nolint:paralleltest
+	is := assert.New(t)
+
+	is.True(SourceFragmentsHidden, "this test assumes the package default")
+
+	err := New("boom")
+	oopsErr := err.(OopsError)
+
+	_, hasSources := oopsErr.ToMap()["sources"]
+	is.False(hasSources)
+
+	for _, a := range oopsErr.LogValue().Group() {
+		is.NotEqual("sources", a.Key)
+	}
+
+	is.NotContains(oopsErr.formatVerbose(), "Sources:")
+}

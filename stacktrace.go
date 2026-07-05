@@ -1,7 +1,6 @@
 package oops
 
 import (
-	"fmt"
 	"reflect"
 	"runtime"
 	"slices"
@@ -386,10 +385,7 @@ func framesToStacktraceBlocks(blocks []outputBlock) []string {
 			firstFrame = false
 		}
 
-		stacktraceStr := strings.Join(frameLines, "\n")
-		block := fmt.Sprintf("%s\n%s", msg, stacktraceStr)
-
-		output = append(output, block)
+		output = append(output, msg+"\n"+strings.Join(frameLines, "\n"))
 	}
 
 	slices.Reverse(output)
@@ -404,7 +400,7 @@ func framesToSourceBlocks(blocks []outputBlock) []string {
 		header, body := st.Source()
 
 		if b.msg != "" {
-			header = fmt.Sprintf("%s\n%s", b.msg, header)
+			header = b.msg + "\n" + header
 		}
 
 		if header != "" && len(body) > 0 {
