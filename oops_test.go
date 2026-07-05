@@ -1796,8 +1796,10 @@ func TestOopsSourceFragmentsVisible(t *testing.T) { //nolint:paralleltest
 // TestOopsSourceFragmentsHiddenByDefault verifies that ToMap, LogValue and
 // formatVerbose omit "sources" when SourceFragmentsHidden is true (the
 // default), even though the error carries a resolvable stacktrace.
-func TestOopsSourceFragmentsHiddenByDefault(t *testing.T) {
-	t.Parallel()
+//
+// Not parallel: asserts on the SourceFragmentsHidden default, which
+// TestOopsSourceFragmentsVisible flips for its own duration.
+func TestOopsSourceFragmentsHiddenByDefault(t *testing.T) { //nolint:paralleltest
 	is := assert.New(t)
 
 	is.True(SourceFragmentsHidden, "this test assumes the package default")
