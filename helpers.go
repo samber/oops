@@ -32,6 +32,14 @@ import "errors"
 //	  retryOperation()
 //	}
 func AsOops(err error) (OopsError, bool) {
+	// Fast path: a direct type assertion avoids the reflection cost of
+	// errors.As. Chain traversal helpers (recursive, getDeepestErrorAttribute,
+	// collectMaps) call AsOops once per layer, so this dominates the cost of
+	// every accessor on deeply wrapped errors.
+	if e, ok := err.(OopsError); ok {
+		return e, true
+	}
+
 	var e OopsError
 	ok := errors.As(err, &e)
 	return e, ok
