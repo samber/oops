@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/samber/lo"
 )
@@ -61,6 +62,13 @@ var (
 	// This is determined at package initialization time and used
 	// to identify frames that should be excluded from stack traces.
 	packageName = reflect.TypeOf(fake{}).PkgPath()
+
+	// packageNameExamples and goroot are filtering inputs that never change
+	// at runtime; computing them once here keeps them out of the per-frame
+	// resolution loop (runtime.GOROOT in particular re-reads an env var on
+	// every call).
+	packageNameExamples = packageName + "/examples/"
+	goroot              = runtime.GOROOT()
 )
 
 // oopsStacktraceFrame represents a single frame in a stack trace.
@@ -98,9 +106,80 @@ func (frame *oopsStacktraceFrame) String() string {
 // oopsStacktrace represents a complete stack trace with multiple frames.
 // It contains a span identifier for correlation and an ordered list
 // of stack frames representing the call hierarchy.
+//
+// Program counters are captured eagerly at error-creation time (the stack is
+// gone afterwards), but resolving them into file/function/line strings is
+// deferred to the first read: symbolization via runtime.CallersFrames is the
+// dominant cost of error creation, and most errors are created, checked
+// against nil, and discarded without their stack trace ever being formatted.
 type oopsStacktrace struct {
-	span   string                // Unique identifier for the stack trace
+	span string
+
+	// pcs holds the raw program counters captured by runtime.Callers,
+	// consumed (and set to nil) by resolve on first access.
+	pcs []uintptr
+	// maxDepth snapshots StackTraceMaxDepth at capture time so a later
+	// change of the global does not alter already-captured traces.
+	maxDepth int
+
+	once   sync.Once
 	frames []oopsStacktraceFrame // Ordered list of stack frames (most recent first)
+}
+
+// resolvedFrames symbolizes the captured program counters on first call and
+// returns the filtered frames. Safe for concurrent use.
+func (st *oopsStacktrace) resolvedFrames() []oopsStacktraceFrame {
+	st.once.Do(st.resolve)
+	return st.frames
+}
+
+// resolve converts raw program counters into filtered, display-ready frames.
+// It applies the same filtering rules that previously ran at capture time:
+// frames from GOROOT and from this package are excluded (except examples and
+// tests), and at most maxDepth frames are kept.
+func (st *oopsStacktrace) resolve() {
+	if len(st.pcs) == 0 {
+		return
+	}
+
+	frames := make([]oopsStacktraceFrame, 0, st.maxDepth)
+
+	// Iterate over the captured frames
+	iter := runtime.CallersFrames(st.pcs)
+	for len(frames) < st.maxDepth {
+		frame, more := iter.Next()
+
+		// Clean up the file path by removing Go path prefixes
+		file := removeGoPath(frame.File)
+
+		// Apply frame filtering logic
+		isGoPkg := len(goroot) > 0 && strings.Contains(file, goroot) // skip frames in GOROOT if it's set
+		isOopsPkg := strings.Contains(file, packageName)             // skip frames in this package
+		isExamplePkg := strings.Contains(file, packageNameExamples)  // do not skip frames in this package examples
+		isTestPkg := strings.Contains(file, "_test.go")              // do not skip frames in tests
+
+		// Include frame if it passes all filtering criteria
+		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) {
+			frames = append(frames, oopsStacktraceFrame{
+				pc: frame.PC,
+				// Extract a short, readable function name — only for frames
+				// that are kept, since the runtime/oops frames filtered out
+				// above would pay the string processing for nothing.
+				function:    shortFuncName(frame.Function),
+				file:        file,
+				line:        frame.Line,
+				rawFile:     frame.File,
+				rawFunction: frame.Function,
+			})
+		}
+
+		if !more {
+			break
+		}
+	}
+
+	st.frames = frames
+	st.pcs = nil
 }
 
 // Error implements the error interface for stack traces.
@@ -136,7 +215,7 @@ func (st *oopsStacktrace) String(deepestFrame string) string {
 	}
 
 	// Iterate through all frames and format them
-	for _, frame := range st.frames {
+	for _, frame := range st.resolvedFrames() {
 		if frame.file != "" {
 			currentFrame := frame.String()
 
@@ -170,11 +249,12 @@ func (st *oopsStacktrace) String(deepestFrame string) string {
 //   - header: Formatted string like "main.go:42 main()"
 //   - body: Slice of strings containing source code lines with line numbers
 func (st *oopsStacktrace) Source() (string, []string) {
-	if len(st.frames) == 0 {
+	frames := st.resolvedFrames()
+	if len(frames) == 0 {
 		return "", []string{}
 	}
 
-	firstFrame := st.frames[0]
+	firstFrame := frames[0]
 
 	header := firstFrame.String()
 	body := getSourceFromFrame(firstFrame)
@@ -201,59 +281,21 @@ func (st *oopsStacktrace) Source() (string, []string) {
 //
 //	stack := newStacktrace("span-123", 0)
 //	fmt.Println(stack.String(""))
-//
-// @TODO: filtering should be done lazily, not at creation time.
 func newStacktrace(span string, skip int) *oopsStacktrace {
-	frames := make([]oopsStacktraceFrame, 0, StackTraceMaxDepth)
-
 	// Capture all program counters in a single batch call.
 	// The buffer must be large enough to hold the desired user frames PLUS the
-	// oops-internal and runtime frames that will be filtered out during iteration.
-	// Cap at 512 to avoid huge allocations when StackTraceMaxDepth is set to a
-	// very large value.
+	// oops-internal and runtime frames that will be filtered out during
+	// resolution. Cap at 512 to avoid huge allocations when StackTraceMaxDepth
+	// is set to a very large value.
 	bufSize := min(StackTraceMaxDepth*3+20, 512)
 	pcs := make([]uintptr, bufSize)
 	n := runtime.Callers(1+skip, pcs)
-	pcs = pcs[:n]
 
-	// Define package name patterns for filtering (computed once, outside the loop)
-	packageNameExamples := packageName + "/examples/"
-	goroot := runtime.GOROOT()
-
-	// Iterate over the captured frames
-	iter := runtime.CallersFrames(pcs)
-	for len(frames) < StackTraceMaxDepth {
-		frame, more := iter.Next()
-
-		// Clean up the file path by removing Go path prefixes
-		file := removeGoPath(frame.File)
-
-		// Apply frame filtering logic
-		isGoPkg := len(goroot) > 0 && strings.Contains(file, goroot) // skip frames in GOROOT if it's set
-		isOopsPkg := strings.Contains(file, packageName)             // skip frames in this package
-		isExamplePkg := strings.Contains(file, packageNameExamples)  // do not skip frames in this package examples
-		isTestPkg := strings.Contains(file, "_test.go")              // do not skip frames in tests
-
-		// Include frame if it passes all filtering criteria
-		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) {
-			frames = append(frames, oopsStacktraceFrame{
-				pc:          frame.PC,
-				function:    shortFuncName(frame.Function),
-				file:        file,
-				line:        frame.Line,
-				rawFile:     frame.File,
-				rawFunction: frame.Function,
-			})
-		}
-
-		if !more {
-			break
-		}
-	}
-
+	// Symbolization and filtering happen lazily in resolve, on first read.
 	return &oopsStacktrace{
-		span:   span,
-		frames: frames,
+		span:     span,
+		pcs:      pcs[:n],
+		maxDepth: StackTraceMaxDepth,
 	}
 }
 
