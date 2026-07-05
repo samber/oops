@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/samber/lo"
@@ -87,12 +88,11 @@ type oopsStacktraceFrame struct {
 //	"main.go:42 main()"
 //	"handler.go:15 processRequest()"
 func (frame *oopsStacktraceFrame) String() string {
-	currentFrame := fmt.Sprintf("%v:%v", frame.file, frame.line)
-	if frame.function != "" {
-		currentFrame = fmt.Sprintf("%v:%v %v()", frame.file, frame.line, frame.function)
+	if frame.function == "" {
+		return frame.file + ":" + strconv.Itoa(frame.line)
 	}
 
-	return currentFrame
+	return frame.file + ":" + strconv.Itoa(frame.line) + " " + frame.function + "()"
 }
 
 // oopsStacktrace represents a complete stack trace with multiple frames.
@@ -228,9 +228,6 @@ func newStacktrace(span string, skip int) *oopsStacktrace {
 		// Clean up the file path by removing Go path prefixes
 		file := removeGoPath(frame.File)
 
-		// Extract a short, readable function name
-		function := shortFuncName(frame.Function)
-
 		// Apply frame filtering logic
 		isGoPkg := len(goroot) > 0 && strings.Contains(file, goroot) // skip frames in GOROOT if it's set
 		isOopsPkg := strings.Contains(file, packageName)             // skip frames in this package
@@ -241,8 +238,8 @@ func newStacktrace(span string, skip int) *oopsStacktrace {
 		if !isGoPkg && (!isOopsPkg || isExamplePkg || isTestPkg) {
 			frames = append(frames, oopsStacktraceFrame{
 				pc:          frame.PC,
+				function:    shortFuncName(frame.Function),
 				file:        file,
-				function:    function,
 				line:        frame.Line,
 				rawFile:     frame.File,
 				rawFunction: frame.Function,

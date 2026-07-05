@@ -5,8 +5,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-
-	"github.com/samber/lo"
 )
 
 ///
@@ -155,8 +153,8 @@ func getSourceFromFrame(frame oopsStacktraceFrame) []string {
 
 	// Calculate the range of lines to extract
 	current := frame.line - 1 // Convert to 0-based index
-	start := lo.Max([]int{0, current - nbrLinesBefore})
-	end := lo.Min([]int{len(lines) - 1, current + nbrLinesAfter})
+	start := max(0, current-nbrLinesBefore)
+	end := min(len(lines)-1, current+nbrLinesAfter)
 
 	output := []string{}
 
