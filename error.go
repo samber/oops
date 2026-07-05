@@ -2,6 +2,7 @@
 package oops
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -632,8 +633,6 @@ func (o OopsError) LogValue() slog.Value { //nolint:gocyclo
 	}
 
 	if len(s.context) > 0 {
-		// Build the []any argument list directly instead of going through
-		// lo.MapToSlice + lo.ToAnySlice, which allocates two intermediate slices.
 		args := make([]any, 0, len(s.context))
 		for k, v := range s.context {
 			args = append(args, slog.Any(k, v))
@@ -893,7 +892,7 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 		dump, e := httputil.DumpRequestOut(s.req.A, s.req.B)
 		if e == nil {
 			output.WriteString("Request:\n")
-			writePrefixedLines(&output, string(dump))
+			writePrefixedLines(&output, dump)
 		}
 	}
 
@@ -901,7 +900,7 @@ func (o *OopsError) formatVerbose() string { //nolint:gocyclo
 		dump, e := httputil.DumpResponse(s.res.A, s.res.B)
 		if e == nil {
 			output.WriteString("Response:\n")
-			writePrefixedLines(&output, string(dump))
+			writePrefixedLines(&output, dump)
 		}
 	}
 
@@ -927,16 +926,20 @@ func (o *OopsError) formatSummary() string {
 // followed by a trailing newline. Equivalent to splitting on "\n", prefixing
 // every element (including a trailing empty one), and joining - but in a
 // single pass without the intermediate slices.
-func writePrefixedLines(output *strings.Builder, s string) {
+//
+// s is taken as []byte rather than string because both callers hold a
+// httputil dump as []byte already; accepting []byte here avoids the
+// string(dump) copy that a string parameter would force at the call site.
+func writePrefixedLines(output *strings.Builder, s []byte) {
 	for {
 		output.WriteString("  * ")
-		idx := strings.IndexByte(s, '\n')
+		idx := bytes.IndexByte(s, '\n')
 		if idx < 0 {
-			output.WriteString(s)
+			output.Write(s)
 			output.WriteByte('\n')
 			return
 		}
-		output.WriteString(s[:idx])
+		output.Write(s[:idx])
 		output.WriteByte('\n')
 		s = s[idx+1:]
 	}
