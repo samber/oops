@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "samber/oops: Structured error handling for Go"
+abstract: >-
+  oops is a Go library for structured error handling. It acts as a drop-in
+  replacement for the standard error type, adding stack traces, source code
+  fragments, structured attributes, error chaining, panic recovery and
+  assertion helpers, with integrations for the major Go logging libraries.
+type: software
+authors:
+  - given-names: Samuel
+    family-names: Berthe
+    email: hello@samuel-berthe.fr
+    orcid: "https://orcid.org/0009-0000-2060-7721"
+doi: 10.5281/zenodo.22071858
+license: MIT
+repository-code: "https://github.com/samber/oops"
+url: "https://github.com/samber/oops"
+date-released: "2023-05-18"
+keywords:
+  - go
+  - golang
+  - error-handling
+  - structured-errors
+  - stacktrace
+  - observability
+  - logging
+  - debugging
+  - panic-recovery
