@@ -1,11 +1,11 @@
 module github.com/samber/oops/examples/segfault
 
-go 1.21
+go 1.23
 
 require (
 	github.com/samber/oops v1.21.0
 	github.com/samber/oops/loggers/logrus v0.0.0-20260409201923-0372e7b9d26f
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.2
 )
 
 require (
