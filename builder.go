@@ -433,7 +433,7 @@ func (b OopsErrorBuilder) WithContext(ctx context.Context, keys ...any) OopsErro
 	for _, k := range keys {
 		switch k := k.(type) {
 		case fmt.Stringer:
-			snap[k.String()] = contextValueOrNil(ctx, k.String())
+			snap[k.String()] = contextValueOrNil(ctx, k)
 		case string:
 			snap[k] = contextValueOrNil(ctx, k)
 		case *string:
