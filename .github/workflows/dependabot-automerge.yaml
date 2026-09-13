@@ -1,9 +1,7 @@
 name: Dependabot automerge
-
 on:
   pull_request:
     types: [opened, synchronize]
-
 jobs:
   automerge:
     runs-on: ubuntu-latest
@@ -14,12 +12,10 @@ jobs:
     steps:
       - name: Fetch Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v3
-
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3 [pinned by action-pin]
       - name: Enable auto-merge for github-actions updates
         if: steps.metadata.outputs.package-ecosystem == 'github_actions'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

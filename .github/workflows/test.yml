@@ -1,13 +1,10 @@
 name: Tests
-
 on:
   push:
     branches:
       - main
   pull_request:
-
 jobs:
-
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -22,34 +19,29 @@ jobs:
           - '1.26'
           - 'stable'
     steps:
-    - uses: actions/checkout@v7
-      with:
-        # we need control over the path, since stacktrace tests rely on it
-        path: github.com/samber/oops
-
-    - name: Set up Go
-      uses: actions/setup-go@v7
-      with:
-        go-version: ${{ matrix.go }}
-
-    - name: Build
-      working-directory: ./github.com/samber/oops
-      run: make build
-
-    - name: Test
-      working-directory: ./github.com/samber/oops
-      run: make test
-
-    - name: Test
-      working-directory: ./github.com/samber/oops
-      run: make coverage
-
-    - name: Codecov
-      uses: codecov/codecov-action@v7
-      with:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7 [pinned by action-pin]
+        with:
+          # we need control over the path, since stacktrace tests rely on it
+          path: github.com/samber/oops
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7 [pinned by action-pin]
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Build
         working-directory: ./github.com/samber/oops
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./cover.out
-        flags: unittests
-        verbose: true
-      if: matrix.go == '1.21'
+        run: make build
+      - name: Test
+        working-directory: ./github.com/samber/oops
+        run: make test
+      - name: Test
+        working-directory: ./github.com/samber/oops
+        run: make coverage
+      - name: Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7 [pinned by action-pin]
+        with:
+          working-directory: ./github.com/samber/oops
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./cover.out
+          flags: unittests
+          verbose: true
+        if: matrix.go == '1.21'
