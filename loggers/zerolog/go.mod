@@ -1,6 +1,6 @@
 module github.com/samber/oops/loggers/zerolog
 
-go 1.23
+go 1.21
 
 replace github.com/samber/oops => ../..
 
