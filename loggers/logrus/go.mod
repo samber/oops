@@ -1,12 +1,12 @@
 module github.com/samber/oops/loggers/logrus
 
-go 1.21
+go 1.23
 
 replace github.com/samber/oops => ../..
 
 require (
 	github.com/samber/oops v0.0.0
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/goleak v1.3.0
 )

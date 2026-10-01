@@ -1,6 +1,6 @@
 module github.com/samber/oops/examples/log
 
-go 1.21
+go 1.23
 
 require github.com/samber/oops v1.21.0
 
