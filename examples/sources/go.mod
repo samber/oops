@@ -1,14 +1,14 @@
 module github.com/samber/oops/examples/sources
 
-go 1.21
+go 1.26.0
 
 require github.com/samber/oops v1.21.0
 
 require (
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/oklog/ulid/v2 v2.1.2 // indirect
 	github.com/samber/lo v1.53.0 // indirect
-	github.com/stretchr/testify v1.12.1 // indirect
-	go.opentelemetry.io/otel v1.29.0 // indirect
-	go.opentelemetry.io/otel/trace v1.29.0 // indirect
+	go.opentelemetry.io/otel v1.47.0 // indirect
+	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 )
